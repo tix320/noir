@@ -36,3 +36,16 @@
     transform: rotate(360deg);
   }
 }
+
+#main-screen {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background-image: url("./background.jpg");
+  background-size: cover;
+
+}
+
+#main-screen > * {
+  color: #49a1e3;
+}

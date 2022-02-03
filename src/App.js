@@ -15,13 +15,13 @@ export default class App extends Component {
     componentDidMount() {
         const token = retrieveToken();
         if (token) {
-            this.login(token)
+            this.login(token, false)
         }
     }
 
-    login = (token) => {
+    login = (token, saveToken) => {
         connect(token).then(user => {
-            storeToken(token)
+            storeToken(token, saveToken)
             this.setState({user})
         }).catch(reason => {
             console.error(reason);
@@ -33,16 +33,13 @@ export default class App extends Component {
 
     render() {
         const user = this.state.user;
-        if (user) {
-            return (
-                <UserContext.Provider value={user}>
-                    <MainScreen/>
-                </UserContext.Provider>
-            );
-        } else {
-            return (
-                <LoginScreen onLogin={this.login}/>
-            );
-        }
+
+        return (
+            <UserContext.Provider value={user}>
+                <div id='main-screen'>
+                    {user ? <MainScreen/> : <LoginScreen onLogin={this.login}/>}
+                </div>
+            </UserContext.Provider>
+        );
     }
 }

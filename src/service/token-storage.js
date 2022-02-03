@@ -1,11 +1,13 @@
 export function retrieveToken() {
-    return localStorage.getItem("token");
+  return sessionStorage.getItem("token") || localStorage.getItem("token");
 }
 
-export function storeToken(token) {
-    localStorage.setItem("token", token);
+export function storeToken(token, permanent) {
+    const storage = permanent ? localStorage : sessionStorage;
+    storage.setItem("token", token);
 }
 
 export function removeToken() {
-    return localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    localStorage.removeItem("token");
 }

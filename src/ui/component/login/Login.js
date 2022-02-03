@@ -1,26 +1,23 @@
 import {Component} from "react";
 import "./Login.scss";
 import loginImg from "./spy-logo.png";
+import {Button, Checkbox} from "@mui/material";
 
 export class LoginScreen extends Component {
 
     constructor(props, context) {
         super(props, context);
         this.state = {
-            token: ""
+            token: "",
+            saveToken: false
         }
 
-        this.validateForm = this.validateForm.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
-    }
-
-    validateForm() {
-        return this.state.token;
     }
 
     handleSubmit(event) {
         event.preventDefault();
-        this.props.onLogin(this.state.token)
+        this.props.onLogin(this.state.token, this.state.saveToken)
     }
 
     render() {
@@ -35,12 +32,17 @@ export class LoginScreen extends Component {
                             <input type="text" name="token" placeholder="Token"
                                    onChange={(e) => this.setState({token: e.target.value})}/>
                         </div>
+                        <div className="form-check">
+                            <Checkbox onChange={(e) => this.setState({saveToken: e.target.checked})} />
+                            <label className="form-check-label" htmlFor="flexCheckChecked">
+                                Save token
+                            </label>
+                        </div>
                     </div>
                 </div>
+
                 <div className="footer">
-                    <button type="button" className="btn" disabled={!this.validateForm()} onClick={this.handleSubmit}>
-                        Login
-                    </button>
+                    <Button variant="contained" onClick={this.handleSubmit}>Login</Button>
                 </div>
             </div>
         );

@@ -1,11 +1,18 @@
 import {Component} from "react";
 import {UserContext} from "../../user-context";
+import "./Main.css";
+import {Profile} from "./profile/Profile";
 
 export class MainScreen extends Component {
 
     static contextType = UserContext
 
     render() {
-        return <h1>Logged in {this.context.name}</h1>;
+        return (
+            <div  >
+                <Profile id="profile" />
+                <button className="img">Play</button>
+            </div>
+        );
     }
 }
