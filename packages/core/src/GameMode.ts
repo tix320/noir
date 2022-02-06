@@ -1,0 +1,5 @@
+export enum GameMode {
+    KILLER_VS_INSPECTOR = "KILLER_VS_INSPECTOR",
+    MAFIA_VS_FBI = "MAFIA_VS_FBI"
+}
+ 
