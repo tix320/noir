@@ -1,9 +1,11 @@
-export class User {
-    id
-    name
-    currentGame
+import Game from "./Game";
 
-    constructor(id, name) {
+export class User {
+    readonly id: string
+    readonly name: string
+    currentGame: Game
+
+    constructor(id: string, name: string) {
         this.id = id;
         this.name = name;
     }

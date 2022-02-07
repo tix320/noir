@@ -5,23 +5,24 @@ import React from "react";
 import API from "../../../service/Api";
 import { Subject, takeUntil } from "rxjs";
 import { Game } from "../../../entity/Game";
+import { GameState } from "@tix320/noir-core";
+import { connect } from "react-redux";
+import store, { currentGameChanged } from "../../../service/Store";
 
 type Props = {
-    onGameJoin(game: Game): void
+    currentGame: Game
 }
 
 type State = {
     games: Array<Game>,
-    selectedGame: Game
 }
 
-export class GameJoinComponent extends Component<Props, State> {
+class GameJoinComponent extends Component<Props, State> {
 
     destroy$ = new Subject();
 
     state: State = {
         games: [],
-        selectedGame: null
     }
 
     componentDidMount() {
@@ -33,22 +34,30 @@ export class GameJoinComponent extends Component<Props, State> {
     }
 
     componentWillUnmount() {
-        // this.destroy$.next();
+        this.destroy$.next(null);
         this.destroy$.complete();
     }
 
-    joinGame = (game) => {
-        this.setState({
-            selectedGame: game
-        })
+    joinGame = (game: Game) => {
+        store.dispatch(currentGameChanged(game));
     }
 
     render() {
-        const selectedGame = this.state.selectedGame;
-        if (selectedGame) {
-            return <GamePreparationComponent game={selectedGame} />;
+        const currentGame = this.props.currentGame
+
+        if (currentGame && currentGame.state === GameState.PREPARING) {
+            return <GamePreparationComponent game={currentGame} />;
         } else {
             return <LobbyComponent games={this.state.games} onGameJoin={this.joinGame} />;
         }
     }
 }
+
+function mapStateToProps(state) {
+    const currentGame = state.currentGame;
+    return {
+        currentGame,
+    };
+}
+
+export default connect(mapStateToProps)(GameJoinComponent);

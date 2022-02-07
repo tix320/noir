@@ -8,10 +8,6 @@ class UserService {
     removeConnectedUser(user) {
         delete this.connectedUsers[user.id]
     }
-
-    getCurrentGame(user) {
-        return user.currentGame
-    }
 }
 
 export default new UserService();

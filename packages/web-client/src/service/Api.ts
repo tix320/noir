@@ -16,7 +16,7 @@ class API {
 
         return new Promise((resolve, reject) => {
             this.socket.once('connect', () => {
-                this.socket.emit("user", token, (user) => {
+                this.socket.emit("myUser", (user: User) => {
                     resolve(user);
                 })
             });
@@ -25,14 +25,6 @@ class API {
                 reject(err)
             })
         })
-    }
-
-    getCurrentGame(): Promise<Game> {
-        return new Promise(resolve => {
-            this.socket.emit("currentGame", (game) => {
-                resolve(game);
-            });
-        });
     }
 
     createGame(gameDetails): Promise<Game> {
@@ -60,7 +52,14 @@ class API {
             }
         );
     }
-}
 
+    joinGame(gameId: string, ready: boolean): Promise<void> {
+        return new Promise<void>(resolve => {
+            this.socket.emit("joinGame", gameId, ready, () => {
+                resolve();
+            });
+        });
+    }
+}
 
 export default new API();

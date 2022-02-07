@@ -1,7 +1,6 @@
 import React from "react";
 import { Component } from "react";
 import { GameCard } from "./game-card/GameCard";
-import _ from "lodash";
 import { Game } from "../../../entity/Game";
 
 type Props = {
@@ -15,7 +14,7 @@ type State = {
 
 export class GameSelectionComponent extends Component<Props, State> {
 
-    selectGame = (game)=>{
+    selectGame = (game) => {
         this.props.onGameSelect(game);
     }
 
@@ -30,10 +29,9 @@ export class GameSelectionComponent extends Component<Props, State> {
             <div>
                 <h1>Games</h1>
                 {
-                games.map(game => {
-                    const selGame: () => void = _.curry(this.selectGame, 2)(game) as any;
-                    return <GameCard key={game.id} game={game} onJoin={selGame} />
-                })
+                    games.map(game => {
+                        return <GameCard key={game.id} game={game} onJoin={() => this.selectGame(game)} />
+                    })
                 }
             </div>
         );

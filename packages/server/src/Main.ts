@@ -1,7 +1,10 @@
-import {Server} from "socket.io";
+import { Server } from "socket.io";
 import { USERS_BY_TOKEN } from "./UserTokens";
 import USER_SERVICE from "./UserService";
 import GAME_SERVICE from "./GameService";
+import Game from "./Game";
+import { User } from "./user";
+const { instrument } = require("@socket.io/admin-ui");
 
 const io = new Server({
     cors: {
@@ -10,7 +13,7 @@ const io = new Server({
 });
 
 io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake.auth.token || socket.handshake.auth.password;
 
     const user = USERS_BY_TOKEN[token];
     if (user) {
@@ -31,28 +34,67 @@ io.use((socket, next) => {
 
 
 
+function gameResponse(game: Game) {
+    return ({
+        ...game,
+        currentPlayersCount: game.getPlayersCount(),
+        mode: game.mode,
+        state: game.getState().getType()
+    })
+}
+
+function gamesResponse(games: Map<string, Game>) {
+    return Array.from(games.values()).map(game => gameResponse(game));
+}
+
+function userResponse(user: User) {
+    return {
+        ...user,
+        currentGame: user.currentGame && gameResponse(user.currentGame)
+    }
+}
+
+function publishGames() {
+    console.log(GAME_SERVICE.getGames());
+    io.to("gamesStream").emit("gamesStream", gamesResponse(GAME_SERVICE.getGames()));
+}
+
 io.on("connection", (socket) => {
     const token = socket.handshake.auth.token;
 
     const user = USERS_BY_TOKEN[token];
 
-    socket.on('user', (token, cb) => {
-        cb(user)
-    });
-
-    socket.on('currentGame', (cb) => {
-        cb(USER_SERVICE.getCurrentGame(user));
+    socket.on('myUser', (cb) => {
+        const response = userResponse(user);
+        cb(response);
     });
 
     socket.on('createGame', (gameDetails, cb) => {
-        cb(GAME_SERVICE.createGame(user, gameDetails));
-        io.to("gamesStream").emit("gamesStream", GAME_SERVICE.getGames());
+        const game = GAME_SERVICE.createGame(user, gameDetails);
+
+        const response = gameResponse(game);
+        cb(response);
+
+        publishGames();
+    });
+
+    socket.on('joinGame', (gameId, ready, cb) => {
+        const game = GAME_SERVICE.joinGame(user, gameId, ready);
+        cb();
+
+        publishGames();
+    });
+
+    socket.on('leaveGame', (gameId, ready, cb) => {
+        GAME_SERVICE.leaveGame(user, gameId, ready);
+        cb();
+
+        publishGames();
     });
 
     socket.on('gamesStream', () => {
         socket.join("gamesStream");
-        console.log(GAME_SERVICE.getGames());
-        socket.emit("gamesStream", GAME_SERVICE.getGames())
+        socket.emit("gamesStream", gamesResponse(GAME_SERVICE.getGames()))
     })
 });
 

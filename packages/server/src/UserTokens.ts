@@ -14,7 +14,7 @@ export const USERS = [
     new User("ac64dc8f-2e56-4856-8719-9ee63b2e5a63", "Reserved"),
 ]
 
-export const USERS_BY_TOKEN = USERS.reduce(function (map, user) {
+export const USERS_BY_TOKEN = USERS.reduce((map, user) => {
     map[user.id] = user;
     return map;
 }, {});

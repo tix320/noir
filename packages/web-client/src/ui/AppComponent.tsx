@@ -1,20 +1,21 @@
 import './App.css';
 import React, { Component } from "react";
-import { MainComponent } from "./component/main/MainComponent";
+import MainComponent from "./component/main/MainComponent";
 import { LoginComponent } from "./component/login/LoginComponent";
-import { UserContext } from "../service/UserContext";
+import { connect } from "react-redux";
 import API from "../service/Api";
 import { removeToken, retrieveToken, storeToken } from "../service/TokenStorage";
 import { User } from '../entity/User';
+import store, { currentGameChanged, userChanged } from '../service/Store';
 
 type Props = {
+    user: User
 }
 
 type State = {
-    user?: User
 }
 
-export default class AppComponent extends Component<Props, State> {
+class AppComponent extends Component<Props, State> {
 
     state: State = {};
 
@@ -25,10 +26,11 @@ export default class AppComponent extends Component<Props, State> {
         }
     }
 
-    login = (token, saveToken) => {
+    login = (token: string, saveToken: boolean) => {
         API.connect(token).then(user => {
             storeToken(token, saveToken)
-            this.setState({ user })
+            store.dispatch(userChanged(user))
+            store.dispatch(currentGameChanged(user.currentGame))
         }).catch(reason => {
             console.error(reason);
             if (reason.message === 'Invalid token') {
@@ -38,14 +40,21 @@ export default class AppComponent extends Component<Props, State> {
     }
 
     render() {
-        const user = this.state.user;
+        const user = this.props.user;
 
         return (
-            <UserContext.Provider value={user}>
-                <div id='main-screen'>
-                    {user ? <MainComponent /> : <LoginComponent onLogin={this.login} />}
-                </div>
-            </UserContext.Provider>
+            <div id='main-screen'>
+                {user ? <MainComponent /> : <LoginComponent onLogin={this.login} />}
+            </div>
         );
     }
 }
+
+function mapStateToProps(state) {
+    const user = state.user;
+    return {
+        user,
+    };
+}
+
+export default connect(mapStateToProps)(AppComponent);

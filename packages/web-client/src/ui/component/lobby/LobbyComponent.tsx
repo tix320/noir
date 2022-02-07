@@ -4,6 +4,7 @@ import { Button } from "react-bootstrap";
 import { Game } from "../../../entity/Game";
 import { GameCreationComponent } from "./GameCreationComponent";
 import { GameSelectionComponent } from "./GameSelectionComponent";
+import API from "../../../service/Api";
 
 type Props = {
     games: Array<Game>,
@@ -20,8 +21,9 @@ export class LobbyComponent extends Component<Props, State> {
         creatingGame: false
     }
 
-    joinGame = (game) => {
-        this.props.onGameJoin(game);
+    joinGame = (game: Game) => {
+       
+        API.joinGame(game.id, false).then(() => this.props.onGameJoin(game));
     }
 
     createGame = () => {

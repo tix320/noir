@@ -1,5 +1,4 @@
-import {Component} from "react";
-import {UserContext} from "../../../service/UserContext";
+import { Component } from "react";
 import { Game } from "../../../entity/Game";
 import React from "react";
 
@@ -10,15 +9,13 @@ type Props = {
 type State = {
 }
 
-export class GameComponent extends Component<Props, State> {
-
-    static contextType = UserContext
+export default class GameComponent extends Component<Props, State> {
 
     render() {
 
         return (
             <div>
-                <h1>Game</h1>
+                <h1>Game {this.props.game.mode}</h1>
             </div>
         );
     }

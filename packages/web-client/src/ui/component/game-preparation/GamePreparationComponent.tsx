@@ -1,3 +1,4 @@
+import React from "react";
 import {Component} from "react";
 import { Game } from "../../../entity/Game";
 
@@ -9,10 +10,6 @@ type State = {
 }
 
 export class GamePreparationComponent extends Component<Props, State> {
-
-    constructor(props) {
-        super(props);
-    }
 
     render() {
 
