@@ -1,6 +1,9 @@
 import { Component } from "react";
 import { Game } from "../../../entity/Game";
 import React from "react";
+import PlayersPlaceComponent from "./PlayersPlaceComponent";
+import ArenaComponent from "./ArenaComponent";
+import ActionsComponent from "./ActionsComponent";
 
 type Props = {
     game: Game
@@ -15,7 +18,15 @@ export default class GameComponent extends Component<Props, State> {
 
         return (
             <div>
-                <h1>Game {this.props.game.mode}</h1>
+                <PlayersPlaceComponent  className="enemySpace" hidden={true} cards={[]} />
+
+                <ArenaComponent className="arena" />
+
+                <ActionsComponent className="actions" />
+
+                <PlayersPlaceComponent className="frinedSpace" hidden={false} cards={[]} />
+
+                <div className="workingArea"></div>
             </div>
         );
     }

@@ -2,7 +2,7 @@ import React from "react";
 import { Component } from "react";
 import { Button, Form } from "react-bootstrap";
 import "./Login.scss";
-import loginImg from "./spy-logo.png";
+import loginImg from "../../images/spy-logo.png";
 
 type Props = {
     onLogin(token: string, permanent: boolean): void

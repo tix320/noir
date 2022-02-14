@@ -1,10 +1,9 @@
-import React from "react";
 import { Component } from "react";
 import { Button, Card } from "react-bootstrap";
 import { Game } from "../../../../entity/Game";
 import {GameMode} from '@tix320/noir-core';
-import OneVSOneImg from "./1VS1.png";
-import teamVSteamImg from "./teamVSteam.png";
+import OneVSOneImg from "../../../images/mode/1VS1.png";
+import teamVSteamImg from "../../../images/mode/teamVSteam.png";
 
 
 const images = {

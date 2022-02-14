@@ -2,9 +2,8 @@ import { Server } from "socket.io";
 import { USERS_BY_TOKEN } from "./UserTokens";
 import USER_SERVICE from "./UserService";
 import GAME_SERVICE from "./GameService";
-import Game from "./Game";
+import Game from "./game/Game";
 import { User } from "./user";
-const { instrument } = require("@socket.io/admin-ui");
 
 const io = new Server({
     cors: {
@@ -78,8 +77,8 @@ io.on("connection", (socket) => {
         publishGames();
     });
 
-    socket.on('joinGame', (gameId, ready, cb) => {
-        const game = GAME_SERVICE.joinGame(user, gameId, ready);
+    socket.on('joinGame', (gameId, role, cb) => {
+        const game = GAME_SERVICE.joinGame(user, gameId, role);
         cb();
 
         publishGames();

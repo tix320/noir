@@ -1,8 +1,7 @@
 import { Component } from "react";
 import "./Profile.css";
 import Avatar from 'react-avatar';
-import React from "react";
-import avatarImg from "./avatar.png";
+import avatarImg from "../../../images/avatar.png";
 import { connect } from "react-redux";
 import { User } from "../../../../entity/User";
 
@@ -29,7 +28,6 @@ class ProfileComponent extends Component<Props, State> {
 }
 
 function mapStateToProps(state) {
-    console.log(state)
     const user = state.user;
     return {
         user,

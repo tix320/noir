@@ -1,4 +1,4 @@
-import Game from "./Game";
+import Game from "./game/Game";
 
 export class User {
     readonly id: string
