@@ -81,7 +81,7 @@ class PreparingState extends State {
 
     readonly #onReady: (players: Player[]) => void
 
-    readonly players: Map<User, Role> = new Map();
+    readonly players: Map<User, [Role, boolean]> = new Map();
 
     constructor(game: Game, onReady: (players: Player[]) => void) {
         super(game);
@@ -92,7 +92,7 @@ class PreparingState extends State {
         return GameState.PREPARING;
     }
 
-    public join(user: User, role: Role) {
+    public join(user: User, role: Role, ready: boolean) {
         const minPlayersCount = this.game.allowedPlayersCount.at(0);
         const maxPlayersCount = this.game.allowedPlayersCount.at(-1);
 
@@ -100,18 +100,18 @@ class PreparingState extends State {
             throw new Error("Fully");
         }
 
-        this.players.set(user, role);
+        this.players.set(user, [role, ready]);
 
         if (role && this.readyCount == minPlayersCount) {
-            const players = Array.from(this.players.entries()).map(entry => new Player(entry[0], entry[1]));
+            const players = Array.from(this.players.entries()).map(entry => new Player(entry[0], entry[1][0]));
             this.#onReady(players);
         }
     }
 
     public leave(user: User) {
-        const role = this.players.delete(user);
+        const entry = this.players.delete(user);
 
-        if (role !== undefined) {
+        if (entry !== undefined) {
             // reset ready states
             this.players.forEach((_, player) => {
                 this.players.set(player, null);
@@ -121,8 +121,8 @@ class PreparingState extends State {
 
     private get readyCount() {
         let readyCount = 0;
-        this.players.forEach((role) => {
-            if (role) {
+        this.players.forEach(([role, ready]) => {
+            if (role && ready) {
                 readyCount++;
             }
         }

@@ -1,5 +1,5 @@
-import './App.css';
-import React, { Component } from "react";
+import styles from './App.module.css';
+import  { Component } from "react";
 import MainComponent from "./component/main/MainComponent";
 import { LoginComponent } from "./component/login/LoginComponent";
 import { connect } from "react-redux";
@@ -43,7 +43,7 @@ class AppComponent extends Component<Props, State> {
         const user = this.props.user;
 
         return (
-            <div id='main-screen'>
+            <div className={styles.mainScreen}>
                 {user ? <MainComponent /> : <LoginComponent onLogin={this.login} />}
             </div>
         );

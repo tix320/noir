@@ -4,6 +4,7 @@ import USER_SERVICE from "./UserService";
 import GAME_SERVICE from "./GameService";
 import Game from "./game/Game";
 import { User } from "./user";
+import JoinGameRequest from "@tix320/noir-core/src/dto/JoinGameRequest";
 
 const io = new Server({
     cors: {
@@ -77,8 +78,8 @@ io.on("connection", (socket) => {
         publishGames();
     });
 
-    socket.on('joinGame', (gameId, role, cb) => {
-        const game = GAME_SERVICE.joinGame(user, gameId, role);
+    socket.on('joinGame', (request: JoinGameRequest, cb) => {
+        const game = GAME_SERVICE.joinGame(user, request.gameId, request.role, request.ready);
         cb();
 
         publishGames();

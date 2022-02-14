@@ -19,13 +19,13 @@ class GameService {
         const game = new Game(id, gameDetails.mode);
         this.#games[game.id] = game;
 
-        game.getPreparingState().join(creator, null);
+        game.getPreparingState().join(creator, null, false);
         creator.currentGame = game; // TODO clear after game complete
 
         return game;
     }
 
-    joinGame(user: User, gameId: string, role: Role): Game {
+    joinGame(user: User, gameId: string, role: Role, ready: boolean): Game {
         const game: Game = this.#games[gameId]
         if (!game) {
             throw new Error(`Game with id ${gameId} not found`);
@@ -35,7 +35,7 @@ class GameService {
             throw new Error("Already in another game");
         }
 
-        game.getPreparingState().join(user, role);
+        game.getPreparingState().join(user, role, ready);
         user.currentGame = game; // TODO clear after game complete
 
         return game;

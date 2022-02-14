@@ -1,9 +1,8 @@
 import { Component } from "react";
-import "./Main.css";
+import styles from "./Main.module.css";
 import ProfileComponent from "./profile/ProfileComponent";
 import GameComponent from "../game/GameComponent";
 import GameJoinComponent from "../game-join/GameJoinComponent";
-import React from "react";
 import { GameState } from "@tix320/noir-core";
 import { connect } from "react-redux";
 import { Game } from "../../../entity/Game";
@@ -24,7 +23,7 @@ class MainComponent extends Component<Props, State> {
 
         return (
             <div>
-                <ProfileComponent id="profile" />
+                <ProfileComponent className={styles.profile} />
                 {currentGame && currentGame.state === GameState.PLAYING ? <GameComponent game={currentGame} /> : <GameJoinComponent />}
             </div>
         );

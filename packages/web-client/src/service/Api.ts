@@ -1,3 +1,4 @@
+import JoinGameRequest from "@tix320/noir-core/src/dto/JoinGameRequest";
 import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import { Game } from "../entity/Game";
@@ -53,9 +54,9 @@ class API {
         );
     }
 
-    joinGame(gameId: string, ready: boolean): Promise<void> {
+    joinGame(joinGameRequest: JoinGameRequest): Promise<void> {
         return new Promise<void>(resolve => {
-            this.socket.emit("joinGame", gameId, ready, () => {
+            this.socket.emit("joinGame", joinGameRequest, () => {
                 resolve();
             });
         });

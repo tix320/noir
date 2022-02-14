@@ -1,0 +1,31 @@
+.main{
+    display: flex;
+    flex-direction: column; 
+    height: 90vh;
+}
+
+.selectedRolesContainer{
+width: 100%;
+justify-content: space-between;
+display: flex;
+flex-wrap: wrap;
+text-align: center;
+flex: 0 0 33%;
+
+}
+
+.selectedRoleCard {
+    flex: 2 0 25%;
+}
+
+.avaialbleRolesContainer{
+    width: 100%;
+justify-content: space-between;
+    display: flex;
+    flex-wrap: wrap;
+    text-align: center;
+    flex: 2 0 33%;
+    }
+
+.availableRoleCard {
+}

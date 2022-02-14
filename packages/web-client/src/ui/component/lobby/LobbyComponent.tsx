@@ -22,8 +22,10 @@ export class LobbyComponent extends Component<Props, State> {
     }
 
     joinGame = (game: Game) => {
-       
-        API.joinGame(game.id, false).then(() => this.props.onGameJoin(game));
+
+        API.joinGame({
+            gameId: game.id
+        }).then(() => this.props.onGameJoin(game));
     }
 
     createGame = () => {

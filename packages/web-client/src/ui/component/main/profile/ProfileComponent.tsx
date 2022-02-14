@@ -1,12 +1,12 @@
 import { Component } from "react";
-import "./Profile.css";
+import styles from "./Profile.module.css";
 import Avatar from 'react-avatar';
 import avatarImg from "../../../images/avatar.png";
 import { connect } from "react-redux";
 import { User } from "../../../../entity/User";
 
 type Props = {
-    id: string,
+    className: string,
     user: User
 }
 
@@ -19,9 +19,9 @@ class ProfileComponent extends Component<Props, State> {
         const user = this.props.user;
 
         return (
-            <div id={this.props.id}>
-                <h4><label id='label'>{user.name}</label></h4>
-                <Avatar className="avatar" size="50" src={avatarImg} />
+            <div className={this.props.className}>
+                <h4><label className={styles.label}>{user.name}</label></h4>
+                <Avatar className={styles.avatar} size="50" src={avatarImg} />
             </div>
         );
     }
