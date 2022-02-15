@@ -1,7 +1,6 @@
 import { Role } from "../..";
 
-export default interface prevState {
-    gameId: string,
+export default interface GameRoleRequest {
     role?: Role,
     ready?: boolean
 }

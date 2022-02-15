@@ -1,14 +1,16 @@
-import JoinGameRequest from "@tix320/noir-core/src/dto/JoinGameRequest";
+import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
+import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
+import User from "@tix320/noir-core/src/entity/User";
 import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import { Game } from "../entity/Game";
-import { User } from "../entity/User";
+import store from "./Store";
 
 class API {
 
     socket: Socket
 
-    connect(token): Promise<User> {
+    connect(token: string): Promise<User> {
         this.socket = io("http://localhost:5000", {
             auth: {
                 token: token
@@ -36,30 +38,75 @@ class API {
         });
     }
 
+    joinGame(gameId: string): Promise<void> {
+        return new Promise<void>(resolve => {
+            this.socket.emit("joinGame", gameId, () => {
+                resolve();
+            });
+        });
+    }
+
+    changeGameRole(gameRoleRequest: GameRoleRequest): Promise<void> {
+        return new Promise<void>(resolve => {
+            this.socket.emit("changeGameRole", gameRoleRequest, () => {
+                resolve();
+            });
+        });
+    }
+
+    leaveGame(): Promise<void> {
+        return new Promise<void>(resolve => {
+            this.socket.emit("leaveGame", () => {
+                resolve();
+            });
+        });
+    }
+
     gamesStream(): Observable<Game> {
+        return this.pingAndSubscribeToStream('gamesStream', 'gamesStream');
+    }
+
+    myCurrentGameStream(): Observable<Game> {
+        const user = store.getState().user;
+        return this.pingAndSubscribeToStream('myCurrentGameStream', `myCurrentGameStream_${user.id}`);
+    }
+
+    gamePreparationStream(gameId: string): Observable<GamePreparationState> {
+        return this.pingAndSubscribeToStream('gamePreparationStream', `gamePreparationStream_${gameId}`);
+    }
+
+    private subscribeToStream<T>(subscribeName: string): Observable<T> {
         return new Observable(
             observer => {
-                this.socket.emit("gamesStream");
-
                 const listener = (games) => {
                     observer.next(games)
                 };
 
-                this.socket.on("gamesStream", listener);
+                this.socket.on(subscribeName, listener);
 
                 return () => {
-                    this.socket.off("gamesStream", listener);
+                    this.socket.off(subscribeName, listener);
                 };
             }
         );
     }
 
-    joinGame(joinGameRequest: JoinGameRequest): Promise<void> {
-        return new Promise<void>(resolve => {
-            this.socket.emit("joinGame", joinGameRequest, () => {
-                resolve();
-            });
-        });
+    private pingAndSubscribeToStream<T>(requestName: string, subscribeName: string, ...args: any[]): Observable<T> {
+        return new Observable(
+            observer => {
+                const listener = (games) => {
+                    observer.next(games)
+                };
+
+                this.socket.on(subscribeName, listener);
+
+                this.socket.emit(requestName, ...args);
+
+                return () => {
+                    this.socket.off(subscribeName, listener);
+                };
+            }
+        );
     }
 }
 

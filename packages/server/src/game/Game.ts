@@ -1,18 +1,15 @@
-import { GameMode, GameState, getRandomInt, randomIndexes } from '@tix320/noir-core';
+import { GameMode, GameState, getRandomInt, randomIndexes, Role } from '@tix320/noir-core';
 import { Player } from './Player';
 import { User } from '../user';
 import Action from './mode/Action';
-import Role from './role/Role';
 import GameStrategy from './mode/GameStrategy';
 
 export default class Game {
-    readonly id: string;
     readonly mode: GameMode;
 
     #state: State = new PreparingState(this, (players: Player[]) => this.#state = new PlayingState(this, players, () => this.#state = new CompletedState(this)))
 
-    constructor(id: string, mode: GameMode) {
-        this.id = id;
+    constructor(mode: GameMode) {
         this.mode = mode;
     }
 
@@ -68,16 +65,18 @@ export default class Game {
 }
 
 abstract class State {
+    readonly abstract type: GameState
+
     protected readonly game: Game;
 
     constructor(game: Game) {
         this.game = game;
     }
-
-    abstract getType(): GameState;
 }
 
 class PreparingState extends State {
+
+    readonly type: GameState = GameState.PREPARING
 
     readonly #onReady: (players: Player[]) => void
 
@@ -88,11 +87,15 @@ class PreparingState extends State {
         this.#onReady = onReady;
     }
 
-    getType(): GameState {
-        return GameState.PREPARING;
-    }
-
     public join(user: User, role: Role, ready: boolean) {
+        if (ready && !role) {
+            throw new Error('Cannot be ready without role');
+        }
+
+        if (role && !GameMode.checkRole(this.game.mode, role)) {
+            throw new Error(`There is no role ${role} in game mode ${this.game.mode}`);
+        }
+
         const minPlayersCount = this.game.allowedPlayersCount.at(0);
         const maxPlayersCount = this.game.allowedPlayersCount.at(-1);
 
@@ -121,8 +124,8 @@ class PreparingState extends State {
 
     private get readyCount() {
         let readyCount = 0;
-        this.players.forEach(([role, ready]) => {
-            if (role && ready) {
+        this.players.forEach(([_, ready]) => {
+            if (ready) {
                 readyCount++;
             }
         }
@@ -133,6 +136,8 @@ class PreparingState extends State {
 }
 
 class PlayingState extends State {
+
+    readonly type: GameState = GameState.PLAYING
 
     readonly #onEnd: () => void;
 
@@ -147,10 +152,6 @@ class PlayingState extends State {
         this.#onEnd = onEnd;
     }
 
-    getType(): GameState {
-        return GameState.PLAYING;
-    }
-
     turn(action: Action) {
         this.gameStrategy.doAction(action);
     }
@@ -158,7 +159,5 @@ class PlayingState extends State {
 
 class CompletedState extends State {
 
-    getType(): GameState {
-        return GameState.COMPLETED;
-    }
+    readonly type: GameState = GameState.COMPLETED
 }

@@ -1,17 +1,19 @@
+import User from '@tix320/noir-core/src/entity/User';
 import { createSlice, configureStore } from '@reduxjs/toolkit'
+
+export interface State {
+    user?:User
+}
+
+const initialState : State =  {
+};
 
 const slice = createSlice({
     name: 'store',
-    initialState: {
-        user: null,
-        currentGame: null
-    },
+    initialState,
     reducers: {
         userChanged: (state, action) => {
             state.user = action.payload
-        },
-        currentGameChanged: (state, action) => {
-            state.currentGame = action.payload
         }
     }
 })
@@ -21,4 +23,4 @@ const store = configureStore({
 })
 
 export default store;
-export const { userChanged, currentGameChanged } = slice.actions;
+export const { userChanged } = slice.actions;

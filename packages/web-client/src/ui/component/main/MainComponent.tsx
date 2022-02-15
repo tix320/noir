@@ -1,40 +1,39 @@
-import { Component } from "react";
-import styles from "./Main.module.css";
-import ProfileComponent from "./profile/ProfileComponent";
 import GameComponent from "../game/GameComponent";
-import GameJoinComponent from "../game-join/GameJoinComponent";
 import { GameState } from "@tix320/noir-core";
-import { connect } from "react-redux";
 import { Game } from "../../../entity/Game";
-
-type Props = {
-    currentGame: Game
-}
+import Api from "../../../service/Api";
+import RxComponent from "../common/RxComponent";
+import { takeUntil } from "rxjs";
+import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
+import { LobbyComponent } from "../lobby/LobbyComponent";
 
 type State = {
+    currentGame?: Game
 }
 
-class MainComponent extends Component<Props, State> {
+export default class MainComponent extends RxComponent<{}, State> {
 
     state: State = {}
 
-    render() {
-        const currentGame = this.props.currentGame
+    componentDidMount(): void {
+        Api.myCurrentGameStream().pipe(takeUntil(this.destroy$)).subscribe(game => {
+            this.setState({
+                currentGame: game
+            })
+        })
+    }
 
-        return (
-            <div>
-                <ProfileComponent className={styles.profile} />
-                {currentGame && currentGame.state === GameState.PLAYING ? <GameComponent game={currentGame} /> : <GameJoinComponent />}
-            </div>
-        );
+    render() {
+        const currentGame = this.state.currentGame
+
+        if (currentGame) {
+            if (currentGame.state === GameState.PREPARING) {
+                return <GamePreparationComponent game={currentGame} />;
+            } else {
+                return <GameComponent game={currentGame} />;
+            }
+        } else {
+            return <LobbyComponent />;
+        }
     }
 }
-
-function mapStateToProps(state) {
-    const currentGame = state.currentGame;
-    return {
-        currentGame,
-    };
-}
-
-export default connect(mapStateToProps)(MainComponent);

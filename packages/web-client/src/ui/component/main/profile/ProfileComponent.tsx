@@ -3,7 +3,7 @@ import styles from "./Profile.module.css";
 import Avatar from 'react-avatar';
 import avatarImg from "../../../images/avatar.png";
 import { connect } from "react-redux";
-import { User } from "../../../../entity/User";
+import User from "@tix320/noir-core/src/entity/User";
 
 type Props = {
     className: string,

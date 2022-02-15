@@ -1,34 +1,39 @@
-import React from "react";
-import { Component } from "react";
 import { Button } from "react-bootstrap";
 import { Game } from "../../../entity/Game";
 import { GameCreationComponent } from "./GameCreationComponent";
 import { GameSelectionComponent } from "./GameSelectionComponent";
 import API from "../../../service/Api";
+import RxComponent from "../common/RxComponent";
+import { takeUntil } from "rxjs";
 
 type Props = {
-    games: Array<Game>,
-    onGameJoin(game: Game): void
 }
 
 type State = {
+    games: Array<Game>,
     creatingGame: boolean
 }
 
-export class LobbyComponent extends Component<Props, State> {
+export class LobbyComponent extends RxComponent<Props, State> {
 
     state: State = {
-        creatingGame: false
+        games: [],
+        creatingGame: false,
+    }
+
+    componentDidMount(): void {
+        API.gamesStream()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((games) => {
+                this.setState({ games: Array.from(Object.values(games)) });
+            });
     }
 
     joinGame = (game: Game) => {
-
-        API.joinGame({
-            gameId: game.id
-        }).then(() => this.props.onGameJoin(game));
+        API.joinGame(game.id);
     }
 
-    createGame = () => {
+    switchToGameCreation = () => {
         this.setState({
             creatingGame: true
         })
@@ -39,13 +44,13 @@ export class LobbyComponent extends Component<Props, State> {
 
         if (creatingGame) {
             return (
-                <GameCreationComponent onGameCreate={this.joinGame} />
+                <GameCreationComponent />
             );
         } else {
             return (
                 <div>
-                    <GameSelectionComponent games={this.props.games} onGameSelect={this.joinGame} />
-                    <Button onClick={this.createGame}> Create new game</Button>
+                    <GameSelectionComponent games={this.state.games} onGameSelect={this.joinGame} />
+                    <Button onClick={this.switchToGameCreation}> Create new game</Button>
                 </div>
             );
         }

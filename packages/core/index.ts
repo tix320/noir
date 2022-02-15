@@ -4,4 +4,6 @@ export * from './src/game/Role';
 export * from './src/util/RandUtils'; 
 export * from './src/util/ArrayUtils'; 
 export * from './src/util/Position'; 
-export * from './src/dto/JoinGameRequest';
+export * from './src/dto/GameRoleRequest';
+export * from './src/dto/GamePreparationState';
+export * from './src/entity/User';

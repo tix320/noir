@@ -2,18 +2,17 @@ import { Component } from "react";
 import React from "react";
 import { Button, Form } from "react-bootstrap";
 import API from "../../../service/Api";
-import {GameMode} from '@tix320/noir-core';
+import { GameMode } from '@tix320/noir-core';
 import { Game } from "../../../entity/Game";
 
 type Props = {
-    onGameCreate(game: Game): void
 }
 
 type State = {
     mode: string
 }
 
-export class GameCreationComponent extends Component<Props,State> {
+export class GameCreationComponent extends Component<Props, State> {
 
     state = {
         mode: "0"
@@ -26,10 +25,7 @@ export class GameCreationComponent extends Component<Props,State> {
     }
 
     createGame = () => {
-        API.createGame({ mode: this.state.mode}).then(game => {
-            this.props.onGameCreate(game);
-        });
-       
+        API.createGame({ mode: this.state.mode });
     }
 
     render() {

@@ -1,12 +1,12 @@
 import styles from './App.module.css';
-import  { Component } from "react";
-import MainComponent from "./component/main/MainComponent";
+import { Component } from "react";
 import { LoginComponent } from "./component/login/LoginComponent";
 import { connect } from "react-redux";
 import API from "../service/Api";
 import { removeToken, retrieveToken, storeToken } from "../service/TokenStorage";
-import { User } from '../entity/User';
-import store, { currentGameChanged, userChanged } from '../service/Store';
+import User from '@tix320/noir-core/src/entity/User';
+import store, { userChanged } from '../service/Store';
+import MainComponent from './component/main/MainComponent';
 
 type Props = {
     user: User
@@ -30,7 +30,6 @@ class AppComponent extends Component<Props, State> {
         API.connect(token).then(user => {
             storeToken(token, saveToken)
             store.dispatch(userChanged(user))
-            store.dispatch(currentGameChanged(user.currentGame))
         }).catch(reason => {
             console.error(reason);
             if (reason.message === 'Invalid token') {

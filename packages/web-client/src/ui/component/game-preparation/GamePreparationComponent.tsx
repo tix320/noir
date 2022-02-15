@@ -1,34 +1,42 @@
 import { GameMode, Role } from "@tix320/noir-core";
-import { Component } from "react";
+import { JoinedUserInfo } from "@tix320/noir-core/src/dto/GamePreparationState";
+import User from "@tix320/noir-core/src/entity/User";
+import { connect } from "react-redux";
+import { takeUntil } from "rxjs";
 import { Game } from "../../../entity/Game";
-import { User } from "../../../entity/User";
 import Api from "../../../service/Api";
 import { RoleCard } from "../cards/role/RoleCard";
+import RxComponent from "../common/RxComponent";
 import styles from './GamePreparation.module.css';
 
 type Props = {
+    user: User,
     game: Game,
 }
 
 type State = {
-    avaialbleRoles: Role[],
-    selectedRoles: Map<Role, User>,
+    availableRoles: Role[],
+    selectedRoles: JoinedUserInfo[]
     myRole: Role
 }
 
-export class GamePreparationComponent extends Component<Props, State> {
+class GamePreparationComponent extends RxComponent<Props, State> {
 
     state: State = {
-        avaialbleRoles: [],
-        selectedRoles: new Map([[Role.KILLER, {id:'dsa', name:'Killer',}],[Role.UNDERCOVER, {id:'dsadd', name:'Undercover',}]]),
+        availableRoles: [],
+        selectedRoles: [],
         myRole: null
     }
 
     componentDidMount(): void {
-        const roles = Role.getOfMode(this.props.game.mode);
-        this.setState({
-            avaialbleRoles: roles
-        })
+        const game = this.props.game;
+
+        Api.gamePreparationStream(game.id).pipe(takeUntil(this.destroy$)).subscribe((state) => {
+            this.setState({
+                ...state,
+                myRole: state.selectedRoles.find(joinedUserInfo => this.props.user.id === joinedUserInfo.user.id)[1]
+            })
+        });
     }
 
     selectRole = (selectedRole: Role) => {
@@ -36,17 +44,9 @@ export class GamePreparationComponent extends Component<Props, State> {
             return
         }
 
-        Api.joinGame({
-            gameId: this.props.game.id,
+        Api.changeGameRole({
             role: selectedRole,
             ready: false
-        }).then(() => {
-            this.setState((prevState) => {
-                return {
-                    avaialbleRoles: prevState.avaialbleRoles.filter(role => role !== selectedRole),
-                    myRole: selectedRole
-                }
-            })
         })
     }
 
@@ -62,37 +62,20 @@ export class GamePreparationComponent extends Component<Props, State> {
     }
 
     private renderByMode(mode: GameMode) {
-        const selectedRoles = Array.from(this.state.selectedRoles.entries());
-        console.log(selectedRoles.filter(entry => this.isMafiaRole(entry[0])))
         switch (mode) {
             case GameMode.MAFIA_VS_FBI:
                 return (
                     <div className={styles.main}>
-                        <div className={styles.selectedRolesContainer}>
-                            {selectedRoles.filter(entry => this.isMafiaRole(entry[0])).map(([role, user]) =>
-                                <div>
-                                    <RoleCard className={styles.selectedRoleCard} key={role} role={role}></RoleCard>
-                                    <div>{user.name}</div>
-                                </div>
-                            )
-                            }
-                        </div>
+                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => this.isMafiaRole(role)))}
 
 
                         <div className={styles.avaialbleRolesContainer}>
-                            {this.state.avaialbleRoles.map(role => <RoleCard className={styles.availableRoleCard} key={role} role={role} onClick={this.selectRole} ></RoleCard>)}
+                            {this.state.availableRoles
+                                .map(role => <RoleCard className={styles.availableRoleCard} key={role} role={role} onClick={this.selectRole} ></RoleCard>)}
                         </div>
 
 
-                        <div className={styles.selectedRolesContainer}>
-                            {selectedRoles.filter(entry => this.isFBIRole(entry[0])).map(([role, user]) =>
-                                <div>
-                                    <RoleCard className={styles.selectedRoleCard} key={role} role={role}></RoleCard>
-                                    <div>{user.name}</div>
-                                </div>
-                            )
-                            }
-                        </div>
+                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => this.isFBIRole(role)))}
                     </div>
                 );
             default:
@@ -100,11 +83,33 @@ export class GamePreparationComponent extends Component<Props, State> {
         }
     }
 
+    private renderSelectedRoles(roles: JoinedUserInfo[]) {
+        return (<div className={styles.selectedRolesContainer}>
+            {roles.map(({ role, user, ready }) =>
+                <div key={user.id}>
+                    <RoleCard className={styles.selectedRoleCard} key={role} role={role}></RoleCard>
+                    <div>{user.name}</div>
+                    <div>{ready ? 'Ready' : 'Not ready'}</div>
+                </div>
+            )
+            }
+        </div>);
+    }
+
     private isMafiaRole(role: Role) {
         return [Role.KILLER, Role.BOMBER, Role.PSYCHO, Role.SNIPER].includes(role);
     }
-    
+
     private isFBIRole(role: Role) {
         return [Role.UNDERCOVER, Role.DETECTIVE, Role.SUIT, Role.PROFILER].includes(role);
     }
 }
+
+function mapStateToProps(state) {
+    const user = state.user;
+    return {
+        user,
+    };
+}
+
+export default connect(mapStateToProps)(GamePreparationComponent);

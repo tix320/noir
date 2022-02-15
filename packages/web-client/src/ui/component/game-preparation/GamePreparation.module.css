@@ -6,7 +6,7 @@
 
 .selectedRolesContainer{
 width: 100%;
-justify-content: space-between;
+justify-content: center;
 display: flex;
 flex-wrap: wrap;
 text-align: center;
@@ -20,7 +20,7 @@ flex: 0 0 33%;
 
 .avaialbleRolesContainer{
     width: 100%;
-justify-content: space-between;
+    justify-content: center;
     display: flex;
     flex-wrap: wrap;
     text-align: center;
