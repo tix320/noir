@@ -62,22 +62,22 @@ function userResponse(user: User) {
 }
 
 function gamePreparationResponse(game: Game): GamePreparationState  { // TODO fix this govnocode
-    const players = game.getPreparingState().players;
+    const participants = game.getPreparingState().participants;
 
     let availableRoles = GameMode.rolesOf(game.mode); 
 
     const selectedRoles: JoinedUserInfo[] = [];
 
-    players.forEach(([role, ready], user) => {
+    participants.forEach((participant => {
         selectedRoles.push({
-            user: user,
-            role: role,
-            ready: ready
-        })
+            user: participant.user,
+            role: participant.role,
+            ready: participant.ready
+        });
 
-        availableRoles = availableRoles.filter(r => r !== role);
-    })
-
+        availableRoles = availableRoles.filter(r => r !== participant.role);
+    }));
+    
     return {
         availableRoles,
         selectedRoles
@@ -165,6 +165,9 @@ io.on("connection", (socket) => {
         const game = GameService.getGame(gameId);
 
         const name = GAMES_PREPARATION_STREAM_EVENT(gameId);
+
+        console.log(name);
+        
 
         socket.join(name);
         socket.emit(name, gamePreparationResponse(game));

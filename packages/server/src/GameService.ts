@@ -28,8 +28,8 @@ class GameService {
         const game = new Game(gameDetails.mode);
         this.#games.set(id, game);
 
-        game.getPreparingState().join(creator, null, false);
-        creator.currentGameId = id; // TODO clear after game complete
+        game.getPreparingState().join({user : creator, ready : false});
+        creator.currentGameId = id;
 
         return [id, game];
     }
@@ -41,7 +41,7 @@ class GameService {
             throw new Error("Already in another game");
         }
 
-        game.getPreparingState().join(user, null, false);
+        game.getPreparingState().join({user, ready: false});
         user.currentGameId = gameId;
 
         return game;
@@ -56,7 +56,7 @@ class GameService {
 
         const game: Game = this.getGame(gameId);
 
-        game.getPreparingState().join(user, role, ready);
+        game.getPreparingState().join({user, role, ready});
         user.currentGameId = gameId;
 
         return [gameId, game];
