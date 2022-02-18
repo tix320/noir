@@ -130,8 +130,13 @@ io.on("connection", (socket) => {
             const roomName = GAMES_PREPARATION_STREAM_EVENT(gameId);
             io.to(roomName).emit(roomName, gamePreparationResponse(game));
         } else {
-            const name = MY_CURRENT_GAME_STREAM_EVENT(user.id);
-            io.to(name).emit(name, gameResponse(gameId, game));
+            const gameResp = gameResponse(gameId, game);
+            game.getPlayingState().players.forEach(player => {
+                const userId = player.user.id;
+
+                const name = MY_CURRENT_GAME_STREAM_EVENT(userId);
+                io.to(name).emit(name, gameResp);
+            });
         }
     });
 

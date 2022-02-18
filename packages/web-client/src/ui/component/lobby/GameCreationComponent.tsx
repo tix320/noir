@@ -9,13 +9,13 @@ type Props = {
 }
 
 type State = {
-    mode: string
+    mode: GameMode | '0'
 }
 
 export class GameCreationComponent extends Component<Props, State> {
 
-    state = {
-        mode: "0"
+    state: State = {
+        mode: GameMode.MAFIA_VS_FBI
     }
 
     changeMode = (event) => {
@@ -32,9 +32,8 @@ export class GameCreationComponent extends Component<Props, State> {
 
         return (
             <div>
-                <Form.Select isInvalid={this.state.mode === "0"} onChange={this.changeMode}>
+                <Form.Select isInvalid={this.state.mode === "0"} defaultValue={GameMode.MAFIA_VS_FBI} onChange={this.changeMode}>
                     <option value="0">Choose game mode</option>
-                    <option value={GameMode.KILLER_VS_INSPECTOR}> Killer vs Inspector </option>
                     <option value={GameMode.MAFIA_VS_FBI}>Mafia vs FBI</option>
                 </Form.Select>
 

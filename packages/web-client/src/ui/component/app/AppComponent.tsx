@@ -1,12 +1,12 @@
 import styles from './App.module.css';
 import { Component } from "react";
-import { LoginComponent } from "./component/login/LoginComponent";
+import { LoginComponent } from "../login/LoginComponent";
 import { connect } from "react-redux";
-import API from "../service/Api";
-import { removeToken, retrieveToken, storeToken } from "../service/TokenStorage";
+import API from "../../../service/Api";
+import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
 import User from '@tix320/noir-core/src/entity/User';
-import store, { userChanged } from '../service/Store';
-import MainComponent from './component/main/MainComponent';
+import store, { userChanged } from '../../../service/Store';
+import MainComponent from '../main/MainComponent';
 
 type Props = {
     user: User

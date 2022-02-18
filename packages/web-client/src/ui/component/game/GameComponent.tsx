@@ -18,13 +18,13 @@ export default class GameComponent extends Component<Props, State> {
 
         return (
             <div>
-                <PlayersPlaceComponent  className="enemySpace" hidden={true} cards={[]} />
+                <PlayersPlaceComponent  className="mafiaSpace" hidden={true} cards={[]} />
 
                 <ArenaComponent className="arena" />
 
                 <ActionsComponent className="actions" />
 
-                <PlayersPlaceComponent className="frinedSpace" hidden={false} cards={[]} />
+                <PlayersPlaceComponent className="fbiSpace" hidden={false} cards={[]} />
 
                 <div className="workingArea"></div>
             </div>
