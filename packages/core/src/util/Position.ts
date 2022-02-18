@@ -13,7 +13,7 @@ export default class Position {
 
 
     getNeighbors(bound: number) {
-        const neighbors = [];
+        const neighbors: Position[] = [];
 
         Position.offsets.forEach(offset => {
             const newX = this.x + offset[0];

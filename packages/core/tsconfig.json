@@ -1,8 +1,9 @@
 {
+    "extends": "../../tsconfig.json",
     "compilerOptions": {
         "module": "CommonJS",
         "sourceMap": true,
         "allowSyntheticDefaultImports": true,
-        "moduleResolution": "node"
+        "moduleResolution": "node",
     }
 }

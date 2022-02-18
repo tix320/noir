@@ -1,6 +1,7 @@
 import { GameMode, Role } from "@tix320/noir-core";
 import { JoinedUserInfo } from "@tix320/noir-core/src/dto/GamePreparationState";
 import User from "@tix320/noir-core/src/entity/User";
+import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
 import { takeUntil } from "rxjs";
 import { Game } from "../../../entity/Game";
@@ -17,7 +18,6 @@ type Props = {
 type State = {
     availableRoles: Role[],
     selectedRoles: JoinedUserInfo[]
-    myRole: Role
 }
 
 class GamePreparationComponent extends RxComponent<Props, State> {
@@ -25,7 +25,6 @@ class GamePreparationComponent extends RxComponent<Props, State> {
     state: State = {
         availableRoles: [],
         selectedRoles: [],
-        myRole: null
     }
 
     componentDidMount(): void {
@@ -34,19 +33,21 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         Api.gamePreparationStream(game.id).pipe(takeUntil(this.destroy$)).subscribe((state) => {
             this.setState({
                 ...state,
-                myRole: state.selectedRoles.find(joinedUserInfo => this.props.user.id === joinedUserInfo.user.id)[1]
             })
         });
     }
 
     selectRole = (selectedRole: Role) => {
-        if (this.state.myRole) {
-            return
-        }
-
         Api.changeGameRole({
             role: selectedRole,
             ready: false
+        })
+    }
+
+    changeReadiness = (role: Role, ready: boolean) => {
+        Api.changeGameRole({
+            role: role,
+            ready: ready
         })
     }
 
@@ -66,7 +67,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
             case GameMode.MAFIA_VS_FBI:
                 return (
                     <div className={styles.main}>
-                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => this.isMafiaRole(role)))}
+                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
 
 
                         <div className={styles.avaialbleRolesContainer}>
@@ -75,7 +76,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
                         </div>
 
 
-                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => this.isFBIRole(role)))}
+                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isFBIRole(role)))}
                     </div>
                 );
             default:
@@ -87,9 +88,12 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
-                    <RoleCard className={styles.selectedRoleCard} key={role} role={role}></RoleCard>
+                    <RoleCard className={styles.selectedRoleCard} key={role} role={role!}></RoleCard>
                     <div>{user.name}</div>
-                    <div>{ready ? 'Ready' : 'Not ready'}</div>
+                    <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== this.props.user.id} onClick={() => this.changeReadiness(role!, !ready)}>
+                        {ready ? 'Ready' : 'Not ready'}
+                    </Button>
+                    
                 </div>
             )
             }

@@ -6,6 +6,8 @@ import RxComponent from "../common/RxComponent";
 import { takeUntil } from "rxjs";
 import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
 import { LobbyComponent } from "../lobby/LobbyComponent";
+import ProfileComponent from "./profile/ProfileComponent";
+import styles from "./Main.module.css";
 
 type State = {
     currentGame?: Game
@@ -26,14 +28,22 @@ export default class MainComponent extends RxComponent<{}, State> {
     render() {
         const currentGame = this.state.currentGame
 
+        let content;
         if (currentGame) {
             if (currentGame.state === GameState.PREPARING) {
-                return <GamePreparationComponent game={currentGame} />;
+                content = <GamePreparationComponent game={currentGame} />;
             } else {
-                return <GameComponent game={currentGame} />;
+                content = <GameComponent game={currentGame} />;
             }
         } else {
-            return <LobbyComponent />;
+            content = <LobbyComponent />;
         }
+
+        return (
+            <div>
+                <ProfileComponent className={styles.profile} />
+                {content}
+            </div>
+        );
     }
 }

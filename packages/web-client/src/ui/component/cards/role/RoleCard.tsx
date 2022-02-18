@@ -18,7 +18,9 @@ export class RoleCard extends Component<Props, State> {
     state: State = {}
 
     onClick = () => {
-        this.props.onClick(this.props.role);
+        if (this.props.onClick) {
+            this.props.onClick(this.props.role);
+        }
     }
 
     componentDidMount(): void {

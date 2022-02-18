@@ -3,18 +3,27 @@ import { Player } from './Player';
 import { User } from '../user';
 import Action from './mode/Action';
 import GameStrategy from './mode/GameStrategy';
+import EventEmitter from 'events';
 
 export default class Game {
     readonly mode: GameMode;
 
-    #state: State = new PreparingState(this, (players: Player[]) => this.#state = new PlayingState(this, players, () => this.#state = new CompletedState(this)))
+    #state: State = new PreparingState(this, (players: Player[]) => {
+        this.#state = new PlayingState(this, players, () => {
+            this.#state = new CompletedState(this);
+            this.eventEmmiter.emit('state', GameState.COMPLETED);
+        });
+        this.eventEmmiter.emit('state', GameState.PLAYING);
+    });
+
+    eventEmmiter = new EventEmitter();
 
     constructor(mode: GameMode) {
         this.mode = mode;
     }
 
-    public get allowedPlayersCount(): number[] {
-        return this.allowedPlayersCountByMode(this.mode);
+    public get allowedPlayersSet(): Set<Role>[] {
+        return GameMode.roleSetsOf(this.mode);
     }
 
     public getPlayersCount() {
@@ -46,21 +55,10 @@ export default class Game {
 
     private tryGetState<T extends State>(state: new (..._: any) => T): T {
         if (!(this.#state instanceof state)) {
-            throw new Error(`Not in state ${state}. Current: ${this.#state}`);
+            throw new Error(`Not in state ${state.name}. Current: ${this.#state.type}`);
         }
 
         return this.#state;
-    }
-
-    private allowedPlayersCountByMode(mode: GameMode): number[] {
-        switch (mode) {
-            case GameMode.KILLER_VS_INSPECTOR:
-                return [2];
-            case GameMode.MAFIA_VS_FBI:
-                return [6, 8];
-            default:
-                throw new Error(`Invalid mode ${mode}`);
-        }
     }
 }
 
@@ -92,6 +90,12 @@ class PreparingState extends State {
             throw new Error('Cannot be ready without role');
         }
 
+        const currentParticipant = this.participants.removeFirst(p => participant.user === p.user);
+
+        if (currentParticipant && currentParticipant.role !== participant.role) {
+            this.resetReadiness();
+        }
+
         if (participant.role) {
             if (!GameMode.checkRole(this.game.mode, participant.role)) {
                 throw new Error(`There is no role ${participant.role} in game mode ${this.game.mode}`);
@@ -102,23 +106,19 @@ class PreparingState extends State {
             }
         }
 
-        const minPlayersCount = this.game.allowedPlayersCount.at(0);
-        const maxPlayersCount = this.game.allowedPlayersCount.at(-1);
+        const minPlayersCount = this.game.allowedPlayersSet.at(0)!.size;
+        const maxPlayersCount = this.game.allowedPlayersSet.at(-1)!.size;
 
-        if (!this.participants.find(p => participant.user === p.user) && this.participants.length === maxPlayersCount) {
+        if (this.participants.length === maxPlayersCount) {
             throw new Error("Fully");
         }
 
-        const userIndex = this.participants.findIndex(p => participant.user === p.user);
+        this.participants.push(participant);
 
-        if (userIndex == -1) {
-            this.participants.push(participant);
-        } else {
-            this.participants[userIndex] = participant;
-        }
+        const roles = new Set(this.participants.map(p => p.role)) as Set<Role>;
 
-        if (this.readyCount == minPlayersCount) { // TODO start only if roles is acceptable for this game, exmaple: sniper allowed only in 4vs4 game
-            const players = this.participants.map(participant => new Player(participant.user, participant.role));
+        if (this.readyCount === minPlayersCount && GameMode.matchRoleSet(this.game.mode, roles)) {
+            const players = this.participants.map(participant => new Player(participant.user, participant.role!));
             this.#onReady(players);
         }
     }
@@ -128,8 +128,12 @@ class PreparingState extends State {
 
         if (pariticpant) {
             // reset ready states
-            this.participants.forEach(p => p.ready = false);
+            this.resetReadiness();
         }
+    }
+
+    private resetReadiness() {
+        this.participants.forEach(p => p.ready = false);
     }
 
     private get readyCount() {

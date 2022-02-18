@@ -10,8 +10,8 @@ class GameService {
         return this.#games;
     }
 
-    getGame(gameId: string) {
-        const game = this.#games.get(gameId);
+    getGame(gameId?: string) {
+        const game = this.#games.get(gameId!);
         if (!game) {
             throw new Error(`Game with id ${gameId} not found`);
         }
@@ -47,7 +47,7 @@ class GameService {
         return game;
     }
 
-    changeGameRole(user: User, role: Role, ready: boolean): [string, Game] {
+    changeGameRole(user: User, role: Role | undefined, ready: boolean): [string, Game] {
         const gameId = user.currentGameId;
 
         if (!gameId) {
@@ -85,7 +85,7 @@ class GameService {
                 break;
         }
 
-        user.currentGameId = null;
+        user.currentGameId = undefined;
 
         return [gameId, game];
     }

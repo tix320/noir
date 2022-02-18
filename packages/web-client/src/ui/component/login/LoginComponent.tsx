@@ -1,4 +1,3 @@
-import React from "react";
 import { Component } from "react";
 import { Button, Form } from "react-bootstrap";
 import "./Login.scss";
@@ -49,7 +48,7 @@ export class LoginComponent extends Component<Props, State>  {
                 </div>
 
                 <div className="footer">
-                    <Button variant="contained" onClick={this.handleSubmit}>Login</Button>
+                    <Button variant="primary" onClick={this.handleSubmit}>Login</Button>
                 </div>
             </div>
         );

@@ -68,7 +68,7 @@ class API {
 
     myCurrentGameStream(): Observable<Game> {
         const user = store.getState().user;
-        return this.pingAndSubscribeToStream('myCurrentGameStream', `myCurrentGameStream_${user.id}`);
+        return this.pingAndSubscribeToStream('myCurrentGameStream', `myCurrentGameStream_${user!.id}`);
     }
 
     gamePreparationStream(gameId: string): Observable<GamePreparationState> {

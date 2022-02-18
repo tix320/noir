@@ -1,7 +1,6 @@
+import { Role } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
 import { User } from "../user";
-import Role from "./role/Role";
-import Suspect from "./role/Suspect";
 
 export class Player {
     readonly user: User;

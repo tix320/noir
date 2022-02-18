@@ -6,7 +6,7 @@ import Game from "./game/Game";
 import { User } from "./user";
 import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
 import GameService from "./GameService";
-import { GameMode, JoinedUserInfo } from "@tix320/noir-core";
+import { GameMode, GameState, JoinedUserInfo } from "@tix320/noir-core";
 import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
 
 const io = new Server({
@@ -45,6 +45,7 @@ function gameResponse(gameId: string, game: Game) {
         id: gameId,
         ...game,
         currentPlayersCount: game.getPlayersCount(),
+        maxPlayersCount: game.allowedPlayersSet.at(-1)!.size,
         mode: game.mode,
         state: game.getState().type
     })
@@ -61,10 +62,10 @@ function userResponse(user: User) {
     };
 }
 
-function gamePreparationResponse(game: Game): GamePreparationState  { // TODO fix this govnocode
+function gamePreparationResponse(game: Game): GamePreparationState {
     const participants = game.getPreparingState().participants;
 
-    let availableRoles = GameMode.rolesOf(game.mode); 
+    let availableRoles = GameMode.permittedRolesOf(game.mode);
 
     const selectedRoles: JoinedUserInfo[] = [];
 
@@ -75,12 +76,14 @@ function gamePreparationResponse(game: Game): GamePreparationState  { // TODO fi
             ready: participant.ready
         });
 
-        availableRoles = availableRoles.filter(r => r !== participant.role);
+        if (participant.role) {
+            availableRoles.delete(participant.role);
+        }
     }));
-    
+
     return {
-        availableRoles,
-        selectedRoles
+        availableRoles: Array.from(availableRoles),
+        selectedRoles: selectedRoles
     };
 }
 
@@ -123,8 +126,13 @@ io.on("connection", (socket) => {
         const [gameId, game] = GAME_SERVICE.changeGameRole(user, request.role, request.ready);
         cb(true);
 
-        const roomName = GAMES_PREPARATION_STREAM_EVENT(gameId);
-        io.to(roomName).emit(roomName, gamePreparationResponse(game));
+        if (game.getState().type == GameState.PREPARING) {
+            const roomName = GAMES_PREPARATION_STREAM_EVENT(gameId);
+            io.to(roomName).emit(roomName, gamePreparationResponse(game));
+        } else {
+            const name = MY_CURRENT_GAME_STREAM_EVENT(user.id);
+            io.to(name).emit(name, gameResponse(gameId, game));
+        }
     });
 
     socket.on('leaveGame', (cb) => {
@@ -164,10 +172,7 @@ io.on("connection", (socket) => {
 
         const game = GameService.getGame(gameId);
 
-        const name = GAMES_PREPARATION_STREAM_EVENT(gameId);
-
-        console.log(name);
-        
+        const name = GAMES_PREPARATION_STREAM_EVENT(gameId!);
 
         socket.join(name);
         socket.emit(name, gamePreparationResponse(game));

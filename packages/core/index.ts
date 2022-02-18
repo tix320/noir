@@ -8,3 +8,4 @@ export * from './src/dto/GameRoleRequest';
 export * from './src/dto/GamePreparationState';
 export * from './src/entity/User';
 export * from './src/extension/ArrayExtension';
+export * from './src/extension/SetExtension';
