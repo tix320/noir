@@ -11,7 +11,6 @@ export default class Position {
         this.y = y;
     }
 
-
     getNeighbors(bound: number) {
         const neighbors: Position[] = [];
 

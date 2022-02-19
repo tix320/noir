@@ -1,72 +1,25 @@
-import { shuffle } from "@tix320/noir-core";
+import { Character, Marker } from "@tix320/noir-core";
+import Player from "../logic/Player";
 
-export default class Suspect {
-    readonly name: string;
-    state: 'alive' | 'arested' | 'killed';
-    innocent: boolean;
+export class Suspect {
+    readonly character: Character;
+    player: Player | 'suspect' | 'innocent' | 'arested' | 'killed';
+    markers: Marker[];
 
-    constructor(name: string) {
-        this.name = name;
-        this.state = 'alive';
-        this.innocent = false;
+    constructor(character: Character) {
+        this.character = character;
+        this.player = 'suspect';
+        this.markers = [];
+    }
+
+    toString(): string {
+        return `${this.character}[${this.player}]`;
     }
 }
 
-const SUSPECTS = [
-    "Logan",
-    "Poncho",
-    "Blondie",
-    "Bumper",
-    "Sally",
-    "Jack",
-    "Mcduff",
-    "Lincoln",
-    "Thor",
-    "Stanley",
-    "Rosy",
-    "Buttons",
-    "Yin",
-    "Butter",
-    "Pogo",
-    "Annie",
-    "Macy",
-    "Monty",
-    "Hudson",
-    "Taffy",
-    "Aires",
-    "Mitch",
-    "Flint",
-    "Chico",
-    "Pugsley",
-    "Jagger",
-    "Powder",
-    "Fifi",
-    "Pandora",
-    "Rosa",
-    "Silvester",
-    "Bam-bam",
-    "Sweetie",
-    "Pearl",
-    "Godiva",
-    "Tobie",
-    "Truffles",
-    "Connor",
-    "Weaver",
-    "Latte",
-    "Roxy",
-    "Pirate",
-    "Tom",
-    "Nibby",
-    "Biablo",
-    "Mojo",
-    "Fresier",
-    "Garfield",
-    "Bucko",
-    "Maggie-moo",
-];
+export namespace Suspect {
+    export function generateSet(count: number) {
+        return Character.generateSet(count).map(character => new Suspect(character));
+    }
+}
 
-export function generateSuspectSet(count: number) {
-    shuffle(SUSPECTS);
-
-    return SUSPECTS.slice(0, count).sort().map(suspectName => new Suspect(suspectName));
-} 

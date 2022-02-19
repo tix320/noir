@@ -2,10 +2,16 @@ export { }
 
 declare global {
     interface Array<T> {
+        has(item: T): boolean;
+
         removeFirst(predicate: (element: T) => boolean): T | undefined;
 
         equals(other: Array<T>): boolean;
     }
+}
+
+Array.prototype.has = function <T>(item: T): boolean {
+    return this.filter(elem => elem === item);
 }
 
 Array.prototype.removeFirst = function <T>(predicate: (element: T) => boolean): T | undefined {

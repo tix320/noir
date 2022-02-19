@@ -1,14 +1,14 @@
-import { GameMode, GameState, getRandomInt, randomIndexes, Role } from '@tix320/noir-core';
-import { Player } from './Player';
-import { User } from '../user';
-import Action from './mode/Action';
-import GameStrategy from './mode/GameStrategy';
+import { GameMode, GameState, Role } from '@tix320/noir-core';
 import EventEmitter from 'events';
+import { User } from '../user';
+import GameLogic from './logic/GameLogic';
+import KillerVSInspector from './logic/KillerVSInspector';
+import MafiaVSFBI from './logic/MafiaVSFBI';
 
 export default class Game {
     readonly mode: GameMode;
 
-    #state: State = new PreparingState(this, (players: Player[]) => {
+    #state: State = new PreparingState(this, (players: GamePlayer[]) => {
         this.#state = new PlayingState(this, players, () => {
             this.#state = new CompletedState(this);
             this.eventEmmiter.emit('state', GameState.COMPLETED);
@@ -76,11 +76,11 @@ class PreparingState extends State {
 
     readonly type: GameState = GameState.PREPARING
 
-    readonly #onReady: (players: Player[]) => void
+    readonly #onReady: (players: GamePlayer[]) => void
 
     readonly participants: GameParticipant[] = [];
 
-    constructor(game: Game, onReady: (players: Player[]) => void) {
+    constructor(game: Game, onReady: (players: GamePlayer[]) => void) {
         super(game);
         this.#onReady = onReady;
     }
@@ -118,7 +118,7 @@ class PreparingState extends State {
         const roles = new Set(this.participants.map(p => p.role)) as Set<Role>;
 
         if (this.readyCount === minPlayersCount && GameMode.matchRoleSet(this.game.mode, roles)) {
-            const players = this.participants.map(participant => new Player(participant.user, participant.role!));
+            const players: GamePlayer[] = this.participants.map(participant => ({ user: participant.user, role: participant.role! }));
             this.#onReady(players);
         }
     }
@@ -154,19 +154,26 @@ class PlayingState extends State {
 
     readonly #onEnd: () => void;
 
-    readonly players: Player[];
+    readonly players: GamePlayer[];
 
-    readonly gameStrategy: GameStrategy;
+    readonly #gameLogic: GameLogic;
 
-    constructor(game: Game, players: Player[], onEnd: () => void) {
+    constructor(game: Game, players: GamePlayer[], onEnd: () => void) {
         super(game);
         this.players = players;
-        // this.gameStrategy = GameStrategy.createStrategyByMode(game.mode, players);
+        this.#gameLogic = PlayingState.createStrategyByMode(game.mode, players);
         this.#onEnd = onEnd;
     }
 
-    turn(action: Action) {
-        this.gameStrategy.doAction(action);
+    private static createStrategyByMode(mode: GameMode, players: GamePlayer[]): GameLogic {
+        switch (mode) {
+            case GameMode.KILLER_VS_INSPECTOR:
+                return new KillerVSInspector(players);
+            case GameMode.MAFIA_VS_FBI:
+                return new MafiaVSFBI(players);
+            default:
+                throw new Error(`Invalid mode ${mode}`);
+        }
     }
 }
 
@@ -179,4 +186,9 @@ interface GameParticipant {
     user: User,
     role?: Role,
     ready: boolean
+}
+
+export interface GamePlayer {
+    user: User,
+    role: Role,
 }

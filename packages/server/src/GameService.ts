@@ -78,7 +78,7 @@ class GameService {
                 game.getPreparingState().leave(user);
                 break;
             case GameState.PLAYING:
-                // TODO Complete game immidielty     
+                // TODO: Complete game immidielty     
                 break;
             case GameState.COMPLETED:
                 // Only clear currentGame status 

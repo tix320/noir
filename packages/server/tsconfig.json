@@ -1,8 +1,6 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "target": "ESNext",
-        "module": "commonjs",
         "sourceMap": true,
         "esModuleInterop": true,
     }

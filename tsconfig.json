@@ -1,6 +1,8 @@
 {
     "compilerOptions": {
-       "strictNullChecks": true,
-       "downlevelIteration": true
+        "module": "CommonJS",
+        "target": "ESNext",
+        "strictNullChecks": true,
+        "downlevelIteration": true
     }
 }

@@ -1,7 +1,6 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "module": "ESNext",
         "sourceMap": true,
         "allowSyntheticDefaultImports": true,
         "jsx": "react-jsx",

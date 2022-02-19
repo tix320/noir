@@ -1,4 +1,3 @@
-import Game from "./game/Game";
 
 export class User {
     readonly id: string
@@ -8,5 +7,9 @@ export class User {
     constructor(id: string, name: string) {
         this.id = id;
         this.name = name;
+    }
+
+    equals(other: User) {
+        return this.id === other.id;
     }
 }
