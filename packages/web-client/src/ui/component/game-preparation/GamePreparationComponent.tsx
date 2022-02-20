@@ -1,4 +1,4 @@
-import { GameMode, Role } from "@tix320/noir-core";
+import { Role } from "@tix320/noir-core";
 import { JoinedUserInfo } from "@tix320/noir-core/src/dto/GamePreparationState";
 import User from "@tix320/noir-core/src/entity/User";
 import { Button } from "react-bootstrap";
@@ -57,31 +57,20 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         return (
             <div>
                 <h1>Game prepare {this.props.game.id}</h1>
-                {this.renderByMode(game.mode)}
+                <div className={styles.main}>
+                    {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
+
+
+                    <div className={styles.avaialbleRolesContainer}>
+                        {this.state.availableRoles
+                            .map(role => <RoleCard className={styles.availableRoleCard} key={role} role={role} onClick={this.selectRole} ></RoleCard>)}
+                    </div>
+
+
+                    {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isFBIRole(role)))}
+                </div>
             </div>
         );
-    }
-
-    private renderByMode(mode: GameMode) {
-        switch (mode) {
-            case GameMode.MAFIA_VS_FBI:
-                return (
-                    <div className={styles.main}>
-                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
-
-
-                        <div className={styles.avaialbleRolesContainer}>
-                            {this.state.availableRoles
-                                .map(role => <RoleCard className={styles.availableRoleCard} key={role} role={role} onClick={this.selectRole} ></RoleCard>)}
-                        </div>
-
-
-                        {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isFBIRole(role)))}
-                    </div>
-                );
-            default:
-                throw new Error('Uknown mode');
-        }
     }
 
     private renderSelectedRoles(roles: JoinedUserInfo[]) {
@@ -93,7 +82,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
                     <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== this.props.user.id} onClick={() => this.changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}
                     </Button>
-                    
+
                 </div>
             )
             }

@@ -1,44 +1,35 @@
 import { Component } from "react";
-import React from "react";
 import { Button, Form } from "react-bootstrap";
 import API from "../../../service/Api";
-import { GameMode } from '@tix320/noir-core';
-import { Game } from "../../../entity/Game";
 
 type Props = {
 }
 
 type State = {
-    mode: GameMode | '0'
+    name?: string
 }
 
 export class GameCreationComponent extends Component<Props, State> {
 
     state: State = {
-        mode: GameMode.MAFIA_VS_FBI
     }
 
-    changeMode = (event) => {
+    changeName = (event) => {
         this.setState({
-            mode: event.target.value
+            name: event.target.value
         })
     }
 
     createGame = () => {
-        API.createGame({ mode: this.state.mode });
+        API.createGame({ name: this.state.name });
     }
 
     render() {
 
         return (
             <div>
-                <Form.Select isInvalid={this.state.mode === "0"} defaultValue={GameMode.MAFIA_VS_FBI} onChange={this.changeMode}>
-                    <option value="0">Choose game mode</option>
-                    <option value={GameMode.MAFIA_VS_FBI}>Mafia vs FBI</option>
-                </Form.Select>
-
-
-                <Button onClick={this.createGame} disabled={this.state.mode === "0"}> Create</Button>
+                <Form.Control placeholder="Enter name" onChange={this.changeName} />
+                <Button disabled={!this.state.name} onClick={this.createGame}> Create</Button>
             </div>
         );
     }

@@ -1,13 +1,7 @@
 import { Component } from "react";
 import { Button, Card } from "react-bootstrap";
 import { Game } from "../../../../entity/Game";
-import {GameMode} from '@tix320/noir-core';
-import teamVSteamImg from "../../../images/mode/teamVSteam.png";
-
-
-const images = {
-    [GameMode.MAFIA_VS_FBI]: teamVSteamImg,
-}
+import teamVSteamImg from "../../../images/teamVSteam.png";
 
 type Props = {
     game: Game,
@@ -25,15 +19,14 @@ export class GameCard extends Component<Props,State> {
 
     render() {
         const game = this.props.game;
-        const mode = game.mode;
         const currentPlayersCount = game.currentPlayersCount;
         const maxtPlayersCount = game.maxPlayersCount;
 
         return (
             <Card style={{ width: '18rem' }}>
-                <Card.Img variant="top" src={images[mode]} />
+                <Card.Img variant="top" src={teamVSteamImg} />
                 <Card.Body>
-                    <Card.Title>{mode}</Card.Title>
+                    <Card.Title>{game.name}</Card.Title>
                     <Card.Text>
                         {`Players: ${currentPlayersCount}/${maxtPlayersCount}`}
                     </Card.Text>

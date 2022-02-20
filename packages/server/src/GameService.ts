@@ -1,16 +1,17 @@
 import { GameState, Role } from '@tix320/noir-core';
 import { v4 as uuid } from 'uuid';
 import Game from './game/Game';
+import GameInfo from './game/GameInfo';
 import { User } from './user';
 
 class GameService {
-    #games: Map<string, Game> = new Map()
+    #games: Map<string, [GameInfo, Game]> = new Map()
 
     getGames() {
         return this.#games;
     }
 
-    getGame(gameId?: string) {
+    getGame(gameId?: string): [GameInfo, Game] {
         const game = this.#games.get(gameId!);
         if (!game) {
             throw new Error(`Game with id ${gameId} not found`);
@@ -19,57 +20,59 @@ class GameService {
         return game;
     }
 
-    createGame(creator: User, gameDetails): [string, Game] {
+    createGame(creator: User, gameInfo: GameInfo): [GameInfo, Game] {
         if (creator.currentGameId) {
             throw new Error("In game right now");
         }
 
         const id = uuid();
-        const game = new Game(gameDetails.mode);
-        this.#games.set(id, game);
+        gameInfo = {...gameInfo, id};
 
-        game.getPreparingState().join({user : creator, ready : false});
+        const game = new Game();
+        this.#games.set(id, [gameInfo, game]);
+
+        game.getPreparingState().join({ user: creator, ready: false });
         creator.currentGameId = id;
 
-        return [id, game];
+        return [gameInfo, game];
     }
 
-    joinGame(user: User, gameId: string): Game {
-        const game: Game = this.getGame(gameId);
+    joinGame(user: User, gameId: string): [GameInfo, Game] {
+        const [gameInfo, game] = this.getGame(gameId);
 
         if (user.currentGameId && user.currentGameId !== gameId) {
             throw new Error("Already in another game");
         }
 
-        game.getPreparingState().join({user, ready: false});
+        game.getPreparingState().join({ user, ready: false });
         user.currentGameId = gameId;
 
-        return game;
+        return [gameInfo, game];
     }
 
-    changeGameRole(user: User, role: Role | undefined, ready: boolean): [string, Game] {
+    changeGameRole(user: User, role: Role | undefined, ready: boolean): [GameInfo, Game] {
         const gameId = user.currentGameId;
 
         if (!gameId) {
             throw new Error('Currently not in game');
         }
 
-        const game: Game = this.getGame(gameId);
+        const [gameInfo, game] = this.getGame(gameId);
 
-        game.getPreparingState().join({user, role, ready});
+        game.getPreparingState().join({ user, role, ready });
         user.currentGameId = gameId;
 
-        return [gameId, game];
+        return [gameInfo, game];
     }
 
-    leaveGame(user: User): [string, Game] {
+    leaveGame(user: User): [GameInfo, Game] {
         const gameId = user.currentGameId;
 
         if (!gameId) {
             throw new Error('Currently not in game');
         }
 
-        const game: Game = this.getGame(gameId);
+        const [gameInfo, game] = this.getGame(gameId);
 
         const state = game.getState().type;
 
@@ -87,7 +90,7 @@ class GameService {
 
         user.currentGameId = undefined;
 
-        return [gameId, game];
+        return [gameInfo, game];
     }
 }
 

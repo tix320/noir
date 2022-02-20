@@ -1,12 +1,14 @@
-import { GameMode, GameState, Role } from '@tix320/noir-core';
+import { GameState, Role } from '@tix320/noir-core';
 import EventEmitter from 'events';
 import { User } from '../user';
 import GameLogic from './logic/GameLogic';
-import KillerVSInspector from './logic/KillerVSInspector';
-import MafiaVSFBI from './logic/MafiaVSFBI';
 
 export default class Game {
-    readonly mode: GameMode;
+
+    static ROLE_SETS = [
+        new Set([Role.KILLER, Role.BOMBER, Role.PSYCHO, Role.UNDERCOVER, Role.SUIT, Role.DETECTIVE]),
+        new Set([Role.KILLER, Role.BOMBER, Role.PSYCHO, Role.SNIPER, Role.UNDERCOVER, Role.SUIT, Role.DETECTIVE, Role.PROFILER])
+    ];
 
     #state: State = new PreparingState(this, (players: GamePlayer[]) => {
         this.#state = new PlayingState(this, players, () => {
@@ -17,14 +19,6 @@ export default class Game {
     });
 
     eventEmmiter = new EventEmitter();
-
-    constructor(mode: GameMode) {
-        this.mode = mode;
-    }
-
-    public get allowedPlayersSet(): Set<Role>[] {
-        return GameMode.roleSetsOf(this.mode);
-    }
 
     public getPlayersCount() {
         if (this.#state instanceof PreparingState) {
@@ -97,17 +91,13 @@ class PreparingState extends State {
         }
 
         if (participant.role) {
-            if (!GameMode.checkRole(this.game.mode, participant.role)) {
-                throw new Error(`There is no role ${participant.role} in game mode ${this.game.mode}`);
-            }
-
             if (this.participants.find(p => p.role === participant.role)) {
                 throw new Error(`Role ${participant.role} already selected`);
             }
         }
 
-        const minPlayersCount = this.game.allowedPlayersSet.at(0)!.size;
-        const maxPlayersCount = this.game.allowedPlayersSet.at(-1)!.size;
+        const minPlayersCount = Game.ROLE_SETS.at(0)!.size;
+        const maxPlayersCount = Game.ROLE_SETS.at(-1)!.size;
 
         if (this.participants.length === maxPlayersCount) {
             throw new Error("Fully");
@@ -117,7 +107,7 @@ class PreparingState extends State {
 
         const roles = new Set(this.participants.map(p => p.role)) as Set<Role>;
 
-        if (this.readyCount === minPlayersCount && GameMode.matchRoleSet(this.game.mode, roles)) {
+        if (this.readyCount === minPlayersCount && this.matchRoleSet(roles)) {
             const players: GamePlayer[] = this.participants.map(participant => ({ user: participant.user, role: participant.role! }));
             this.#onReady(players);
         }
@@ -146,6 +136,10 @@ class PreparingState extends State {
 
         return readyCount;
     }
+
+    private matchRoleSet(roles: Set<Role>): boolean {
+        return Game.ROLE_SETS.some(set => set.equals(roles));
+    }
 }
 
 class PlayingState extends State {
@@ -161,19 +155,8 @@ class PlayingState extends State {
     constructor(game: Game, players: GamePlayer[], onEnd: () => void) {
         super(game);
         this.players = players;
-        this.#gameLogic = PlayingState.createStrategyByMode(game.mode, players);
+        this.#gameLogic = new GameLogic(players);
         this.#onEnd = onEnd;
-    }
-
-    private static createStrategyByMode(mode: GameMode, players: GamePlayer[]): GameLogic {
-        switch (mode) {
-            case GameMode.KILLER_VS_INSPECTOR:
-                return new KillerVSInspector(players);
-            case GameMode.MAFIA_VS_FBI:
-                return new MafiaVSFBI(players);
-            default:
-                throw new Error(`Invalid mode ${mode}`);
-        }
     }
 }
 

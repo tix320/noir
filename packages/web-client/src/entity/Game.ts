@@ -1,8 +1,8 @@
-import { GameMode, GameState } from '@tix320/noir-core';
+import { GameState } from '@tix320/noir-core';
 
 export interface Game {
     id: string,
-    mode: GameMode,
+    name: string,
     currentPlayersCount: number,
     maxPlayersCount: number,
     state: GameState

@@ -9,7 +9,6 @@ type Props = {
 }
 
 type State = {
-    mode: string
 }
 
 export class GameSelectionComponent extends Component<Props, State> {

@@ -1,18 +1,20 @@
 import Matrix from "@tix320/noir-core/src/util/Matrix";
 import { GamePlayer } from "../Game";
-import { Suspect } from "../role/Suspect";
+import { Suspect } from "./Suspect";
 import Player from "./Player";
 
-export default abstract class GameLogic {
+export default class GameLogic {
 
     protected readonly arena: Matrix<Suspect>;
     protected readonly players: Player[];
     protected readonly winningScores: number[];
     completed: boolean;
 
-    constructor(players: GamePlayer[], arenaSize: number, winningScores: number[]) {
-        this.winningScores = winningScores;
+    constructor(players: GamePlayer[]) {
+        this.winningScores = players.length === 6 ? [18, 5] : [25, 6];
         this.completed = false;
+
+        const arenaSize = players.length === 6 ? 6 : 7;
 
         const randomSuspects = Suspect.generateSet(arenaSize * arenaSize);
 
@@ -23,10 +25,6 @@ export default abstract class GameLogic {
             randomSuspects.slice(15, 20),
             randomSuspects.slice(20, 25)
         ]);
-    }
-
-    get arenaSize() {
-        return this.arena.size;
     }
 
     checkWin(scores: number[]): number | undefined {

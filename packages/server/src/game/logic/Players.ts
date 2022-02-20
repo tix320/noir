@@ -1,19 +1,11 @@
 import { Direction, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
 import { GamePlayer } from "../Game";
-import { Suspect } from "../role/Suspect";
+import { Suspect } from "./Suspect";
 import GameLogic, { Context } from "./GameLogic";
 import Player from "./Player";
 
-export default class MafiaVSFBI extends GameLogic {
-    constructor(players: GamePlayer[]) {
-        super(players, players.length === 6 ? 6 : 7, players.length === 6 ? [18, 5] : [25, 6]);
-
-        players
-    }
-}
-
-export class KillerToken extends Player {
+export class Killer extends Player {
 
     constructor(gameLogic: GameLogic, context: Context) {
         super(gameLogic, context);
