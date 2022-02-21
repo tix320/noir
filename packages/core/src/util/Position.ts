@@ -11,7 +11,7 @@ export default class Position {
         this.y = y;
     }
 
-    getNeighbors(bound: number) {
+    getAdjacents(bound: number): Position[] {
         const neighbors: Position[] = [];
 
         Position.offsets.forEach(offset => {

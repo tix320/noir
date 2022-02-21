@@ -1,6 +1,7 @@
 export * from './src/game/GameState'; 
 export * from './src/game/Role'; 
 export * from './src/game/Marker'; 
+export * from './src/game/Shift'; 
 export * from './src/game/Character'; 
 export * from './src/util/RandUtils'; 
 export * from './src/util/ArrayUtils'; 

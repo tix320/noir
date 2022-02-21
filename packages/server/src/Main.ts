@@ -63,7 +63,7 @@ function userResponse(user: User) {
 function gamePreparationResponse(game: Game): GamePreparationState {
     const participants = game.getPreparingState().participants;
 
-    let availableRoles = Role.ALL;
+    let availableRoles = new Set(Role.for8());
 
     const selectedRoles: JoinedUserInfo[] = [];
 

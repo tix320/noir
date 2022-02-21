@@ -11,7 +11,7 @@ class API {
     socket: Socket
 
     connect(token: string): Promise<User> {
-        this.socket = io("http://localhost:5000", {
+        this.socket = io("http://100.120.152.127:5000", {
             auth: {
                 token: token
             }

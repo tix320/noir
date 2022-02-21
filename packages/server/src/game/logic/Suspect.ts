@@ -4,12 +4,12 @@ import Player from "./Player";
 export class Suspect {
     readonly character: Character;
     player: Player | 'suspect' | 'innocent' | 'arested' | 'killed';
-    markers: Marker[];
+    markers: Set<Marker>;
 
     constructor(character: Character) {
         this.character = character;
         this.player = 'suspect';
-        this.markers = [];
+        this.markers = new Set();
     }
 
     toString(): string {

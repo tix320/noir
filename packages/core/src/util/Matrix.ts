@@ -12,8 +12,26 @@ export default class Matrix<T> {
         return this.matrix.length;
     }
 
-    at(position: Position): T {
-        return this.matrix[position.x][position.y];
+    at(x: number, y: number): T {
+        return this.matrix[x][y];
+    }
+
+    atPosition(position: Position): T {
+        return this.at(position.x, position.y);
+    }
+
+    set(x: number, y: number, value: T) {
+        this.matrix[x][y] = value;
+    }
+
+    setToPosition(position: Position, value: T) {
+        this.set(position.x, position.y, value);
+    }
+
+    swap(position1: Position, position2: Position) {
+        const temp = this.atPosition(position1);
+        this.setToPosition(position1, this.atPosition(position2));
+        this.setToPosition(position2, temp);
     }
 
     shift(direction: Direction, index: number, count: number) {
