@@ -1,6 +1,7 @@
 import { Direction, Role, shuffle, swap } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Matrix from "@tix320/noir-core/src/util/Matrix";
+import Position from "@tix320/noir-core/src/util/Position";
 import { User } from "../../user";
 import { GamePlayer } from "../Game";
 import Player from "./Player";
@@ -101,6 +102,8 @@ export class Context {
 
     lastShift?: Shift;
 
+    bomber: BomberContext;
+
     scores: [number, number];
 
     constructor(arena: Matrix<Suspect>, players: Player[], evidenceDeck: Suspect[]) {
@@ -108,6 +111,11 @@ export class Context {
         this.players = players;
         this.currentTurnPlayer = this.players[0];
         this.evidenceDeck = evidenceDeck;
+        this.bomber = {};
         this.scores = [0, 0];
     }
-} 
+}
+
+export class BomberContext {
+    lastDetonatedBomb?: Position;
+}

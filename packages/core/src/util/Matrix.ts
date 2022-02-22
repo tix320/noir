@@ -34,6 +34,34 @@ export default class Matrix<T> {
         this.setToPosition(position2, temp);
     }
 
+    getDiagonals(position: Position, maxDistance: number): Position[] {
+        if (maxDistance < 0) {
+            throw new Error(`Invalid distance ${maxDistance}`);
+        }
+
+        const diagonals: Position[] = [];
+
+
+        for (let i = position.x - 1, j = position.y - 1; i < this.size, j < this.size; i--, j--) {
+            diagonals.push(new Position(i, j));
+        }
+
+        for (let i = position.x - 1, j = position.y + 1; i < this.size, j < this.size; i--, j++) {
+            diagonals.push(new Position(i, j));
+        }
+
+        for (let i = position.x + 1, j = position.y - 1; i < this.size, j < this.size; i++, j--) {
+            diagonals.push(new Position(i, j));
+        }
+
+        for (let i = position.x + 1, j = position.y + 1; i < this.size, j < this.size; i++, j++) {
+            diagonals.push(new Position(i, j));
+        }
+
+
+        return diagonals;
+    }
+
     shift(direction: Direction, index: number, count: number) {
         if (count === 0 || count == this.size) {
             return;

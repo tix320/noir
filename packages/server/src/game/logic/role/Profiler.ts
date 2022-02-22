@@ -1,3 +1,4 @@
+import { Marker } from "@tix320/noir-core";
 import { User } from "../../../user";
 import GameLogic from "../GameLogic";
 import Player from "../Player";
@@ -14,6 +15,10 @@ export default class Profiler extends Player {
 
     canDoFastShift(): boolean {
         return false;
+    }
+
+    ownMarker(): Marker | undefined {
+        return undefined;
     }
 
     protected onTurnStart() {

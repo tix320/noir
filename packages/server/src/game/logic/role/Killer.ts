@@ -1,11 +1,11 @@
-import { Direction } from "@tix320/noir-core";
+import { Direction, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Position from "@tix320/noir-core/src/util/Position";
 import { User } from "../../../user";
 import GameLogic from "../GameLogic";
 import Player from "../Player";
 import { Suspect } from "../Suspect";
-import { RoleHelper } from "./RoleHelper";
+import { GameHelper } from "./GameHelper";
 import Suit from "./Suit";
 
 export default class Killer extends Player {
@@ -20,6 +20,10 @@ export default class Killer extends Player {
 
     canDoFastShift(): boolean {
         return true;
+    }
+
+    ownMarker(): Marker | undefined {
+        return undefined;
     }
 
     protected onTurnStart() {
@@ -39,7 +43,7 @@ export default class Killer extends Player {
         }
 
         const suspect: Suspect = this.context.arena.atPosition(targetPosition);
-        const killed = RoleHelper.tryKillSuspect(targetPosition, suspect, this.context);
+        const killed = GameHelper.tryKillSuspect(targetPosition, this.context);
 
         if (killed) {
             this.endTurn({ checkScores: true });
@@ -51,7 +55,7 @@ export default class Killer extends Player {
     disguise() {
         this.startTurn();
 
-        RoleHelper.tryPeekNewIdentityFor(this, this.context);
+        GameHelper.tryPeekNewIdentityFor(this, this.context);
 
         this.endTurn({});
     }

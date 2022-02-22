@@ -7,7 +7,7 @@ import Player from "../Player";
 import { Suspect } from "../Suspect";
 import Suit from "./Suit";
 
-export namespace RoleHelper {
+export namespace GameHelper {
 
     export function shift(shift: Shift, context: Context) {
         if (context.lastShift && context.lastShift.direction === Direction.getReverse(shift.direction) && context.lastShift.index === shift.index) {
@@ -22,7 +22,9 @@ export namespace RoleHelper {
     /**
      * Try kill suspect. Return false if suspect can be protected by suit.
      */
-    export function tryKillSuspect(position: Position, suspect: Suspect, context: Context): boolean {
+    export function tryKillSuspect(position: Position, context: Context): boolean {
+        const suspect = context.arena.atPosition(position);
+
         const suspectPlayer = suspect.player;
         if (suspectPlayer === 'arested' || suspectPlayer === 'killed') {
             throw new Error(`Target ${suspect} cannot be killed.`);
@@ -50,11 +52,22 @@ export namespace RoleHelper {
                 context.scores[0] += 2;
             }
 
+            const ownMarker = suspectPlayer.ownMarker();
+            if (ownMarker) {
+                this.removeMarkersFromArena(ownMarker);
+            }
+
             peekNewIdentityFor(suspectPlayer, context);
         } else {
             suspect.player = 'killed';
             context.scores[0] += 1;
         }
+
+        suspect.markers.clear();
+    }
+
+    export function arestMafioso() { // TODO: bomber self estrcut
+
     }
 
     export function peekNewIdentityFor(player: Player, context: Context) {
@@ -115,6 +128,17 @@ export namespace RoleHelper {
         }
 
         return false;
+    }
+
+    export function removeMarkersFromArena(marker: Marker, context: Context): void {
+        const arena = context.arena;
+
+        for (let i = 0; i < arena.size; i++) {
+            for (let j = 0; j < arena.size; j++) {
+                const suspect = arena.at(i, j);
+                suspect.markers.delete(marker);
+            }
+        }
     }
 }
 

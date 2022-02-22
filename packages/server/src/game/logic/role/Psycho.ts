@@ -4,7 +4,7 @@ import Position from "@tix320/noir-core/src/util/Position";
 import { User } from "../../../user";
 import GameLogic from "../GameLogic";
 import Player from "../Player";
-import { RoleHelper } from "./RoleHelper";
+import { GameHelper } from "./GameHelper";
 
 export default class Psycho extends Player {
 
@@ -20,8 +20,12 @@ export default class Psycho extends Player {
         return false;
     }
 
+    ownMarker(): Marker | undefined {
+        return Marker.THREAT;
+    }
+
     protected onTurnStart(): void {
-        const position = RoleHelper.findPlayerInArena(this, this.context);
+        const position = GameHelper.findPlayerInArena(this, this.context);
 
         const arena = this.context.arena;
 
@@ -32,7 +36,7 @@ export default class Psycho extends Player {
 
             let killed = false;
             if (suspect.markers.delete(Marker.THREAT)) {
-                killed = RoleHelper.tryKillSuspect(position, suspect, this.context);
+                killed = GameHelper.tryKillSuspect(position, this.context);
             }
 
             if (killed) {
@@ -48,7 +52,7 @@ export default class Psycho extends Player {
             throw new Error("You cannot do fast shift");
         }
 
-        RoleHelper.shift(shift, this.context);
+        GameHelper.shift(shift, this.context);
 
         this.endTurn({ shift: shift, nextPlayer: this });
     }
@@ -89,7 +93,7 @@ export default class Psycho extends Player {
 
         const arena = this.context.arena;
 
-        const psychoPosition = RoleHelper.findPlayerInArena(this, this.context);
+        const psychoPosition = GameHelper.findPlayerInArena(this, this.context);
         positions.forEach(position => {
             const rowDiff = Math.abs(psychoPosition.x - position.x);
             const colDiff = Math.abs(psychoPosition.x - position.x);

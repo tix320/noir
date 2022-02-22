@@ -11,6 +11,24 @@ export default class Position {
         this.y = y;
     }
 
+
+
+    isAdjacentTo(pos: Position) {
+        if (this.equals(pos)) {
+            return false;
+        }
+
+        if (Math.abs(this.x - pos.x) > 1) {
+            return false;
+        }
+
+        if (Math.abs(this.y - pos.y) > 1) {
+            return false;
+        }
+
+        return true;
+    }
+
     getAdjacents(bound: number): Position[] {
         const neighbors: Position[] = [];
 

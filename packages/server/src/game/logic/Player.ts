@@ -1,8 +1,8 @@
-import { Direction } from "@tix320/noir-core";
+import { Direction, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import { User } from "../../user";
 import GameLogic, { Context } from "./GameLogic";
-import { RoleHelper } from "./role/RoleHelper";
+import { GameHelper } from "./role/GameHelper";
 
 export default abstract class Player {
     user: User;
@@ -22,9 +22,11 @@ export default abstract class Player {
 
     abstract canDoFastShift(): boolean;
 
+    abstract ownMarker(): Marker | undefined;
+
     protected abstract onTurnStart(): void;
 
-    protected readonly startTurn = () => {
+    protected startTurn() {
         this.checkStateAndTurn();
     }
 
@@ -59,7 +61,7 @@ export default abstract class Player {
             throw new Error("You cannot do fast shift");
         }
 
-        RoleHelper.shift(shift, this.context);
+        GameHelper.shift(shift, this.context);
 
         this.endTurn({ shift: shift });
     }
