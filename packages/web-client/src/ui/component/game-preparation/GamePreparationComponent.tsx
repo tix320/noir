@@ -1,10 +1,10 @@
-import { Role } from "@tix320/noir-core";
+import { RoleType } from "@tix320/noir-core";
+import Game from "@tix320/noir-core/src/dto/Game";
 import { JoinedUserInfo } from "@tix320/noir-core/src/dto/GamePreparationState";
-import User from "@tix320/noir-core/src/entity/User";
 import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
 import { takeUntil } from "rxjs";
-import { Game } from "../../../entity/Game";
+import User from "../../../entity/User";
 import Api from "../../../service/Api";
 import { RoleCard } from "../cards/role/RoleCard";
 import RxComponent from "../common/RxComponent";
@@ -16,7 +16,7 @@ type Props = {
 }
 
 type State = {
-    availableRoles: Role[],
+    availableRoles: RoleType[],
     selectedRoles: JoinedUserInfo[]
 }
 
@@ -37,14 +37,14 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         });
     }
 
-    selectRole = (selectedRole: Role) => {
+    selectRole = (selectedRole: RoleType) => {
         Api.changeGameRole({
             role: selectedRole,
             ready: false
         })
     }
 
-    changeReadiness = (role: Role, ready: boolean) => {
+    changeReadiness = (role: RoleType, ready: boolean) => {
         Api.changeGameRole({
             role: role,
             ready: ready
@@ -89,16 +89,16 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         </div>);
     }
 
-    private isMafiaRole(role: Role) {
-        return [Role.KILLER, Role.BOMBER, Role.PSYCHO, Role.SNIPER].includes(role);
+    private isMafiaRole(role: RoleType) {
+        return [RoleType.KILLER, RoleType.BOMBER, RoleType.PSYCHO, RoleType.SNIPER].includes(role);
     }
 
-    private isFBIRole(role: Role) {
-        return [Role.UNDERCOVER, Role.DETECTIVE, Role.SUIT, Role.PROFILER].includes(role);
+    private isFBIRole(role: RoleType) {
+        return [RoleType.UNDERCOVER, RoleType.DETECTIVE, RoleType.SUIT, RoleType.PROFILER].includes(role);
     }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
     const user = state.user;
     return {
         user,

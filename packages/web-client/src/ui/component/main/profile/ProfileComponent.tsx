@@ -3,7 +3,7 @@ import styles from "./Profile.module.css";
 import Avatar from 'react-avatar';
 import avatarImg from "../../../images/avatar.png";
 import { connect } from "react-redux";
-import User from "@tix320/noir-core/src/entity/User";
+import User from "../../../../entity/User";
 
 type Props = {
     className: string,
@@ -27,7 +27,7 @@ class ProfileComponent extends Component<Props, State> {
     }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
     const user = state.user;
     return {
         user,

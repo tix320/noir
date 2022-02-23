@@ -1,10 +1,10 @@
 import { Button } from "react-bootstrap";
-import { Game } from "../../../entity/Game";
 import { GameCreationComponent } from "./GameCreationComponent";
 import { GameSelectionComponent } from "./GameSelectionComponent";
 import API from "../../../service/Api";
 import RxComponent from "../common/RxComponent";
 import { takeUntil } from "rxjs";
+import Game from "@tix320/noir-core/src/dto/Game";
 
 type Props = {
 }

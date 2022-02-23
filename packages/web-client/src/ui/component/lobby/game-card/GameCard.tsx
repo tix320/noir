@@ -1,6 +1,6 @@
+import Game from "@tix320/noir-core/src/dto/Game";
 import { Component } from "react";
 import { Button, Card } from "react-bootstrap";
-import { Game } from "../../../../entity/Game";
 import teamVSteamImg from "../../../images/teamVSteam.png";
 
 type Props = {

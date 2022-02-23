@@ -1,9 +1,9 @@
 import { Component } from "react";
-import { Game } from "../../../entity/Game";
 import React from "react";
 import PlayersPlaceComponent from "./PlayersPlaceComponent";
 import ArenaComponent from "./ArenaComponent";
 import ActionsComponent from "./ActionsComponent";
+import Game from "@tix320/noir-core/src/dto/Game";
 
 type Props = {
     game: Game

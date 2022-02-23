@@ -1,7 +1,7 @@
+import Game from "@tix320/noir-core/src/dto/Game";
 import React from "react";
 import { Component } from "react";
 import { GameCard } from "./game-card/GameCard";
-import { Game } from "../../../entity/Game";
 
 type Props = {
     games: Array<Game>,
@@ -13,7 +13,7 @@ type State = {
 
 export class GameSelectionComponent extends Component<Props, State> {
 
-    selectGame = (game) => {
+    selectGame = (game: Game) => {
         this.props.onGameSelect(game);
     }
 

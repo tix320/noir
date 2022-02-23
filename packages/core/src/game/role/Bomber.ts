@@ -1,17 +1,10 @@
-import { Marker } from "@tix320/noir-core";
+import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
-import { User } from "../../../user";
-import GameLogic from "../GameLogic";
-import Player from "../Player";
 import { GameHelper } from "./GameHelper";
+import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Bomber extends Player {
-
-    constructor(user: User, gameLogic: GameLogic) {
-        super(user, gameLogic);
-    }
-
+export default class Bomber<I extends Identity> extends Player<I> {
     isMafioso(): boolean {
         return true;
     }
@@ -44,7 +37,7 @@ export default class Bomber extends Player {
 
         const targetSuspect = arena.atPosition(targetPosition);
 
-        const isValidTarget = targetSuspect.player === this || neighborns.some(position => arena.atPosition(position).player === this);
+        const isValidTarget = targetSuspect.role === this || neighborns.some(position => arena.atPosition(position).role === this);
         if (!isValidTarget) {
             throw new Error(`Invalid target=${arena.atPosition(targetPosition)}. You can place bomb only on yourself or adjacent suspects`);
         }

@@ -2,14 +2,14 @@ import { Direction, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Matrix from "@tix320/noir-core/src/util/Matrix";
 import Position from "@tix320/noir-core/src/util/Position";
-import { Context } from "../GameLogic";
-import Player from "../Player";
+import { GameContext } from "../Game";
 import { Suspect } from "../Suspect";
+import Player from "./Player";
 import Suit from "./Suit";
 
 export namespace GameHelper {
 
-    export function shift(shift: Shift, context: Context) {
+    export function shift(shift: Shift, context: GameContext) {
         if (context.lastShift && context.lastShift.direction === Direction.getReverse(shift.direction) && context.lastShift.index === shift.index) {
             throw new Error("Cannot undo last shift");
         }
@@ -22,16 +22,16 @@ export namespace GameHelper {
     /**
      * Try kill suspect. Return false if suspect can be protected by suit.
      */
-    export function tryKillSuspect(position: Position, context: Context): boolean {
+    export function tryKillSuspect(position: Position, context: GameContext): boolean {
         const suspect = context.arena.atPosition(position);
 
-        const suspectPlayer = suspect.player;
-        if (suspectPlayer === 'arested' || suspectPlayer === 'killed') {
+        const suspectRole = suspect.role;
+        if (suspectRole === 'arested' || suspectRole === 'killed') {
             throw new Error(`Target ${suspect} cannot be killed.`);
         }
 
         const suit = findPlayer(Suit, context);
-        if (suspect.markers.has(Marker.PROTECTION) && suspect.player !== suit
+        if (suspect.markers.has(Marker.PROTECTION) && suspect.role !== suit
             && (isPlayerInRow(suit, context.arena, position.x) || isPlayerInColumn(suit, context.arena, position.y))) {
             return false;
         } else {
@@ -40,26 +40,26 @@ export namespace GameHelper {
         }
     }
 
-    export function killSuspect(suspect: Suspect, context: Context) {
-        const suspectPlayer = suspect.player;
+    export function killSuspect(suspect: Suspect, context: GameContext) {
+        const suspectRole = suspect.role;
 
-        if (suspectPlayer instanceof Player) {
-            if (suspectPlayer.isMafioso()) {
-                suspect.player = 'arested';
+        if (suspectRole instanceof Player) {
+            if (suspectRole.isMafioso()) {
+                suspect.role = 'arested';
                 context.scores[1] += 1;
             } else {
-                suspect.player = 'killed';
+                suspect.role = 'killed';
                 context.scores[0] += 2;
             }
 
-            const ownMarker = suspectPlayer.ownMarker();
+            const ownMarker = suspectRole.ownMarker();
             if (ownMarker) {
                 this.removeMarkersFromArena(ownMarker);
             }
 
-            peekNewIdentityFor(suspectPlayer, context);
+            peekNewIdentityFor(suspectRole, context);
         } else {
-            suspect.player = 'killed';
+            suspect.role = 'killed';
             context.scores[0] += 1;
         }
 
@@ -70,36 +70,36 @@ export namespace GameHelper {
 
     }
 
-    export function peekNewIdentityFor(player: Player, context: Context) {
+    export function peekNewIdentityFor(player: Player<any>, context: GameContext) {
         while (tryPeekNewIdentityFor(player, context)) {
         }
     }
 
-    export function tryPeekNewIdentityFor(player: Player, context: Context): boolean {
+    export function tryPeekNewIdentityFor(player: Player<any>, context: GameContext): boolean {
         const newIdentity = context.evidenceDeck.pop();
         if (!newIdentity) {
             throw new Error("hmmm"); // TODO: wtf state
         }
 
-        if (newIdentity.player === 'killed') {
+        if (newIdentity.role === 'killed') {
             return false;
         } else {
-            newIdentity.player = player;
+            newIdentity.role = player;
             return true;
         }
     }
 
-    export function findPlayer(type: typeof Player, context: Context): Player {
+    export function findPlayer(type: typeof Player, context: GameContext): Player<any> {
         return context.players.find(player => player instanceof type)!;
     }
 
-    export function findPlayerInArena(player: Player, context: Context): Position {
+    export function findPlayerInArena(player: Player<any>, context: GameContext): Position {
         const arena = context.arena;
 
         for (let i = 0; i < arena.size; i++) {
             for (let j = 0; j < arena.size; j++) {
                 const suspect = arena.at(i, j);
-                if (suspect.player === player) {
+                if (suspect.role === player) {
                     return new Position(i, j);
                 }
             }
@@ -108,10 +108,10 @@ export namespace GameHelper {
         throw new Error('Invalid state');
     }
 
-    export function isPlayerInRow(player: Player, arena: Matrix<Suspect>, row: number): boolean {
+    export function isPlayerInRow(player: Player<any>, arena: Matrix<Suspect>, row: number): boolean {
         for (let i = 0; i < arena.size; i++) {
             const suspect = arena.at(row, i);
-            if (suspect.player === player) {
+            if (suspect.role === player) {
                 return true;
             }
         }
@@ -119,10 +119,10 @@ export namespace GameHelper {
         return false;
     }
 
-    export function isPlayerInColumn(player: Player, arena: Matrix<Suspect>, column: number): boolean {
+    export function isPlayerInColumn(player: Player<any>, arena: Matrix<Suspect>, column: number): boolean {
         for (let i = 0; i < arena.size; i++) {
             const suspect = arena.at(i, column);
-            if (suspect.player === player) {
+            if (suspect.role === player) {
                 return true;
             }
         }
@@ -130,7 +130,7 @@ export namespace GameHelper {
         return false;
     }
 
-    export function removeMarkersFromArena(marker: Marker, context: Context): void {
+    export function removeMarkersFromArena(marker: Marker, context: GameContext): void {
         const arena = context.arena;
 
         for (let i = 0; i < arena.size; i++) {

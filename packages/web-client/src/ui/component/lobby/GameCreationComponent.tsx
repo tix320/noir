@@ -14,7 +14,7 @@ export class GameCreationComponent extends Component<Props, State> {
     state: State = {
     }
 
-    changeName = (event) => {
+    changeName = (event: any) => {
         this.setState({
             name: event.target.value
         })

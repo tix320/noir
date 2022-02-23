@@ -1,3 +1,3 @@
-export default class SuspectCard {
+export default interface SuspectCard {
     name: string
 }

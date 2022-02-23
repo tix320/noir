@@ -1,5 +1,4 @@
 import { Component } from "react";
-import { Game } from "../../../entity/Game";
 import React from "react";
 
 type Props = {

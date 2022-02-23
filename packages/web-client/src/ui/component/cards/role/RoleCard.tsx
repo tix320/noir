@@ -1,16 +1,16 @@
+import { RoleType } from '@tix320/noir-core';
 import { Component } from "react";
-import { Role } from '@tix320/noir-core';
-import './RoleCard.css';
 import { Card } from "../Card";
+import './RoleCard.css';
 
 type Props = {
     className?: string,
-    role: Role,
-    onClick?: (role: Role) => void
+    role: RoleType,
+    onClick?: (role: RoleType) => void
 }
 
 type State = {
-    image?
+    image?: string
 }
 
 export class RoleCard extends Component<Props, State> {
@@ -36,7 +36,7 @@ export class RoleCard extends Component<Props, State> {
         const role = this.props.role;
 
         return (
-            <Card className={this.props.className} image={image} description={Role.capitalize(role)} onClick={this.onClick} />
+            <Card className={this.props.className} image={image!} description={RoleType.capitalize(role)} onClick={this.onClick} />
         );
     }
 }

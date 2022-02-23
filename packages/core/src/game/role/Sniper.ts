@@ -1,16 +1,10 @@
-import { Marker } from "@tix320/noir-core";
+import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
-import { User } from "../../../user";
-import GameLogic from "../GameLogic";
-import Player from "../Player";
 import { GameHelper as GameHelper } from "./GameHelper";
+import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Sniper extends Player {
-
-    constructor(user: User, gameLogic: GameLogic) {
-        super(user, gameLogic);
-    }
+export default class Sniper<I extends Identity> extends Player<I> {
 
     isMafioso(): boolean {
         return true;
@@ -32,7 +26,7 @@ export default class Sniper extends Player {
         const arena = this.context.arena;
         const diagonals = arena.getDiagonals(target, 3);
 
-        if (!diagonals.some(pos => arena.atPosition(pos).player === this)) {
+        if (!diagonals.some(pos => arena.atPosition(pos).role === this)) {
             throw new Error(`Invalid target=${arena.atPosition(target)}. You can kill only suspects 3 spaces away from you in diagonal line`);
         }
 

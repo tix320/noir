@@ -1,18 +1,11 @@
-import { Direction, Marker } from "@tix320/noir-core";
-import Shift from "@tix320/noir-core/src/game/Shift";
+import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
-import { User } from "../../../user";
-import GameLogic from "../GameLogic";
-import Player from "../Player";
 import { Suspect } from "../Suspect";
 import { GameHelper } from "./GameHelper";
+import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Killer extends Player {
-
-    constructor(user: User, gameLogic: GameLogic) {
-        super(user, gameLogic);
-    }
+export default class Killer<I extends Identity> extends Player<I> {
 
     isMafioso(): boolean {
         return true;
@@ -37,7 +30,7 @@ export default class Killer extends Player {
 
         const neighborns = targetPosition.getAdjacents(arena.size);
 
-        const isValidTarget = neighborns.some(position => arena.atPosition(position).player === this);
+        const isValidTarget = neighborns.some(position => arena.atPosition(position).role === this);
         if (!isValidTarget) {
             throw new Error(`Invalid target=${arena.atPosition(targetPosition)}. You can kill only your neighbors`);
         }
@@ -48,7 +41,7 @@ export default class Killer extends Player {
         if (killed) {
             this.endTurn({ checkScores: true });
         } else {
-            this.endTurn({ nextPlayer: this.context.players.find(player => player instanceof Suit) });
+            this.endTurn({ nextPlayer: GameHelper.findPlayer(Suit, this.context) });
         }
     }
 

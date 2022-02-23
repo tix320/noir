@@ -1,11 +1,11 @@
-import User from '@tix320/noir-core/src/entity/User';
-import { createSlice, configureStore } from '@reduxjs/toolkit'
+import { configureStore, createSlice } from '@reduxjs/toolkit';
+import User from '../entity/User';
 
 export interface State {
-    user?:User
+    user?: User
 }
 
-const initialState : State =  {
+const initialState: State = {
 };
 
 const slice = createSlice({

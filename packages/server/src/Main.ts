@@ -1,10 +1,12 @@
-import { GameState, JoinedUserInfo, Role } from "@tix320/noir-core";
+import { JoinedUserInfo, RoleType } from "@tix320/noir-core";
 import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
+import GameDto from "@tix320/noir-core/src/dto/Game";
+import UserDto from "@tix320/noir-core/src/dto/User";
 import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
+import Game, { PlayingState, PreparingState } from "@tix320/noir-core/src/game/Game";
 import { Server } from "socket.io";
-import Game from "./game/Game";
 import GameInfo from "./game/GameInfo";
-import { default as GameService, default as GAME_SERVICE } from "./GameService";
+import { default as GameService, default as GAME_SERVICE } from "./game/GameService";
 import { User } from "./user";
 import USER_SERVICE from "./UserService";
 import { USERS_BY_TOKEN } from "./UserTokens";
@@ -18,7 +20,7 @@ const io = new Server({
 io.use((socket, next) => {
     const token = socket.handshake.auth.token || socket.handshake.auth.password;
 
-    const user = USERS_BY_TOKEN[token];
+    const user = USERS_BY_TOKEN.get(token);
     if (user) {
         USER_SERVICE.addConnectedUser(user)
         console.log(`Connected ${user.name}`)
@@ -40,36 +42,36 @@ const GAMES_STREAM_EVENT = "gamesStream";
 const MY_CURRENT_GAME_STREAM_EVENT = (userId: string) => `myCurrentGameStream_${userId}`;
 const GAMES_PREPARATION_STREAM_EVENT = (gameId: string) => `gamePreparationStream_${gameId}`;
 
-function gameResponse(gameInfo: GameInfo, game: Game) {
+function gameResponse(gameInfo: GameInfo, game: Game<User>): GameDto {
     return ({
         ...gameInfo,
         currentPlayersCount: game.getPlayersCount(),
         maxPlayersCount: Game.ROLE_SETS.at(-1)!.size,
-        state: game.getState().type
+        state: game.getState().type === PreparingState ? 'PREPARING' : game.getState().type === PlayingState ? "PLAYING" : "COMPLETED"
     })
 }
 
-function gamesResponse(games: Map<string, [GameInfo, Game]>) {
+function gamesResponse(games: Map<string, [GameInfo, Game<User>]>): Array<GameDto> {
     return Array.from(games.values()).map(([gameInfo, game]) => gameResponse(gameInfo, game));
 }
 
-function userResponse(user: User) {
+function userResponse(user: User): UserDto {
     return {
         id: user.id,
         name: user.name,
     };
 }
 
-function gamePreparationResponse(game: Game): GamePreparationState {
+function gamePreparationResponse(game: Game<User>): GamePreparationState {
     const participants = game.getPreparingState().participants;
 
-    let availableRoles = new Set(Role.for8());
+    let availableRoles = new Set(RoleType.for8());
 
     const selectedRoles: JoinedUserInfo[] = [];
 
     participants.forEach((participant => {
         selectedRoles.push({
-            user: participant.user,
+            user: participant.identity,
             role: participant.role,
             ready: participant.ready
         });
@@ -86,9 +88,9 @@ function gamePreparationResponse(game: Game): GamePreparationState {
 }
 
 io.on("connection", (socket) => {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake.auth.token || socket.handshake.auth.password;
 
-    const user: User = USERS_BY_TOKEN[token];
+    const user: User = USERS_BY_TOKEN.get(token)!;
 
     socket.on('myUser', (cb) => {
         const response = userResponse(user);
@@ -124,13 +126,13 @@ io.on("connection", (socket) => {
         const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, request.role, request.ready);
         cb(true);
 
-        if (game.getState().type == GameState.PREPARING) {
+        if (game.getState().type === PreparingState) {
             const roomName = GAMES_PREPARATION_STREAM_EVENT(gameInfo.id);
             io.to(roomName).emit(roomName, gamePreparationResponse(game));
         } else {
             const gameResp = gameResponse(gameInfo, game);
             game.getPlayingState().players.forEach(player => {
-                const userId = player.user.id;
+                const userId = player.identity.id;
 
                 const name = MY_CURRENT_GAME_STREAM_EVENT(userId);
                 io.to(name).emit(name, gameResp);

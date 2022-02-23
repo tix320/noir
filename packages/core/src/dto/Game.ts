@@ -1,6 +1,6 @@
-import { GameState } from '@tix320/noir-core';
+export type GameState = 'PREPARING' | 'PLAYING' | 'COMPLETED'
 
-export interface Game {
+export default interface Game {
     id: string,
     name: string,
     currentPlayersCount: number,

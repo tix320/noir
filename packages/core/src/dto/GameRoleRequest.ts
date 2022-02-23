@@ -1,6 +1,6 @@
-import { Role } from "../..";
+import { RoleType } from "../..";
 
 export default interface GameRoleRequest {
-    role?: Role,
+    role?: RoleType,
     ready: boolean
 }

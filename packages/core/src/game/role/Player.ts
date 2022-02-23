@@ -1,21 +1,12 @@
-import { Direction, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
-import { User } from "../../user";
-import GameLogic, { Context } from "./GameLogic";
-import { GameHelper } from "./role/GameHelper";
+import { Direction } from "../../..";
+import { GameContext, Identity } from "../Game";
+import { Marker } from "../Marker";
+import { GameHelper } from "./GameHelper";
 
-export default abstract class Player {
-    user: User;
-    protected readonly game: GameLogic;
-    protected context: Context;
+export default abstract class Player<I extends Identity> {
 
-    constructor(user: User, gameLogic: GameLogic) {
-        this.user = user;
-        this.game = gameLogic;
-    }
-
-    setContext(context: Context) {
-        this.context = context;
+    constructor(public readonly identity: I, protected context: GameContext) {
     }
 
     abstract isMafioso(): boolean;
@@ -45,9 +36,9 @@ export default abstract class Player {
     }
 
     protected readonly checkWin = () => {
-        const winner = this.game.checkWin(this.context.scores);
+        const winner = this.context.game.checkWin(this.context.scores);
         if (winner) {
-            this.game.completed = true;
+            this.context.game.complete();
             return true;
         }
 
@@ -75,7 +66,7 @@ export default abstract class Player {
     }
 
     private checkStateAndTurn() {
-        if (this.game.completed) {
+        if (this.context.game.isCompleted) {
             throw new Error("Game completed");
         }
         if (this.context.currentTurnPlayer !== this) {
@@ -83,26 +74,26 @@ export default abstract class Player {
         };
     }
 
-    private switchTurnToNext(): Player {
+    private switchTurnToNext(): Player<any> {
         const players = this.context.players;
         const currentTurnPlayer = this.context.currentTurnPlayer;
 
         const currentPlayerIndex = players.findIndex(player => player === currentTurnPlayer);
 
-        const nextPlayer: Player = currentPlayerIndex === players.length - 1 ? players[0] : players[currentPlayerIndex + 1];
+        const nextPlayer: Player<any> = currentPlayerIndex === players.length - 1 ? players[0] : players[currentPlayerIndex + 1];
         this.switchTurn(nextPlayer);
 
         return nextPlayer;
     }
 
-    private switchTurn(player: Player): Player {
+    private switchTurn(player: Player<any>): Player<any> {
         this.context.currentTurnPlayer = player;
         return player;
     }
 }
 
 interface EndTurnMetadata {
-    nextPlayer?: Player,
+    nextPlayer?: Player<any>,
     shift?: Shift,
     checkScores?: boolean
 }

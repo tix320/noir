@@ -1,16 +1,10 @@
-import { Direction, Marker } from "@tix320/noir-core";
+import { Direction, Identity, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Position from "@tix320/noir-core/src/util/Position";
-import { User } from "../../../user";
-import GameLogic from "../GameLogic";
-import Player from "../Player";
 import { GameHelper } from "./GameHelper";
+import Player from "./Player";
 
-export default class Psycho extends Player {
-
-    constructor(user: User, gameLogic: GameLogic) {
-        super(user, gameLogic);
-    }
+export default class Psycho<I extends Identity> extends Player<I> {
 
     isMafioso(): boolean {
         return true;
@@ -72,8 +66,8 @@ export default class Psycho extends Player {
 
         const neighborns = position1.getAdjacents(arena.size);
 
-        const isUniquePositions = position1 === position2 || arena.atPosition(position1).player === this || arena.atPosition(position2).player === this;
-        const isAdjacents = neighborns.some(position => arena.atPosition(position).player === this) && neighborns.some(position => position.equals(position2));
+        const isUniquePositions = position1 === position2 || arena.atPosition(position1).role === this || arena.atPosition(position2).role === this;
+        const isAdjacents = neighborns.some(position => arena.atPosition(position).role === this) && neighborns.some(position => position.equals(position2));
 
         if (!isUniquePositions || !isAdjacents) {
             throw new Error(`Invalid targets=${arena.atPosition(position1)},${arena.atPosition(position2)} . You can only swap two adjacent suspects`);

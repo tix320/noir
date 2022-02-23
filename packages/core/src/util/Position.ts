@@ -3,10 +3,7 @@ export default class Position {
         [-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]
     ]
 
-    x: number;
-    y: number;
-
-    constructor(x: number, y: number) {
+    constructor(public readonly x: number, public readonly y: number) {
         this.x = x;
         this.y = y;
     }

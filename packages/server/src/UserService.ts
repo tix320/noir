@@ -1,12 +1,14 @@
-class UserService {
-    connectedUsers = {}
+import { User } from "./user";
 
-    addConnectedUser(user) {
-        this.connectedUsers[user.id] = user
+class UserService {
+    connectedUsers: Map<string, User> = new Map()
+
+    addConnectedUser(user: User) {
+        this.connectedUsers.set(user.id, user);
     }
 
-    removeConnectedUser(user) {
-        delete this.connectedUsers[user.id]
+    removeConnectedUser(user: User): boolean {
+        return this.connectedUsers.delete(user.id);
     }
 }
 

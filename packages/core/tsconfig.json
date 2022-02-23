@@ -1,8 +1,6 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "sourceMap": true,
         "allowSyntheticDefaultImports": true,
-        "moduleResolution": "node",
     }
 }

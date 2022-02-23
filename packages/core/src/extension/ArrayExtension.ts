@@ -1,4 +1,4 @@
-export { }
+export { };
 
 declare global {
     interface Array<T> {
@@ -10,11 +10,11 @@ declare global {
     }
 }
 
-Array.prototype.has = function <T>(item: T): boolean {
-    return this.filter(elem => elem === item);
+Array.prototype.has = function <T>(this: Array<T>, item: T): boolean {
+    return this.find(elem => elem === item) != undefined;
 }
 
-Array.prototype.removeFirst = function <T>(predicate: (element: T) => boolean): T | undefined {
+Array.prototype.removeFirst = function <T>(this: Array<T>, predicate: (element: T) => boolean): T | undefined {
     for (let index = 0; index < this.length; ++index) {
         const element = this[index];
         if (predicate(element)) {
@@ -26,7 +26,7 @@ Array.prototype.removeFirst = function <T>(predicate: (element: T) => boolean): 
     return undefined;
 }
 
-Array.prototype.equals = function (other: Array<any>): boolean {
+Array.prototype.equals = function <T>(this: Array<T>, other: Array<T>): boolean {
     return this.length === other.length && this.every((val, index) => val === other[index]);
 }
 

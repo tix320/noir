@@ -1,3 +1,4 @@
+import { Identity } from "@tix320/noir-core";
 
 export class User {
     readonly id: string

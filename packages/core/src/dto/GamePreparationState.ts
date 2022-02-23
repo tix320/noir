@@ -1,13 +1,13 @@
-import { Role } from "../..";
-import User from "../entity/User";
+import { RoleType } from "../..";
+import User from "./User";
 
 export default interface GamePreparationState {
-    availableRoles: Role[],
+    availableRoles: RoleType[],
     selectedRoles: JoinedUserInfo[]
 }
 
 export interface JoinedUserInfo {
     user: User,
-    role?: Role,
+    role?: RoleType,
     ready: boolean
 }

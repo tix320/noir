@@ -1,19 +1,19 @@
 import { Character, Marker } from "@tix320/noir-core";
-import Player from "./Player";
+import Player from "./role/Player";
 
 export class Suspect {
     readonly character: Character;
-    player: Player | 'suspect' | 'innocent' | 'arested' | 'killed';
+    role: Player<any> | 'suspect' | 'innocent' | 'arested' | 'killed';
     markers: Set<Marker>;
 
     constructor(character: Character) {
         this.character = character;
-        this.player = 'suspect';
+        this.role = 'suspect';
         this.markers = new Set();
     }
 
     toString(): string {
-        return `${this.character}[${this.player}]`;
+        return `${this.character}[${this.role}]`;
     }
 }
 

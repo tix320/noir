@@ -4,9 +4,9 @@ import { LoginComponent } from "../login/LoginComponent";
 import { connect } from "react-redux";
 import API from "../../../service/Api";
 import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
-import User from '@tix320/noir-core/src/entity/User';
 import store, { userChanged } from '../../../service/Store';
 import MainComponent from '../main/MainComponent';
+import User from '../../../entity/User';
 
 type Props = {
     user: User
@@ -49,7 +49,7 @@ class AppComponent extends Component<Props, State> {
     }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
     const user = state.user;
     return {
         user,

@@ -19,7 +19,7 @@ export class LoginComponent extends Component<Props, State>  {
         saveToken: false
     };
 
-    handleSubmit = (event) => {
+    handleSubmit = (event : any) => {
         event.preventDefault();
         this.props.onLogin(this.state.token, this.state.saveToken)
     }

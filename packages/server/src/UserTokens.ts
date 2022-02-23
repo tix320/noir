@@ -1,4 +1,4 @@
-import {User} from "./user";
+import { User } from "./user";
 
 export const USERS = [
     new User("3c1af001-b01b-4b47-86ba-cfe69a973aec", "test1"),
@@ -14,7 +14,7 @@ export const USERS = [
     new User("ac64dc8f-2e56-4856-8719-9ee63b2e5a63", "Reserved"),
 ]
 
-export const USERS_BY_TOKEN = USERS.reduce((map, user) => {
-    map[user.id] = user;
+export const USERS_BY_TOKEN: Map<string, User> = USERS.reduce((map, user) => {
+    map.set(user.id, user);
     return map;
-}, {});
+}, new Map());
