@@ -9,13 +9,9 @@ export default abstract class Player<I extends Identity> {
     constructor(public readonly identity: I, protected context: GameContext) {
     }
 
-    abstract isMafioso(): boolean;
-
     abstract canDoFastShift(): boolean;
 
     abstract ownMarker(): Marker | undefined;
-
-    protected abstract onTurnStart(): void;
 
     protected startTurn() {
         this.checkStateAndTurn();
@@ -31,8 +27,6 @@ export default abstract class Player<I extends Identity> {
         this.context.lastShift = meta.shift;
 
         const nextPlayer = meta.nextPlayer ? this.switchTurn(meta.nextPlayer) : this.switchTurnToNext();
-
-        nextPlayer.onTurnStart();
     }
 
     protected readonly checkWin = () => {
@@ -75,12 +69,9 @@ export default abstract class Player<I extends Identity> {
     }
 
     private switchTurnToNext(): Player<any> {
-        const players = this.context.players;
         const currentTurnPlayer = this.context.currentTurnPlayer;
 
-        const currentPlayerIndex = players.findIndex(player => player === currentTurnPlayer);
-
-        const nextPlayer: Player<any> = currentPlayerIndex === players.length - 1 ? players[0] : players[currentPlayerIndex + 1];
+        const nextPlayer: Player<any> = GameHelper.findNextPlayerOf(currentTurnPlayer, this.context);
         this.switchTurn(nextPlayer);
 
         return nextPlayer;

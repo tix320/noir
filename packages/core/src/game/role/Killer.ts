@@ -2,14 +2,11 @@ import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
 import { Suspect } from "../Suspect";
 import { GameHelper } from "./GameHelper";
+import Mafioso from "./Mafioso";
 import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Killer<I extends Identity> extends Player<I> {
-
-    isMafioso(): boolean {
-        return true;
-    }
+export default class Killer<I extends Identity> extends Mafioso<I> {
 
     canDoFastShift(): boolean {
         return true;
@@ -17,10 +14,6 @@ export default class Killer<I extends Identity> extends Player<I> {
 
     ownMarker(): Marker | undefined {
         return undefined;
-    }
-
-    protected onTurnStart() {
-        // no-op
     }
 
     kill(targetPosition: Position) {

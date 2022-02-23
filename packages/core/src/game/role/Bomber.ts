@@ -1,13 +1,11 @@
 import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
 import { GameHelper } from "./GameHelper";
+import Mafioso from "./Mafioso";
 import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Bomber<I extends Identity> extends Player<I> {
-    isMafioso(): boolean {
-        return true;
-    }
+export default class Bomber<I extends Identity> extends Mafioso<I> {
 
     canDoFastShift(): boolean {
         return false;
@@ -17,10 +15,6 @@ export default class Bomber<I extends Identity> extends Player<I> {
         return Marker.BOMB;
     }
 
-    protected onTurnStart() {
-        // TODO: self destruct reaction
-    }
-
     protected startTurn(): void {
         super.startTurn();
         if (this.context.bomber.lastDetonatedBomb) {
@@ -28,18 +22,16 @@ export default class Bomber<I extends Identity> extends Player<I> {
         }
     }
 
-    placeBomb(targetPosition: Position) {
+    placeBomb(target: Position) {
         this.startTurn();
 
         const arena = this.context.arena;
 
-        const neighborns = targetPosition.getAdjacents(arena.size);
+        const targetSuspect = arena.atPosition(target);
 
-        const targetSuspect = arena.atPosition(targetPosition);
-
-        const isValidTarget = targetSuspect.role === this || neighborns.some(position => arena.atPosition(position).role === this);
+        const isValidTarget = targetSuspect.role === this || GameHelper.isAdjacentTo(this, target, this.context);
         if (!isValidTarget) {
-            throw new Error(`Invalid target=${arena.atPosition(targetPosition)}. You can place bomb only on yourself or adjacent suspects`);
+            throw new Error(`Invalid target=${arena.atPosition(target)}. You can place bomb only on yourself or adjacent suspects`);
         }
 
         if (targetSuspect.markers.has(Marker.BOMB)) {
@@ -96,4 +88,8 @@ export default class Bomber<I extends Identity> extends Player<I> {
 
         this.endTurn({});
     }
+}
+
+export class BomberContext {
+    lastDetonatedBomb?: Position;
 }

@@ -1,14 +1,11 @@
 import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
 import { GameHelper as GameHelper } from "./GameHelper";
+import Mafioso from "./Mafioso";
 import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Sniper<I extends Identity> extends Player<I> {
-
-    isMafioso(): boolean {
-        return true;
-    }
+export default class Sniper<I extends Identity> extends Mafioso<I> {
 
     canDoFastShift(): boolean {
         return true;
@@ -18,11 +15,9 @@ export default class Sniper<I extends Identity> extends Player<I> {
         return undefined;
     }
 
-    protected onTurnStart() {
-        // no-op
-    }
-
     snipe(target: Position) {
+        this.startTurn();
+
         const arena = this.context.arena;
         const diagonals = arena.getDiagonals(target, 3);
 

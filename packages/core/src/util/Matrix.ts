@@ -34,6 +34,35 @@ export default class Matrix<T> {
         this.setToPosition(position2, temp);
     }
 
+    getCross(position: Position, maxDistance: number): Position[] {
+        if (maxDistance < 0) {
+            throw new Error(`Invalid distance ${maxDistance}`);
+        }
+
+        const crossPositions: Position[] = [];
+
+        let distance = 0;
+
+        for (let i = position.x - 1; i >= 0 && distance < maxDistance; i--, distance++) {
+            crossPositions.push(new Position(i, position.y));
+        }
+
+        for (let j = position.y + 1; j < this.size && distance < maxDistance; j++, distance++) {
+            crossPositions.push(new Position(position.x, j));
+        }
+
+        for (let i = position.x + 1; i < this.size && distance < maxDistance; i++, distance++) {
+            crossPositions.push(new Position(i, position.y));
+        }
+
+        for (let j = position.y - 1; j >= 0 && distance < maxDistance; j--, distance++) {
+            crossPositions.push(new Position(position.x, j));
+        }
+
+
+        return crossPositions;
+    }
+
     getDiagonals(position: Position, maxDistance: number): Position[] {
         if (maxDistance < 0) {
             throw new Error(`Invalid distance ${maxDistance}`);
@@ -41,25 +70,41 @@ export default class Matrix<T> {
 
         const diagonals: Position[] = [];
 
+        let distance = 0;
 
-        for (let i = position.x - 1, j = position.y - 1; i < this.size, j < this.size; i--, j--) {
+        for (let i = position.x - 1, j = position.y - 1; i >= 0 && j >= 0 && distance < maxDistance; i--, j--, distance++) {
             diagonals.push(new Position(i, j));
         }
 
-        for (let i = position.x - 1, j = position.y + 1; i < this.size, j < this.size; i--, j++) {
+        for (let i = position.x - 1, j = position.y + 1; i >= 0 && j < this.size && distance < maxDistance; i--, j++, distance++) {
             diagonals.push(new Position(i, j));
         }
 
-        for (let i = position.x + 1, j = position.y - 1; i < this.size, j < this.size; i++, j--) {
+        for (let i = position.x + 1, j = position.y - 1; i < this.size && j >= 0 && distance < maxDistance; i++, j--, distance++) {
             diagonals.push(new Position(i, j));
         }
 
-        for (let i = position.x + 1, j = position.y + 1; i < this.size, j < this.size; i++, j++) {
+        for (let i = position.x + 1, j = position.y + 1; i < this.size && j < this.size && distance < maxDistance; i++, j++, distance++) {
             diagonals.push(new Position(i, j));
         }
 
 
         return diagonals;
+    }
+
+    count(predicate: (element: T) => boolean): number {
+        let count = 0;
+
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                const suspect = this.at(i, j);
+                if (predicate(suspect)) {
+                    count++;
+                }
+            }
+        }
+
+        return count;
     }
 
     shift(direction: Direction, index: number, count: number) {

@@ -1,14 +1,14 @@
 import { shuffle, swap } from '../..';
 import Matrix from '../util/Matrix';
 import Position from '../util/Position';
-import Bomber from './role/Bomber';
-import Detective from './role/Detective';
+import Bomber, { BomberContext } from './role/Bomber';
+import Detective, { DetectiveContext } from './role/Detective';
 import Killer from './role/Killer';
 import Player from './role/Player';
-import Profiler from './role/Profiler';
+import Profiler, { ProfilerContext } from './role/Profiler';
 import Psycho from './role/Psycho';
 import Sniper from './role/Sniper';
-import Suit from './role/Suit';
+import Suit, { SuitContext } from './role/Suit';
 import Undercover from './role/Undercover';
 import { RoleType } from './RoleType';
 import Shift from './Shift';
@@ -77,7 +77,7 @@ export class PreparingState<I extends Identity> extends State<I> {
             throw new Error('Cannot be ready without role');
         }
 
-        const currentParticipant = this.participants.removeFirst(p => participant.identity === p.identity);
+        const currentParticipant = this.participants.removeFirstBy(p => participant.identity === p.identity);
 
         if (currentParticipant && currentParticipant.role !== participant.role) {
             this.resetReadiness();
@@ -106,7 +106,7 @@ export class PreparingState<I extends Identity> extends State<I> {
     }
 
     public leave(identity: I) {
-        const pariticpant = this.participants.removeFirst(p => p.identity !== identity);
+        const pariticpant = this.participants.removeFirstBy(p => p.identity !== identity);
 
         if (pariticpant) {
             // reset ready states
@@ -175,7 +175,11 @@ export class PreparingState<I extends Identity> extends State<I> {
             suspects.slice(20, 25)
         ]);
 
-        const context = new GameContext(arena, suspects);
+        shuffle(suspects);
+
+        const profilerEvidenceHand = for6 ? [] : suspects.splice(-1, 4);
+
+        const context = new GameContext(arena, suspects, profilerEvidenceHand);
 
         const players: Player<I>[] = this.participants.map(participant => this.createPlayerForRole(participant.identity, participant.role!, context));
 
@@ -184,7 +188,7 @@ export class PreparingState<I extends Identity> extends State<I> {
         const killerIndex = players.findIndex(player => player.constructor === Killer);
         swap(players, 0, killerIndex);
 
-        shuffle(suspects);
+
         players.forEach(player => suspects.pop()!.role = player);
 
         context.players = players;
@@ -201,7 +205,7 @@ export class PlayingState<I extends Identity> extends State<I> {
         context.game = this;
     }
 
-    get players() : Player<I>[] {
+    get players(): Player<I>[] {
         return this.context.players;
     }
 
@@ -248,22 +252,24 @@ export class GameContext {
     lastShift?: Shift;
 
     bomber: BomberContext;
+    detective: DetectiveContext;
+    suit: SuitContext;
+    profiler: ProfilerContext;
 
     scores: [number, number];
 
     game: PlayingState<any>;
 
-    constructor(arena: Matrix<Suspect>, evidenceDeck: Suspect[]) {
+    constructor(arena: Matrix<Suspect>, evidenceDeck: Suspect[], profilerEvidenceHand: Suspect[]) {
         this.arena = arena;
         this.players = undefined as any;
         this.currentTurnPlayer = this.players[0];
         this.evidenceDeck = evidenceDeck;
         this.bomber = {};
+        this.detective = {};
+        this.suit = {};
+        this.profiler = new ProfilerContext(profilerEvidenceHand);
         this.scores = [0, 0];
         this.game = undefined as any;
     }
-}
-
-class BomberContext {
-    lastDetonatedBomb?: Position;
 }

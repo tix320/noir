@@ -2,13 +2,10 @@ import { Direction, Identity, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Position from "@tix320/noir-core/src/util/Position";
 import { GameHelper } from "./GameHelper";
+import Mafioso from "./Mafioso";
 import Player from "./Player";
 
-export default class Psycho<I extends Identity> extends Player<I> {
-
-    isMafioso(): boolean {
-        return true;
-    }
+export default class Psycho<I extends Identity> extends Mafioso<I> {
 
     canDoFastShift(): boolean {
         return false;
@@ -18,7 +15,7 @@ export default class Psycho<I extends Identity> extends Player<I> {
         return Marker.THREAT;
     }
 
-    protected onTurnStart(): void {
+    protected ffff(): void { // TODO: Reimplement with single kills
         const position = GameHelper.findPlayerInArena(this, this.context);
 
         const arena = this.context.arena;
