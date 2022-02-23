@@ -1,12 +1,12 @@
-import styles from './App.module.css';
 import { Component } from "react";
-import { LoginComponent } from "../login/LoginComponent";
 import { connect } from "react-redux";
-import API from "../../../service/Api";
-import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
-import store, { userChanged } from '../../../service/Store';
-import MainComponent from '../main/MainComponent';
 import User from '../../../entity/User';
+import API from "../../../service/Api";
+import store, { userChanged } from '../../../service/Store';
+import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
+import LoginComponent from "../login/LoginComponent";
+import MainComponent from '../main/MainComponent';
+import styles from './App.module.css';
 
 type Props = {
     user: User

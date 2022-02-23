@@ -4,9 +4,12 @@
         "moduleResolution": "node",
         "target": "ESNext",
         "sourceMap": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
         "noImplicitAny": true,
         "strictNullChecks": true,
         "strictPropertyInitialization": true,
-        "downlevelIteration": true
+        "downlevelIteration": true,
+        
     }
 }

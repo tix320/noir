@@ -2,8 +2,10 @@ import { Component } from "react";
 import { Button, Form } from "react-bootstrap";
 import "./Login.scss";
 import loginImg from "../../images/spy-logo.png";
+import { withTranslation } from 'react-i18next';
 
 type Props = {
+    t: any,
     onLogin(token: string, permanent: boolean): void
 }
 
@@ -12,7 +14,7 @@ type State = {
     saveToken: boolean
 }
 
-export class LoginComponent extends Component<Props, State>  {
+class LoginComponent extends Component<Props, State>  {
 
     state: State = {
         token: "",
@@ -25,6 +27,8 @@ export class LoginComponent extends Component<Props, State>  {
     }
 
     render() {
+        const locale = this.props.t;
+
         return (
             <div className="base-container">
                 <div className="content">
@@ -33,14 +37,14 @@ export class LoginComponent extends Component<Props, State>  {
                     </div>
                     <div className="form">
                         <div className="form-group">
-                            <input type="text" name="token" placeholder="Token"
+                            <input type="text" placeholder={locale('token')}
                                 onChange={(e) => this.setState({ token: e.target.value })} />
                         </div>
                         <div className="form-check">
                             <Form.Check
                                 type="switch"
                                 id="custom-switch"
-                                label=" Save token"
+                                label={locale('save-token')}
                                 onChange={(e) => this.setState({ saveToken: e.target.checked })} />
 
                         </div>
@@ -54,3 +58,5 @@ export class LoginComponent extends Component<Props, State>  {
         );
     }
 }
+
+export default withTranslation()(LoginComponent);

@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import reactDom from 'react-dom';
 import { Provider } from 'react-redux'
 import store from './service/Store';
+import "./service/i18n";
 
 reactDom.render(
     <React.StrictMode>
