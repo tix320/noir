@@ -1,37 +1,20 @@
-import { Component } from "react";
-import styles from "./Profile.module.css";
 import Avatar from 'react-avatar';
+import { useSelector } from 'react-redux';
+import { StoreState } from '../../../../service/Store';
 import avatarImg from "../../../images/avatar.png";
-import { connect } from "react-redux";
-import User from "../../../../entity/User";
+import styles from "./Profile.module.css";
 
 type Props = {
-    className: string,
-    user: User
+    className: string
 }
 
-type State = {
+export default function ProfileComponent(props: Props) {
+    const user = useSelector((state: StoreState) => state.user)!;
+
+    return (
+        <div className={props.className}>
+            <h4><label className={styles.label}>{user.name}</label></h4>
+            <Avatar className={styles.avatar} size="50" src={avatarImg} />
+        </div>
+    );
 }
-
-class ProfileComponent extends Component<Props, State> {
-
-    render() {
-        const user = this.props.user;
-
-        return (
-            <div className={this.props.className}>
-                <h4><label className={styles.label}>{user.name}</label></h4>
-                <Avatar className={styles.avatar} size="50" src={avatarImg} />
-            </div>
-        );
-    }
-}
-
-function mapStateToProps(state: any) {
-    const user = state.user;
-    return {
-        user,
-    };
-}
-
-export default connect(mapStateToProps)(ProfileComponent);

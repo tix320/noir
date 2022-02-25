@@ -19,7 +19,7 @@ export default class PlayersPlaceComponent extends Component<Props, State> {
             <div>
                 {
                     cards.map(card => {
-                        return <img src={`../../${card}.png`}/>
+                        return <img key={card} src={`../../${card}.png`}/>
                     })
                 }
             </div>

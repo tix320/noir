@@ -1,11 +1,11 @@
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 import User from '../entity/User';
 
-export interface State {
+export interface StoreState {
     user?: User
 }
 
-const initialState: State = {
+const initialState: StoreState = {
 };
 
 const slice = createSlice({
