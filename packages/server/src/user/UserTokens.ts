@@ -1,4 +1,4 @@
-import { User } from "./user";
+import { User } from "./User";
 
 export const USERS = [
     new User("3c1af001-b01b-4b47-86ba-cfe69a973aec", "test1"),

@@ -1,15 +1,15 @@
 import { JoinedUserInfo, RoleType } from "@tix320/noir-core";
-import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
 import GameDto from "@tix320/noir-core/src/dto/Game";
-import UserDto from "@tix320/noir-core/src/dto/User";
+import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
 import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
+import UserDto from "@tix320/noir-core/src/dto/User";
 import Game, { PlayingState, PreparingState } from "@tix320/noir-core/src/game/Game";
 import { Server } from "socket.io";
 import GameInfo from "./game/GameInfo";
 import { default as GameService, default as GAME_SERVICE } from "./game/GameService";
-import { User } from "./user";
-import USER_SERVICE from "./UserService";
-import { USERS_BY_TOKEN } from "./UserTokens";
+import { User } from "./user/User";
+import USER_SERVICE from "./user/UserService";
+import { USERS_BY_TOKEN } from "./user/UserTokens";
 
 const io = new Server({
     cors: {
@@ -41,6 +41,7 @@ io.use((socket, next) => {
 const GAMES_STREAM_EVENT = "gamesStream";
 const MY_CURRENT_GAME_STREAM_EVENT = (userId: string) => `myCurrentGameStream_${userId}`;
 const GAMES_PREPARATION_STREAM_EVENT = (gameId: string) => `gamePreparationStream_${gameId}`;
+const GAME_EVENTS_STREAM_EVENT = (gameId: string) => `gameEventsStream_${gameId}`;
 
 function gameResponse(gameInfo: GameInfo, game: Game<User>): GameDto {
     return ({
@@ -129,7 +130,7 @@ io.on("connection", (socket) => {
         if (game.getState().type === PreparingState) {
             const roomName = GAMES_PREPARATION_STREAM_EVENT(gameInfo.id);
             io.to(roomName).emit(roomName, gamePreparationResponse(game));
-        } else {
+        } else if (game.getState().type === PlayingState) {
             const gameResp = gameResponse(gameInfo, game);
             game.getPlayingState().players.forEach(player => {
                 const userId = player.identity.id;
@@ -137,6 +138,8 @@ io.on("connection", (socket) => {
                 const name = MY_CURRENT_GAME_STREAM_EVENT(userId);
                 io.to(name).emit(name, gameResp);
             });
+        } else {
+            throw new Error('Illegal state');
         }
     });
 
@@ -181,6 +184,24 @@ io.on("connection", (socket) => {
 
         socket.join(name);
         socket.emit(name, gamePreparationResponse(game));
+    });
+
+    socket.on('gameEventsStream', (gameId: string, cb) => {
+        const [gameInfo, game] = GameService.getGame(gameId);
+
+        const playingState = game.getPlayingState();
+        const player = playingState.players.find(player => player.identity === user);
+        if (!player) {
+            throw new Error('Yoe are not in this game');
+        }
+
+        cb(player.getCurrentState());
+
+        const name = GAME_EVENTS_STREAM_EVENT(gameId);
+
+        socket.join(name);
+
+        player.onGameEvent(event => socket.emit(name, event));
     });
 });
 

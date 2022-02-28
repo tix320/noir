@@ -1,4 +1,4 @@
-import { User } from "./user";
+import { User } from "./User";
 
 class UserService {
     connectedUsers: Map<string, User> = new Map()

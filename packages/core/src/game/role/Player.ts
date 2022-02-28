@@ -1,10 +1,8 @@
 import Shift from "@tix320/noir-core/src/game/Shift";
-import EventEmitter from "events";
 import { Direction } from "../../..";
 import Identifiable from "../../util/Identifiable";
 import Position from "../../util/Position";
-import CompleteEvent from "../event/CompleteEvent";
-import GameEvent from "../event/GameEvent";
+import GameFullState from "../GameFullState";
 import { Marker } from "../Marker";
 import { GameContext } from "./GameContext";
 import { GameHelper } from "./GameHelper";
@@ -43,15 +41,12 @@ export default abstract class Player<I extends Identifiable> {
         return false;
     }
 
-    getCurrentState() {
+    getCurrentState(): GameFullState {
+        throw new Error('Not implemented');
         // TODO:
     }
 
-    onChange(listener: (event: GameEvent) => void) {
-        // TODO: 
-    }
-
-    onComplete(listener: (event: CompleteEvent) => void) {
+    onGameEvent(listener: (event: any) => void) {
         // TODO: 
     }
 

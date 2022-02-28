@@ -1,7 +1,7 @@
 import {  RoleType } from '@tix320/noir-core';
 import { v4 as uuid } from 'uuid';
 import GameInfo from './GameInfo';
-import { User } from '../user';
+import { User } from '../user/User';
 import Game, { CompletedState, PlayingState, PreparingState } from '@tix320/noir-core/src/game/Game';
 
 class GameService {
