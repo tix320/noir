@@ -1,18 +1,19 @@
-import { Identity, Marker } from "@tix320/noir-core";
+import Identifiable from "../../util/Identifiable";
 import Position from "../../util/Position";
+import { Marker } from "../Marker";
 import { Suspect } from "../Suspect";
 import Agent from "./Agent";
 import { GameHelper } from "./GameHelper";
 import Mafioso from "./Mafioso";
 import Player from "./Player";
 
-export default class Detective<I extends Identity> extends Agent<I> {
+export default class Detective<I extends Identifiable> extends Agent<I> {
 
-    canDoFastShift(): boolean {
+    override canDoFastShift(): boolean {
         return true;
     }
 
-    ownMarker(): Marker | undefined {
+    override ownMarker(): Marker | undefined {
         return undefined;
     }
 

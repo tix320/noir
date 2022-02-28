@@ -8,6 +8,7 @@ export * from './src/util/ArrayUtils';
 export * from './src/util/Position';
 export * from './src/util/Direction'; 
 export * from './src/util/Matrix';
+export * from './src/util/Identifiable';
 export * from './src/dto/GameRoleRequest';
 export * from './src/dto/GamePreparationState';
 export * from './src/dto/User';

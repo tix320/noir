@@ -2,6 +2,10 @@ import { Direction } from "./Direction";
 import Position from "./Position";
 
 export default class Matrix<T> {
+    private static ADJACENCY_OFFSETS = [
+        [-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]
+    ]
+
     private readonly matrix: T[][];
 
     constructor(matrix: T[][]) {
@@ -32,6 +36,25 @@ export default class Matrix<T> {
         const temp = this.atPosition(position1);
         this.setToPosition(position1, this.atPosition(position2));
         this.setToPosition(position2, temp);
+    }
+
+    getAdjacents(position: Position): Position[] {
+        if (position.x < 0 || position.x >= this.size || position.y < 0 || position.y >= this.size) {
+            throw new Error(`Out of bounds position ${position}`);
+        }
+
+        const neighbors: Position[] = [];
+
+        Matrix.ADJACENCY_OFFSETS.forEach(offset => {
+            const newX = position.x + offset[0];
+            const newY = position.y + offset[1];
+
+            if (newX >= 0 && newX < this.size && newY >= 0 && newY < this.size) {
+                neighbors.push(new Position(newX, newY));
+            }
+        });
+
+        return neighbors;
     }
 
     getCross(position: Position, maxDistance: number): Position[] {

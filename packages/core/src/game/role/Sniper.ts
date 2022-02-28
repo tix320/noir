@@ -1,17 +1,17 @@
-import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
+import Identifiable from "../../util/Identifiable";
+import { Marker } from "../Marker";
 import { GameHelper as GameHelper } from "./GameHelper";
 import Mafioso from "./Mafioso";
-import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Sniper<I extends Identity> extends Mafioso<I> {
+export default class Sniper<I extends Identifiable> extends Mafioso<I> {
 
-    canDoFastShift(): boolean {
+    override canDoFastShift(): boolean {
         return true;
     }
 
-    ownMarker(): Marker | undefined {
+    override ownMarker(): Marker | undefined {
         return undefined;
     }
 
@@ -25,7 +25,8 @@ export default class Sniper<I extends Identity> extends Mafioso<I> {
             throw new Error(`Invalid target=${arena.atPosition(target)}. You can kill only suspects 3 spaces away from you in diagonal line`);
         }
 
-        const killed = GameHelper.tryKillSuspect(target, this.context);
+        const suit = GameHelper.findPlayer(Suit, this.context);
+        const killed = GameHelper.tryKillSuspect(target, suit, this.context);
 
         if (killed) {
             this.endTurn({ checkScores: true });

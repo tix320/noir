@@ -1,17 +1,17 @@
-import { Identity, Marker } from "@tix320/noir-core";
 import Position from "@tix320/noir-core/src/util/Position";
+import Identifiable from "../../util/Identifiable";
+import { Marker } from "../Marker";
 import { GameHelper } from "./GameHelper";
 import Mafioso from "./Mafioso";
-import Player from "./Player";
 import Suit from "./Suit";
 
-export default class Bomber<I extends Identity> extends Mafioso<I> {
+export default class Bomber<I extends Identifiable> extends Mafioso<I> {
 
-    canDoFastShift(): boolean {
+    override canDoFastShift(): boolean {
         return false;
     }
 
-    ownMarker(): Marker | undefined {
+    override ownMarker(): Marker | undefined {
         return Marker.BOMB;
     }
 
@@ -53,7 +53,7 @@ export default class Bomber<I extends Identity> extends Mafioso<I> {
         const hasBombMarker = suspect.markers.delete(Marker.BOMB);
 
         if (this.context.bomber.lastDetonatedBomb) {
-            const adjacents = this.context.bomber.lastDetonatedBomb.getAdjacents(arena.size);
+            const adjacents = arena.getAdjacents(this.context.bomber.lastDetonatedBomb);
             if (!adjacents.find(pos => pos.equals(target))) {
                 throw new Error("Non adjacent targets");
             }
@@ -63,7 +63,10 @@ export default class Bomber<I extends Identity> extends Mafioso<I> {
             }
         }
 
-        const killed = GameHelper.tryKillSuspect(target, this.context);
+        this.context.bomber.lastDetonatedBomb = undefined;
+
+        const suit = GameHelper.findPlayer(Suit, this.context);
+        const killed = GameHelper.tryKillSuspect(target, suit, this.context);
 
         if (killed) {
             if (hasBombMarker) {

@@ -9,6 +9,8 @@ declare global {
         removeFirst(element: T): boolean;
 
         equals(other: Array<T>): boolean;
+
+        toMap<K>(keyExtractor: (element: T) => K): Map<K, T>;
     }
 }
 
@@ -36,3 +38,6 @@ Array.prototype.equals = function <T>(this: Array<T>, other: Array<T>): boolean 
     return this.length === other.length && this.every((val, index) => val === other[index]);
 }
 
+Array.prototype.toMap = function <K, T>(this: Array<T>, keyExtractor: (element: T) => K): Map<K, T> {
+    return new Map(this.map(elem => [keyExtractor(elem), elem]));
+}

@@ -1,10 +1,13 @@
+import EventEmitter from 'events';
 import { shuffle, swap } from '../..';
+import Identifiable from '../util/Identifiable';
 import Matrix from '../util/Matrix';
-import Position from '../util/Position';
+import Player from './role/Player';
+import Agent from './role/Agent';
+import Mafioso from './role/Mafioso';
+import Killer from './role/Killer';
 import Bomber, { BomberContext } from './role/Bomber';
 import Detective, { DetectiveContext } from './role/Detective';
-import Killer from './role/Killer';
-import Player from './role/Player';
 import Profiler, { ProfilerContext } from './role/Profiler';
 import Psycho from './role/Psycho';
 import Sniper from './role/Sniper';
@@ -13,8 +16,9 @@ import Undercover from './role/Undercover';
 import { RoleType } from './RoleType';
 import Shift from './Shift';
 import { Suspect } from './Suspect';
+import { GameContext } from './role/GameContext';
 
-export default class Game<I extends Identity> {
+export default class Game<I extends Identifiable> {
 
     static ROLE_SETS = [
         new Set([RoleType.KILLER, RoleType.BOMBER, RoleType.PSYCHO, RoleType.UNDERCOVER, RoleType.SUIT, RoleType.DETECTIVE]),
@@ -59,7 +63,7 @@ export default class Game<I extends Identity> {
     }
 }
 
-abstract class State<I extends Identity> {
+abstract class State<I extends Identifiable> {
     constructor(protected game: Game<I>) { }
 
 
@@ -68,7 +72,7 @@ abstract class State<I extends Identity> {
     }
 }
 
-export class PreparingState<I extends Identity> extends State<I> {
+export class PreparingState<I extends Identifiable> extends State<I> {
 
     readonly participants: PreliminaryPlayer<I>[] = [];
 
@@ -167,13 +171,30 @@ export class PreparingState<I extends Identity> extends State<I> {
 
         const suspects = Suspect.generateSet(arenaSize * arenaSize);
 
-        const arena = new Matrix([
-            suspects.slice(0, 5),
-            suspects.slice(5, 10),
-            suspects.slice(10, 15),
-            suspects.slice(15, 20),
-            suspects.slice(20, 25)
-        ]);
+        let matrix: Suspect[][]
+
+        if (for6) {
+            matrix = [
+                suspects.slice(0, 6),
+                suspects.slice(6, 12),
+                suspects.slice(12, 18),
+                suspects.slice(18, 24),
+                suspects.slice(24, 30),
+                suspects.slice(30, 36),
+            ]
+        } else {
+            matrix = [
+                suspects.slice(0, 7),
+                suspects.slice(7, 14),
+                suspects.slice(14, 21),
+                suspects.slice(21, 28),
+                suspects.slice(28, 35),
+                suspects.slice(35, 42),
+                suspects.slice(42, 49),
+            ]
+        }
+
+        const arena = new Matrix(matrix);
 
         shuffle(suspects);
 
@@ -183,25 +204,43 @@ export class PreparingState<I extends Identity> extends State<I> {
 
         const players: Player<I>[] = this.participants.map(participant => this.createPlayerForRole(participant.identity, participant.role!, context));
 
-        shuffle(players);
-
-        const killerIndex = players.findIndex(player => player.constructor === Killer);
-        swap(players, 0, killerIndex);
-
+        this.reolvePlayersOrder(players);
 
         players.forEach(player => suspects.pop()!.role = player);
 
         context.players = players;
+        context.currentTurnPlayer = players[0];
 
         this.game['state'] = new PlayingState(this.game, context, winningScores);
     }
+
+    private reolvePlayersOrder(players: Player<any>[]): void {
+        const mafia: Player<I>[] = players.filter(p => p instanceof Mafioso);
+        const fbi: Player<I>[] = players.filter(p => p instanceof Agent);
+
+        shuffle(mafia);
+        shuffle(fbi);
+
+        const killerIndex = mafia.findIndex(player => player instanceof Killer);
+        swap(mafia, 0, killerIndex);
+
+        let maf = true;
+        const mafiaIter = mafia[Symbol.iterator]();
+        const fbiIter = fbi[Symbol.iterator]();
+        for (let i = 0; i < players.length; i++) {
+            players[i] = maf ? mafiaIter.next().value : fbiIter.next().value;
+            maf = !maf;
+        }
+    }
 }
 
-export class PlayingState<I extends Identity> extends State<I> {
+export class PlayingState<I extends Identifiable> extends State<I> {
+
+    eventEmmiter: EventEmitter;
 
     constructor(game: Game<I>, private context: GameContext, private winningScores: [number, number]) {
         super(game);
-
+        this.eventEmmiter = new EventEmitter();
         context.game = this;
     }
 
@@ -228,48 +267,13 @@ export class PlayingState<I extends Identity> extends State<I> {
     }
 }
 
-export class CompletedState<I extends Identity> extends State<I> {
+export class CompletedState<I extends Identifiable> extends State<I> {
 }
 
-export interface Identity {
-    equals(other: this): boolean;
-}
 
-export interface PreliminaryPlayer<I extends Identity> {
+
+export interface PreliminaryPlayer<I extends Identifiable> {
     identity: I,
     role?: RoleType,
     ready: boolean
-}
-
-export class GameContext {
-    arena: Matrix<Suspect>;
-
-    players: Player<any>[];
-    currentTurnPlayer: Player<any>;
-
-    evidenceDeck: Suspect[];
-
-    lastShift?: Shift;
-
-    bomber: BomberContext;
-    detective: DetectiveContext;
-    suit: SuitContext;
-    profiler: ProfilerContext;
-
-    scores: [number, number];
-
-    game: PlayingState<any>;
-
-    constructor(arena: Matrix<Suspect>, evidenceDeck: Suspect[], profilerEvidenceHand: Suspect[]) {
-        this.arena = arena;
-        this.players = undefined as any;
-        this.currentTurnPlayer = this.players[0];
-        this.evidenceDeck = evidenceDeck;
-        this.bomber = {};
-        this.detective = {};
-        this.suit = {};
-        this.profiler = new ProfilerContext(profilerEvidenceHand);
-        this.scores = [0, 0];
-        this.game = undefined as any;
-    }
 }

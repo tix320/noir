@@ -2,11 +2,10 @@ import { Direction, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Matrix from "@tix320/noir-core/src/util/Matrix";
 import Position from "@tix320/noir-core/src/util/Position";
-import { GameContext } from "../Game";
 import { Suspect } from "../Suspect";
+import { GameContext } from "./GameContext";
 import Mafioso from "./Mafioso";
 import Player from "./Player";
-import Suit from "./Suit";
 
 export namespace GameHelper {
 
@@ -28,7 +27,7 @@ export namespace GameHelper {
     export function isAdjacentTo(player: Player<any>, position: Position, context: GameContext): boolean {
         const arena = context.arena;
 
-        const adjacents = position.getAdjacents(arena.size);
+        const adjacents = arena.getAdjacents(position);
 
         return adjacents.some(pos => arena.atPosition(pos).role === player);
     }
@@ -38,7 +37,7 @@ export namespace GameHelper {
 
         const arena = context.arena;
 
-        const adjacents = position.getAdjacents(arena.size);
+        const adjacents = arena.getAdjacents(position);
 
         return adjacents.map(pos => arena.atPosition(pos)).filter(suspect => predicate!(suspect)).map(sus => sus.role) as Player<any>[];
     }
@@ -46,7 +45,7 @@ export namespace GameHelper {
     export function getAdjacentMafiosi(position: Position, context: GameContext): Mafioso<any>[] {
         const arena = context.arena;
 
-        const adjacents = position.getAdjacents(arena.size);
+        const adjacents = arena.getAdjacents(position);
 
         return adjacents.map(pos => arena.atPosition(pos).role).filter(role => role instanceof Mafioso) as Mafioso<any>[];
     }
@@ -64,7 +63,7 @@ export namespace GameHelper {
     /**
      * Try kill suspect. Return false if suspect can be protected by suit.
      */
-    export function tryKillSuspect(position: Position, context: GameContext): boolean {
+    export function tryKillSuspect(position: Position, suit: Player<any>, context: GameContext): boolean {
         const suspect = context.arena.atPosition(position);
 
         const suspectRole = suspect.role;
@@ -72,7 +71,6 @@ export namespace GameHelper {
             throw new Error(`Target ${suspect} cannot be killed.`);
         }
 
-        const suit = findPlayer(Suit, context);
         if (suspect.markers.has(Marker.PROTECTION) && suspect.role !== suit
             && (isPlayerInRow(suit, context.arena, position.x) || isPlayerInColumn(suit, context.arena, position.y))) {
             return false;
@@ -96,7 +94,7 @@ export namespace GameHelper {
 
                 const ownMarker = suspectRole.ownMarker();
                 if (ownMarker) {
-                    this.removeMarkersFromArena(ownMarker);
+                    removeMarkersFromArena(ownMarker, context);
                 }
 
                 peekNewIdentityFor(suspectRole, context);
@@ -136,7 +134,7 @@ export namespace GameHelper {
 
         const ownMarker = suspectRole.ownMarker();
         if (ownMarker) {
-            this.removeMarkersFromArena(ownMarker);
+            removeMarkersFromArena(ownMarker, context);
         }
 
         peekNewIdentityFor(suspectRole, context);
@@ -168,7 +166,7 @@ export namespace GameHelper {
     }
 
     export function peekNewIdentityFor(player: Player<any>, context: GameContext) {
-        while (tryPeekNewIdentityFor(player, context)) {
+        while (!tryPeekNewIdentityFor(player, context)) {
         }
     }
 

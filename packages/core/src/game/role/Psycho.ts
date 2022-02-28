@@ -1,33 +1,37 @@
-import { Direction, Identity, Marker } from "@tix320/noir-core";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import Position from "@tix320/noir-core/src/util/Position";
+import { Direction } from "../../..";
+import Identifiable from "../../util/Identifiable";
+import { Marker } from "../Marker";
 import { GameHelper } from "./GameHelper";
 import Mafioso from "./Mafioso";
 import Player from "./Player";
+import Suit from "./Suit";
 
-export default class Psycho<I extends Identity> extends Mafioso<I> {
+export default class Psycho<I extends Identifiable> extends Mafioso<I> {
 
-    canDoFastShift(): boolean {
+    override canDoFastShift(): boolean {
         return false;
     }
 
-    ownMarker(): Marker | undefined {
+    override ownMarker(): Marker | undefined {
         return Marker.THREAT;
     }
 
-    protected ffff(): void { // TODO: Reimplement with single kills
+    kill(): void { // TODO: Reimplement with single kills
         const position = GameHelper.findPlayerInArena(this, this.context);
 
         const arena = this.context.arena;
 
-        const neighborns = position.getAdjacents(arena.size);
+        const neighborns = arena.getAdjacents(position);
 
         neighborns.forEach(position => {
             const suspect = arena.atPosition(position);
 
             let killed = false;
             if (suspect.markers.delete(Marker.THREAT)) {
-                killed = GameHelper.tryKillSuspect(position, this.context);
+                const suit = GameHelper.findPlayer(Suit, this.context);
+                killed = GameHelper.tryKillSuspect(position, suit, this.context);
             }
 
             if (killed) {
@@ -61,7 +65,7 @@ export default class Psycho<I extends Identity> extends Mafioso<I> {
 
         const arena = this.context.arena;
 
-        const neighborns = position1.getAdjacents(arena.size);
+        const neighborns = arena.getAdjacents(position1);
 
         const isUniquePositions = position1 === position2 || arena.atPosition(position1).role === this || arena.atPosition(position2).role === this;
         const isAdjacents = neighborns.some(position => arena.atPosition(position).role === this) && neighborns.some(position => position.equals(position2));
@@ -75,7 +79,7 @@ export default class Psycho<I extends Identity> extends Mafioso<I> {
         this.endTurn({});
     }
 
-    mark(positions: Position[]) {
+    placeThreat(positions: Position[]) {
         this.startTurn();
 
         if (positions.length > 3) {

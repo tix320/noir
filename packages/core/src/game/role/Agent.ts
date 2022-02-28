@@ -1,10 +1,10 @@
+import Identifiable from "../../util/Identifiable";
 import Position from "../../util/Position";
-import { Identity } from "../Game";
 import { Marker } from "../Marker";
 import { GameHelper } from "./GameHelper";
 import Player from "./Player";
 
-export default abstract class Agent<I extends Identity> extends Player<I>{
+export default abstract class Agent<I extends Identifiable> extends Player<I> {
 
     disarm(target: Position, marker: Marker): void {
         this.startTurn();

@@ -1,10 +1,14 @@
 import Shift from "@tix320/noir-core/src/game/Shift";
+import EventEmitter from "events";
 import { Direction } from "../../..";
-import { GameContext, Identity } from "../Game";
+import Identifiable from "../../util/Identifiable";
+import Position from "../../util/Position";
+import CompleteEvent from "../event/CompleteEvent";
+import GameEvent from "../event/GameEvent";
 import { Marker } from "../Marker";
+import { GameContext } from "./GameContext";
 import { GameHelper } from "./GameHelper";
-
-export default abstract class Player<I extends Identity> {
+export default abstract class Player<I extends Identifiable> {
 
     constructor(public readonly identity: I, protected context: GameContext) {
     }
@@ -37,6 +41,22 @@ export default abstract class Player<I extends Identity> {
         }
 
         return false;
+    }
+
+    getCurrentState() {
+        // TODO:
+    }
+
+    onChange(listener: (event: GameEvent) => void) {
+        // TODO: 
+    }
+
+    onComplete(listener: (event: CompleteEvent) => void) {
+        // TODO: 
+    }
+
+    locate(): Position {
+        return GameHelper.findPlayerInArena(this, this.context);
     }
 
     shift(shift: Shift) {
