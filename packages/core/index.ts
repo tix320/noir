@@ -2,7 +2,7 @@ export * from './src/game/RoleType';
 export * from './src/game/Marker'; 
 export * from './src/game/Shift'; 
 export * from './src/game/Character'; 
-export * from './src/game/Game'; 
+export * from './src/game/StandardGame'; 
 export * from './src/util/RandUtils'; 
 export * from './src/util/ArrayUtils'; 
 export * from './src/util/Position';

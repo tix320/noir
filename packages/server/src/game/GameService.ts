@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import GameInfo from './GameInfo';
 import { User } from '../user/User';
 import Game, { CompletedState, PlayingState, PreparingState } from '@tix320/noir-core/src/game/Game';
+import StandardGame from '@tix320/noir-core/src/game/StandardGame';
 
 class GameService {
     #games: Map<string, [GameInfo, Game<User>]> = new Map()
@@ -28,7 +29,7 @@ class GameService {
         const id = uuid();
         gameInfo = {...gameInfo, id};
 
-        const game = new Game<User>();
+        const game = new StandardGame<User>();
         this.#games.set(id, [gameInfo, game]);
 
         game.getPreparingState().join({ identity: creator, ready: false });
@@ -74,16 +75,14 @@ class GameService {
 
         const [gameInfo, game] = this.getGame(gameId);
 
-        const state = game.getState().type;
-
-        switch (state) {
-            case PreparingState:
+        switch (game.state) {
+            case 'PREPARING':
                 game.getPreparingState().leave(user);
                 break;
-            case PlayingState:
+            case 'PLAYING':
                 // TODO: Complete game immidielty     
                 break;
-            case CompletedState:
+            case 'COMPLETED':
                 // Only clear currentGame status 
                 break;
         }

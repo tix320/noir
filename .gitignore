@@ -24,3 +24,6 @@ package-lock.json
 
 *.js
 *.js.map
+
+# VS code
+.history

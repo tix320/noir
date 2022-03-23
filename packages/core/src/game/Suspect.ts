@@ -1,5 +1,5 @@
 import { Character, Marker } from "@tix320/noir-core";
-import Player from "./role/Player";
+import { Player } from "./Game";
 
 export class Suspect {
     readonly character: Character;

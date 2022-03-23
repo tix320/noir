@@ -4,6 +4,7 @@ import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState
 import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
 import UserDto from "@tix320/noir-core/src/dto/User";
 import Game, { PlayingState, PreparingState } from "@tix320/noir-core/src/game/Game";
+import StandardGame from "@tix320/noir-core/src/game/StandardGame";
 import { Server } from "socket.io";
 import GameInfo from "./game/GameInfo";
 import { default as GameService, default as GAME_SERVICE } from "./game/GameService";
@@ -47,8 +48,8 @@ function gameResponse(gameInfo: GameInfo, game: Game<User>): GameDto {
     return ({
         ...gameInfo,
         currentPlayersCount: game.getPlayersCount(),
-        maxPlayersCount: Game.ROLE_SETS.at(-1)!.size,
-        state: game.getState().type === PreparingState ? 'PREPARING' : game.getState().type === PlayingState ? "PLAYING" : "COMPLETED"
+        maxPlayersCount: StandardGame.ROLE_SETS.at(-1)!.size,
+        state: game.state
     })
 }
 
@@ -127,10 +128,10 @@ io.on("connection", (socket) => {
         const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, request.role, request.ready);
         cb(true);
 
-        if (game.getState().type === PreparingState) {
+        if (game.state === 'PREPARING') {
             const roomName = GAMES_PREPARATION_STREAM_EVENT(gameInfo.id);
             io.to(roomName).emit(roomName, gamePreparationResponse(game));
-        } else if (game.getState().type === PlayingState) {
+        } else if (game.state === 'PLAYING') {
             const gameResp = gameResponse(gameInfo, game);
             game.getPlayingState().players.forEach(player => {
                 const userId = player.identity.id;

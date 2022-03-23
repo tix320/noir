@@ -1,4 +1,4 @@
-import Player from "../role/Player";
+import { Player } from "../Game";
 import { RoleType } from "../RoleType";
 
 export default interface GameEvent {

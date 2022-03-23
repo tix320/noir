@@ -1,6 +1,6 @@
 import Matrix from "../util/Matrix";
 import Position from "../util/Position";
-import Player from "./role/Player";
+import { Player } from "./Game";
 import Shift from "./Shift";
 import { Suspect } from "./Suspect";
 
