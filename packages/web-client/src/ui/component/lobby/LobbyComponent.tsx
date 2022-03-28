@@ -3,7 +3,7 @@ import { GameCreationComponent } from "./GameCreationComponent";
 import { GameSelectionComponent } from "./GameSelectionComponent";
 import API from "../../../service/Api";
 import RxComponent from "../common/RxComponent";
-import { takeUntil } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 import Game from "@tix320/noir-core/src/dto/Game";
 
 type Props = {

@@ -1,9 +1,6 @@
-import { JoinedUserInfo, RoleType } from "@tix320/noir-core";
 import GameDto from "@tix320/noir-core/src/dto/Game";
-import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
-import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
 import UserDto from "@tix320/noir-core/src/dto/User";
-import Game, { PlayingState, PreparingState } from "@tix320/noir-core/src/game/Game";
+import Game, { RoleSelection } from "@tix320/noir-core/src/game/Game";
 import StandardGame from "@tix320/noir-core/src/game/StandardGame";
 import { Server } from "socket.io";
 import GameInfo from "./game/GameInfo";
@@ -64,29 +61,15 @@ function userResponse(user: User): UserDto {
     };
 }
 
-function gamePreparationResponse(game: Game<User>): GamePreparationState {
+function gamePreparationResponse(game: Game<User>): RoleSelection<any>[] {
     const participants = game.getPreparingState().participants;
 
-    let availableRoles = new Set(RoleType.for8());
-
-    const selectedRoles: JoinedUserInfo[] = [];
-
-    participants.forEach((participant => {
-        selectedRoles.push({
-            user: participant.identity,
-            role: participant.role,
-            ready: participant.ready
-        });
-
-        if (participant.role) {
-            availableRoles.delete(participant.role);
+    return participants.map(participant => {
+        return {
+            ...participant,
+            identity: userResponse(participant.identity)
         }
-    }));
-
-    return {
-        availableRoles: Array.from(availableRoles),
-        selectedRoles: selectedRoles
-    };
+    });
 }
 
 io.on("connection", (socket) => {
@@ -124,8 +107,8 @@ io.on("connection", (socket) => {
         socket.broadcast.to(roomName).emit(roomName, gamePreparationResponse(game));
     });
 
-    socket.on('changeGameRole', (request: GameRoleRequest, cb) => {
-        const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, request.role, request.ready);
+    socket.on('changeGameRole', (roleSelection: RoleSelection<never>, cb) => {
+        const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, roleSelection);
         cb(true);
 
         if (game.state === 'PREPARING') {

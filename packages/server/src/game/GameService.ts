@@ -1,8 +1,7 @@
-import {  RoleType } from '@tix320/noir-core';
 import { v4 as uuid } from 'uuid';
 import GameInfo from './GameInfo';
 import { User } from '../user/User';
-import Game, { CompletedState, PlayingState, PreparingState } from '@tix320/noir-core/src/game/Game';
+import Game, { CompletedState, PlayingState, PreparingState, RoleSelection } from '@tix320/noir-core/src/game/Game';
 import StandardGame from '@tix320/noir-core/src/game/StandardGame';
 
 class GameService {
@@ -32,7 +31,7 @@ class GameService {
         const game = new StandardGame<User>();
         this.#games.set(id, [gameInfo, game]);
 
-        game.getPreparingState().join({ identity: creator, ready: false });
+        game.getPreparingState().join(creator);
         creator.currentGameId = id;
 
         return [gameInfo, game];
@@ -45,13 +44,13 @@ class GameService {
             throw new Error("Already in another game");
         }
 
-        game.getPreparingState().join({ identity: user, ready: false });
+        game.getPreparingState().join(user);
         user.currentGameId = gameId;
 
         return [gameInfo, game];
     }
 
-    changeGameRole(user: User, role: RoleType | undefined, ready: boolean): [GameInfo, Game<User>] {
+    changeGameRole(user: User, selection: RoleSelection<never>): [GameInfo, Game<User>] {
         const gameId = user.currentGameId;
 
         if (!gameId) {
@@ -60,7 +59,7 @@ class GameService {
 
         const [gameInfo, game] = this.getGame(gameId);
 
-        game.getPreparingState().join({ identity: user, role, ready });
+        game.getPreparingState().changeRole({ ...selection, identity: user });
         user.currentGameId = gameId;
 
         return [gameInfo, game];

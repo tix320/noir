@@ -1,3 +1,4 @@
+import { Observable } from "rxjs";
 import { Direction } from "../util/Direction";
 import Identifiable from "../util/Identifiable";
 import Position from "../util/Position";
@@ -23,11 +24,15 @@ export default interface Game<I extends Identifiable> {
 
 export interface PreparingState<I extends Identifiable> {
 
-    get participants(): PreliminaryPlayer<I>[];
+    get participants(): RoleSelection<I>[];
 
-    join(participant: PreliminaryPlayer<I>): void;
+    join(identity: I): void;
+
+    changeRole(selection: RoleSelection<I>): void;
 
     leave(identity: I): void;
+
+    participantChanges(): Observable<RoleSelection<I>[]>;
 }
 
 export interface PlayingState<I extends Identifiable> {
@@ -41,10 +46,18 @@ export interface CompletedState<I extends Identifiable> {
 
 }
 
-export interface PreliminaryPlayer<I extends Identifiable> {
+export type RoleSelection<I extends Identifiable> = PlayerRoleUnreadySelection<I> | PlayerRoleReadySelection<I>
+
+export interface PlayerRoleUnreadySelection<I> {
     readonly identity: I,
     readonly role?: RoleType,
-    ready: boolean
+    ready: false
+}
+
+export interface PlayerRoleReadySelection<I> {
+    readonly identity: I,
+    readonly role: RoleType,
+    ready: true
 }
 
 export interface Player<I extends Identifiable> {

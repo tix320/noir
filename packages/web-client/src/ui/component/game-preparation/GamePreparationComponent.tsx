@@ -1,9 +1,8 @@
-import { RoleType } from "@tix320/noir-core";
-import Game from "@tix320/noir-core/src/dto/Game";
-import { JoinedUserInfo } from "@tix320/noir-core/src/dto/GamePreparationState";
+import Game, { RoleSelection } from "@tix320/noir-core/src/game/Game";
+import { RoleType } from "@tix320/noir-core/src/game/RoleType";
 import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
-import { takeUntil } from "rxjs";
+import { takeUntil } from 'rxjs/operators';
 import User from "../../../entity/User";
 import Api from "../../../service/Api";
 import { RoleCard } from "../cards/role/RoleCard";
@@ -12,7 +11,7 @@ import styles from './GamePreparation.module.css';
 
 type Props = {
     user: User,
-    game: Game,
+    game: Game<User>,
 }
 
 type State = {
@@ -29,10 +28,10 @@ class GamePreparationComponent extends RxComponent<Props, State> {
 
     componentDidMount(): void {
         const game = this.props.game;
-
-        Api.gamePreparationStream(game.id).pipe(takeUntil(this.destroy$)).subscribe((state) => {
+        game.getPreparingState().participantChanges().pipe(takeUntil(this.destroy$)).subscribe((state) => {
+            const adaptedState = this.adaptParticipants(state);
             this.setState({
-                ...state,
+                ...adaptedState,
             })
         });
     }
@@ -56,7 +55,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
 
         return (
             <div>
-                <h1>Game prepare {this.props.game.id}</h1>
+                <h1>Game prepare</h1>
                 <div className={styles.main}>
                     {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
 
@@ -96,6 +95,40 @@ class GamePreparationComponent extends RxComponent<Props, State> {
     private isFBIRole(role: RoleType) {
         return [RoleType.UNDERCOVER, RoleType.DETECTIVE, RoleType.SUIT, RoleType.PROFILER].includes(role);
     }
+
+    private adaptParticipants(participants: RoleSelection<User>[]): GamePreparationState {
+        let availableRoles = new Set(RoleType.for8());
+
+        const selectedRoles: JoinedUserInfo[] = [];
+
+        participants.forEach((participant => {
+            selectedRoles.push({
+                user: participant.identity,
+                role: participant.role,
+                ready: participant.ready
+            });
+
+            if (participant.role) {
+                availableRoles.delete(participant.role);
+            }
+        }));
+
+        return {
+            availableRoles: Array.from(availableRoles),
+            selectedRoles: selectedRoles
+        };
+    }
+}
+
+interface GamePreparationState {
+    availableRoles: RoleType[],
+    selectedRoles: JoinedUserInfo[]
+}
+
+interface JoinedUserInfo {
+    user: User,
+    role?: RoleType,
+    ready: boolean
 }
 
 function mapStateToProps(state: any) {

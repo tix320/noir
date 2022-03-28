@@ -1,4 +1,4 @@
-import { RoleType } from '@tix320/noir-core';
+import { RoleType } from "@tix320/noir-core/src/game/RoleType";
 import { Component } from "react";
 import { Card } from "../Card";
 import './RoleCard.css';

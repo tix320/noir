@@ -1,4 +1,4 @@
-import { Direction } from "../..";
+import { Direction } from "../util/Direction";
 
 export default interface Shift {
     direction: Direction;

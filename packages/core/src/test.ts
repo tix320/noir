@@ -1,8 +1,9 @@
-import { Direction, RoleType } from "..";
 import Position from "./util/Position";
 import Shift from "@tix320/noir-core/src/game/Shift";
 import StandardGame from "./game/StandardGame";
-import { Bomber, Detective, Killer, PreliminaryPlayer, Psycho, Suit, Undercover } from "./game/Game";
+import { Bomber, Detective, Killer, RoleSelection, Psycho, Suit, Undercover } from "./game/Game";
+import { RoleType } from "./game/RoleType";
+import { Direction } from "./util/Direction";
 
 const game = new StandardGame<Id>();
 
@@ -11,7 +12,7 @@ class Id {
     constructor(public id: string) { }
 }
 
-const participants: PreliminaryPlayer<Id>[] = [
+const participants: RoleSelection<Id>[] = [
     { identity: new Id("1"), role: RoleType.KILLER, ready: true },
     { identity: new Id('2'), role: RoleType.PSYCHO, ready: true },
     { identity: new Id("3"), role: RoleType.BOMBER, ready: true },
@@ -20,7 +21,10 @@ const participants: PreliminaryPlayer<Id>[] = [
     { identity: new Id("6"), role: RoleType.UNDERCOVER, ready: true },
 ];
 
-participants.forEach(p => game.getPreparingState().join(p));
+participants.forEach(p => {
+    game.getPreparingState().join(p.identity);
+    game.getPreparingState().changeRole(p);
+});
 
 const players = game.getPlayingState().players;
 

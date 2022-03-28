@@ -1,7 +1,6 @@
-import GamePreparationState from "@tix320/noir-core/src/dto/GamePreparationState";
-import GameRoleRequest from "@tix320/noir-core/src/dto/GameRoleRequest";
-import User from "@tix320/noir-core/src/dto/User";
 import Game from "@tix320/noir-core/src/dto/Game";
+import User from "@tix320/noir-core/src/dto/User";
+import { RoleSelection } from "@tix320/noir-core/src/game/Game";
 import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import store from "./Store";
@@ -11,7 +10,7 @@ class API {
     #socket?: Socket
 
     connect(token: string): Promise<User> {
-        this.#socket = io("http://100.120.152.127:5000", {
+        this.#socket = io("http://10.10.10.11:5000", {
             auth: {
                 token: token
             }
@@ -52,11 +51,11 @@ class API {
         });
     }
 
-    changeGameRole(gameRoleRequest: GameRoleRequest): Promise<void> {
+    changeGameRole(roleSelection: Omit<RoleSelection<never>, 'identity'>): Promise<void> {
         return new Promise<void>(resolve => {
             const socket = this.socket();
 
-            socket.emit("changeGameRole", gameRoleRequest, () => {
+            socket.emit("changeGameRole", roleSelection, () => {
                 resolve();
             });
         });
@@ -81,7 +80,7 @@ class API {
         return this.pingAndSubscribeToStream('myCurrentGameStream', `myCurrentGameStream_${user!.id}`);
     }
 
-    gamePreparationStream(gameId: string): Observable<GamePreparationState> {
+    gamePreparationStream(gameId: string): Observable<RoleSelection<User>[]> {
         return this.pingAndSubscribeToStream('gamePreparationStream', `gamePreparationStream_${gameId}`);
     }
 

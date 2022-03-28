@@ -1,17 +1,22 @@
 import EventEmitter from 'events';
-import { Direction, Marker, shuffle, swap } from '../..';
+import { Observable, Subject } from 'rxjs';
+import { swap } from '../util/ArrayUtils';
+import { Direction } from '../util/Direction';
 import Identifiable from '../util/Identifiable';
 import Matrix from '../util/Matrix';
 import Position from '../util/Position';
+import { shuffle } from '../util/RandUtils';
+import { Constructor } from '../util/Types';
+import './../extension/ArrayExtension';
+import './../extension/SetExtension';
 import Game, {
-    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, PreliminaryPlayer, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, Sniper as ISniper, Suit as ISuit, Undercover as IUndercover
+    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, RoleSelection, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, Sniper as ISniper, Suit as ISuit, Undercover as IUndercover
 } from './Game';
 import GameFullState from './GameFullState';
+import { Marker } from './Marker';
 import { RoleType } from './RoleType';
 import Shift from './Shift';
 import { Suspect } from './Suspect';
-
-type Constructor<T> = new (...args: any[]) => T;
 
 export default class StandardGame<I extends Identifiable> implements Game<I> {
 
@@ -67,21 +72,41 @@ abstract class State<I extends Identifiable> {
 
 class PreparingState<I extends Identifiable> extends State<I> implements IPreparingState<I> {
 
-    readonly participants: PreliminaryPlayer<I>[] = [];
+    readonly participants: RoleSelection<I>[] = [];
+    private participantsSubject = new Subject<RoleSelection<I>[]>();
 
     getPlayersCount(): number {
         return this.participants.length;
     }
 
-    public join(participant: PreliminaryPlayer<I>) {
+    public join(identity: I) {
+        if (this.participants.find(p => p.identity === identity)) {
+            throw new Error('Already in game');
+        };
+
+        const maxPlayersCount = StandardGame.ROLE_SETS.at(-1)!.size;
+
+        if (this.participants.length === maxPlayersCount) {
+            throw new Error("Fully");
+        }
+
+        this.participants.push({ identity: identity, ready: false });
+    }
+
+    public changeRole(participant: RoleSelection<I>) {
         if (participant.ready && !participant.role) {
             throw new Error('Cannot be ready without role');
         }
 
         const currentParticipant = this.participants.removeFirstBy(p => participant.identity === p.identity);
 
-        if (currentParticipant && currentParticipant.role !== participant.role) {
+        if (!currentParticipant) {
+            throw new Error(`Player ${participant.identity} not joined this game`);
+        }
+
+        if (currentParticipant.role !== participant.role) {
             this.resetReadiness();
+            this.emitParticipants();
         }
 
         if (participant.role) {
@@ -91,13 +116,9 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
         }
 
         const minPlayersCount = StandardGame.ROLE_SETS.at(0)!.size;
-        const maxPlayersCount = StandardGame.ROLE_SETS.at(-1)!.size;
-
-        if (this.participants.length === maxPlayersCount) {
-            throw new Error("Fully");
-        }
 
         this.participants.push(participant);
+        this.emitParticipants();
 
         const roles = new Set(this.participants.map(p => p.role)) as Set<RoleType>;
 
@@ -112,7 +133,17 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
         if (pariticpant) {
             // reset ready states
             this.resetReadiness();
+
+            this.emitParticipants();
         }
+    }
+
+    public participantChanges(): Observable<RoleSelection<I>[]> {
+        return this.participantsSubject.asObservable();
+    }
+
+    private emitParticipants() {
+        this.participantsSubject.next(this.participants);
     }
 
     private resetReadiness() {
