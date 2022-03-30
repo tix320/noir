@@ -11,7 +11,7 @@ type Props = {
 type State = {
 }
 
-export class GameCard extends Component<Props,State> {
+export default class GameListItemComponent extends Component<Props,State> {
 
     join = () => {
         this.props.onJoin();

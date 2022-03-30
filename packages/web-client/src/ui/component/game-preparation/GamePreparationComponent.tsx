@@ -5,9 +5,9 @@ import { connect } from "react-redux";
 import { takeUntil } from 'rxjs/operators';
 import User from "../../../entity/User";
 import Api from "../../../service/Api";
-import { RoleCard } from "../cards/role/RoleCard";
+import RoleCard from "../cards/role/RoleCardComponent";
 import RxComponent from "../common/RxComponent";
-import styles from './GamePreparation.module.css';
+import styles from './GamePreparationComponent.module.css';
 
 type Props = {
     user: User,

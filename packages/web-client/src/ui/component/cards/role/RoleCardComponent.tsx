@@ -1,7 +1,6 @@
 import { RoleType } from "@tix320/noir-core/src/game/RoleType";
 import { Component } from "react";
-import { Card } from "../Card";
-import './RoleCard.css';
+import GameCard from "../GameCardComponent";
 
 type Props = {
     className?: string,
@@ -13,7 +12,7 @@ type State = {
     image?: string
 }
 
-export class RoleCard extends Component<Props, State> {
+export default class RoleCard extends Component<Props, State> {
 
     state: State = {}
 
@@ -36,7 +35,7 @@ export class RoleCard extends Component<Props, State> {
         const role = this.props.role;
 
         return (
-            <Card className={this.props.className} image={image!} description={RoleType.capitalize(role)} onClick={this.onClick} />
+            <GameCard className={this.props.className} image={image!} description={RoleType.capitalize(role)} onClick={this.onClick} />
         );
     }
 }

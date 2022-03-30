@@ -29,6 +29,11 @@
 
 .description{
     position: relative;
-    bottom: 15px;
+    text-align: center;
+    bottom: 20px;
     font-size: small;
+}
+
+.description:hover{
+    cursor: default;
 }

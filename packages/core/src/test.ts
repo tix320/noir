@@ -28,12 +28,12 @@ participants.forEach(p => {
 
 const players = game.getPlayingState().players;
 
-const KILLER: Killer<Id> = players.find(p => p.roleType === RoleType.KILLER) as Killer<Id>;
-const BOMBER: Bomber<Id> = players.find(p => p.roleType === RoleType.BOMBER) as Bomber<Id>;
-const PSYCHO: Psycho<Id> = players.find(p => p.roleType === RoleType.PSYCHO) as Psycho<Id>;
-const SUIT: Suit<Id> = players.find(p => p.roleType === RoleType.SUIT) as Suit<Id>;
-const DETECTIVE: Detective<Id> = players.find(p => p.roleType === RoleType.DETECTIVE) as Detective<Id>;
-const UNDERCOVER: Undercover<Id> = players.find(p => p.roleType === RoleType.UNDERCOVER) as Undercover<Id>;
+const KILLER: Killer<Id> = players.find(p => p.role === RoleType.KILLER) as Killer<Id>;
+const BOMBER: Bomber<Id> = players.find(p => p.role === RoleType.BOMBER) as Bomber<Id>;
+const PSYCHO: Psycho<Id> = players.find(p => p.role === RoleType.PSYCHO) as Psycho<Id>;
+const SUIT: Suit<Id> = players.find(p => p.role === RoleType.SUIT) as Suit<Id>;
+const DETECTIVE: Detective<Id> = players.find(p => p.role === RoleType.DETECTIVE) as Detective<Id>;
+const UNDERCOVER: Undercover<Id> = players.find(p => p.role === RoleType.UNDERCOVER) as Undercover<Id>;
 
 const position = KILLER.locate();
 

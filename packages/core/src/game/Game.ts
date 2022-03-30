@@ -9,6 +9,8 @@ import Shift from "./Shift";
 
 export type GameState = 'PREPARING' | 'PLAYING' | 'COMPLETED'
 
+export type Team = 'FBI' | 'MAFIA'
+
 export default interface Game<I extends Identifiable> {
 
     get state(): GameState;
@@ -39,6 +41,10 @@ export interface PlayingState<I extends Identifiable> {
 
     get players(): Player<I>[];
 
+    getPlayers(team: Team): Player<I>[];
+
+    getPlayer(role: RoleType): Player<I>;
+
     get isCompleted(): boolean;
 }
 
@@ -62,7 +68,7 @@ export interface PlayerRoleReadySelection<I> {
 
 export interface Player<I extends Identifiable> {
     readonly identity: I;
-    readonly roleType: RoleType;
+    readonly role: RoleType;
 
     getCurrentState(): GameFullState;
 
@@ -86,7 +92,7 @@ export interface Agent<I extends Identifiable> extends Player<I> {
 
 export interface Killer<I extends Identifiable> extends Mafioso<I> {
 
-    readonly roleType: RoleType.KILLER;
+    readonly role: RoleType.KILLER;
 
     kill(targetPosition: Position): void;
 
@@ -95,7 +101,7 @@ export interface Killer<I extends Identifiable> extends Mafioso<I> {
 
 export interface Psycho<I extends Identifiable> extends Mafioso<I> {
 
-    readonly roleType: RoleType.PSYCHO;
+    readonly role: RoleType.PSYCHO;
 
     kill(targetPosition: Position): void;
 
@@ -106,7 +112,7 @@ export interface Psycho<I extends Identifiable> extends Mafioso<I> {
 
 export interface Bomber<I extends Identifiable> extends Mafioso<I> {
 
-    readonly roleType: RoleType.BOMBER;
+    readonly role: RoleType.BOMBER;
 
     placeBomb(target: Position): void;
 
@@ -117,7 +123,7 @@ export interface Bomber<I extends Identifiable> extends Mafioso<I> {
 
 export interface Sniper<I extends Identifiable> extends Mafioso<I> {
 
-    readonly roleType: RoleType.SNIPER;
+    readonly role: RoleType.SNIPER;
 
     snipe(target: Position): void;
 
@@ -126,7 +132,7 @@ export interface Sniper<I extends Identifiable> extends Mafioso<I> {
 
 export interface Undercover<I extends Identifiable> extends Agent<I> {
 
-    readonly roleType: RoleType.UNDERCOVER;
+    readonly role: RoleType.UNDERCOVER;
 
     accuse(target: Position, mafioso: Mafioso<I>): void;
 
@@ -137,7 +143,7 @@ export interface Undercover<I extends Identifiable> extends Agent<I> {
 
 export interface Detective<I extends Identifiable> extends Agent<I> {
 
-    readonly roleType: RoleType.DETECTIVE;
+    readonly role: RoleType.DETECTIVE;
 
     farAccuse(target: Position, mafioso: Mafioso<I>): void;
 
@@ -148,7 +154,7 @@ export interface Detective<I extends Identifiable> extends Agent<I> {
 
 export interface Suit<I extends Identifiable> extends Agent<I> {
 
-    readonly roleType: RoleType.SUIT;
+    readonly role: RoleType.SUIT;
 
     placeProtection(target: Position): void;
 
@@ -161,7 +167,7 @@ export interface Suit<I extends Identifiable> extends Agent<I> {
 
 export interface Profiler<I extends Identifiable> extends Agent<I> {
 
-    readonly roleType: RoleType.PROFILER;
+    readonly role: RoleType.PROFILER;
 
     accuse(target: Position, mafioso: Mafioso<I>): void;
 

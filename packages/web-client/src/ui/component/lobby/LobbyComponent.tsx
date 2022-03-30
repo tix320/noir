@@ -1,6 +1,6 @@
 import { Button } from "react-bootstrap";
-import { GameCreationComponent } from "./GameCreationComponent";
-import { GameSelectionComponent } from "./GameSelectionComponent";
+import GameCreationComponent from "./GameCreationComponent";
+import GameSelectionComponent from "./GameSelectionComponent";
 import API from "../../../service/Api";
 import RxComponent from "../common/RxComponent";
 import { takeUntil } from "rxjs/operators";
@@ -14,7 +14,7 @@ type State = {
     creatingGame: boolean
 }
 
-export class LobbyComponent extends RxComponent<Props, State> {
+export default class LobbyComponent extends RxComponent<Props, State> {
 
     state: State = {
         games: [],

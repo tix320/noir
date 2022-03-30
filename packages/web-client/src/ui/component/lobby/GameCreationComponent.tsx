@@ -9,7 +9,7 @@ type State = {
     name?: string
 }
 
-export class GameCreationComponent extends Component<Props, State> {
+export default class GameCreationComponent extends Component<Props, State> {
 
     state: State = {
     }

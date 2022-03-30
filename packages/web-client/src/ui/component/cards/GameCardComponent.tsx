@@ -1,6 +1,5 @@
 import { Component } from "react";
-import frameImg from '../../images/cards/frame.png';
-import styles from './Card.module.css';
+import styles from './GameCardComponent.module.css';
 
 type Props = {
     className?: string,
@@ -12,7 +11,7 @@ type Props = {
 type State = {
 }
 
-export class Card extends Component<Props, State> {
+export default class GameCardComponent extends Component<Props, State> {
 
     state: State = {}
 

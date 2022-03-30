@@ -1,3 +1,7 @@
+.main{
+    height: 100%;
+}
+
 .profile {
     display: flex;
     position: absolute;

@@ -10,7 +10,7 @@ import { Constructor } from '../util/Types';
 import './../extension/ArrayExtension';
 import './../extension/SetExtension';
 import Game, {
-    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, RoleSelection, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, Sniper as ISniper, Suit as ISuit, Undercover as IUndercover
+    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, RoleSelection, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, Sniper as ISniper, Suit as ISuit, Undercover as IUndercover, Team
 } from './Game';
 import GameFullState from './GameFullState';
 import { Marker } from './Marker';
@@ -56,7 +56,7 @@ export default class StandardGame<I extends Identifiable> implements Game<I> {
 
     private tryGetState<T extends State<I>>(state: Constructor<T>): T {
         if (!(this.stateObj instanceof state)) {
-            throw new Error(`Not in state ${state.name}. Current: ${this.state.constructor.name}`);
+            throw new Error(`Not in state ${state.name}. Current: ${this.state}`);
         }
 
         return this.stateObj;
@@ -280,6 +280,14 @@ class PlayingState<I extends Identifiable> extends State<I> implements IPlayingS
         return this.context.players;
     }
 
+    getPlayers(team: Team): IPlayer<I>[] {
+        const type = team === 'MAFIA' ? Mafioso : Agent;
+        return this.context.players.filter(player => player instanceof type);
+    }
+    getPlayer(role: RoleType): IPlayer<I> {
+        throw this.context.players.filter(player => player.role === role);
+    }
+
     checkWin(scores: number[]): number | undefined {
         for (let i = 0; i < this.winningScores.length; i++) {
             if (scores[i] >= this.winningScores[i]) {
@@ -308,7 +316,7 @@ class CompletedState<I extends Identifiable> extends State<I> implements IComple
 
 abstract class Player<I extends Identifiable> implements IPlayer<I> {
 
-    abstract readonly roleType: RoleType;
+    abstract readonly role: RoleType;
 
     constructor(public readonly identity: I, protected context: GameContext) {
     }
@@ -435,7 +443,7 @@ abstract class Agent<I extends Identifiable> extends Player<I> implements IAgent
 
 class Killer<I extends Identifiable> extends Mafioso<I> implements IKiller<I> {
 
-    readonly roleType = RoleType.KILLER;
+    readonly role = RoleType.KILLER;
 
     override canDoFastShift(): boolean {
         return true;
@@ -478,7 +486,7 @@ class Killer<I extends Identifiable> extends Mafioso<I> implements IKiller<I> {
 
 class Psycho<I extends Identifiable> extends Mafioso<I> implements IPsycho<I> {
 
-    readonly roleType = RoleType.PSYCHO;
+    readonly role = RoleType.PSYCHO;
 
     override canDoFastShift(): boolean {
         return false;
@@ -577,7 +585,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I> implements IPsycho<I> {
 
 class Bomber<I extends Identifiable> extends Mafioso<I> implements IBomber<I> {
 
-    readonly roleType = RoleType.BOMBER;
+    readonly role = RoleType.BOMBER;
 
     override canDoFastShift(): boolean {
         return false;
@@ -671,7 +679,7 @@ class BomberContext {
 
 class Sniper<I extends Identifiable> extends Mafioso<I> implements ISniper<I> {
 
-    readonly roleType = RoleType.SNIPER;
+    readonly role = RoleType.SNIPER;
 
     override canDoFastShift(): boolean {
         return true;
@@ -730,7 +738,7 @@ class Sniper<I extends Identifiable> extends Mafioso<I> implements ISniper<I> {
 
 class Undercover<I extends Identifiable> extends Agent<I> implements IUndercover<I> {
 
-    readonly roleType = RoleType.UNDERCOVER;
+    readonly role = RoleType.UNDERCOVER;
 
     override canDoFastShift(): boolean {
         return false;
@@ -785,7 +793,7 @@ class Undercover<I extends Identifiable> extends Agent<I> implements IUndercover
 
 class Detective<I extends Identifiable> extends Agent<I> implements IDetective<I> {
 
-    readonly roleType = RoleType.DETECTIVE;
+    readonly role = RoleType.DETECTIVE;
 
     override canDoFastShift(): boolean {
         return true;
@@ -861,7 +869,7 @@ class DetectiveContext {
 
 class Suit<I extends Identifiable> extends Agent<I> implements ISuit<I> {
 
-    readonly roleType = RoleType.SUIT;
+    readonly role = RoleType.SUIT;
 
     override canDoFastShift(): boolean {
         return true;
@@ -965,7 +973,7 @@ interface ProtectionContext {
 
 class Profiler<I extends Identifiable> extends Agent<I> implements IProfiler<I> {
 
-    readonly roleType = RoleType.PROFILER;
+    readonly role = RoleType.PROFILER;
 
     override canDoFastShift(): boolean {
         return false;

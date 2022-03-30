@@ -6,7 +6,7 @@ import store, { userChanged } from '../../../service/Store';
 import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
 import LoginComponent from "../login/LoginComponent";
 import MainComponent from '../main/MainComponent';
-import styles from './App.module.css';
+import styles from './AppComponent.module.css';
 
 type Props = {
     user: User

@@ -1,28 +1,39 @@
 import Game from '@tix320/noir-core/src/game/Game';
-import React from 'react';
 import User from '../../../entity/User';
-import ActionsComponent from './ActionsComponent';
-import ArenaComponent from './ArenaComponent';
-import PlayersPlaceComponent from './PlayersPlaceComponent';
+import ArenaComponent from './arena/ArenaComponent';
+import PlayersPlaceComponent from './TeamPlayersPlaceComponent';
+import styles from './GameComponent.module.css';
+import { useSelector } from 'react-redux';
+import { StoreState } from '../../../service/Store';
 
 type Props = {
     game: Game<User>
 }
 
 export default function GameComponent(props: Props) {
-    const {game} = props;
-    
+    const { game } = props;
+
+    const mafiaTeam = game.getPlayingState().getPlayers('MAFIA');
+    const fbiTeam = game.getPlayingState().getPlayers('FBI');
+
+    const user = useSelector((state: StoreState) => state.user)!;
+
+    // const myPlayer = game.getPlayingState().players.find(player => player.identity.id === user.id);
+
     return (
-        <div>
-            <PlayersPlaceComponent className="mafiaSpace" hidden={true} cards={[]} />
+        <div className={styles.main}>
 
-            <ArenaComponent className="arena" />
+            <div className={styles.upper}>
+                <PlayersPlaceComponent hidden={true} players={mafiaTeam} highlightPlayer={user} />
 
-            <ActionsComponent className="actions" />
+                <ArenaComponent className={styles.arena} game={game} />
 
-            <PlayersPlaceComponent className="fbiSpace" hidden={false} cards={[]} />
+                <PlayersPlaceComponent hidden={false} players={fbiTeam} highlightPlayer={user} />
+            </div>
 
-            <div className="workingArea"></div>
+            <div className={styles.footer} >
+
+            </div>
         </div>
     );
 }

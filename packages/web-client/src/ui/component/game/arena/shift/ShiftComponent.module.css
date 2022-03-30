@@ -1,0 +1,13 @@
+.image{
+    height: 24px;
+    border-radius: 15px;
+    background-color:#49a1e3;
+}
+
+.image:hover{
+    background-color: aliceblue;
+}
+
+.image:active{
+    background-color: rgb(196, 228, 228);
+}

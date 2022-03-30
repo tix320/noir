@@ -1,13 +1,13 @@
-import GameComponent from "../game/GameComponent";
 import Api from "../../../service/Api";
 import RxComponent from "../common/RxComponent";
 import { takeUntil } from "rxjs/operators";
-import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
-import { LobbyComponent } from "../lobby/LobbyComponent";
+import LobbyComponent from "../lobby/LobbyComponent";
 import ProfileComponent from "./profile/ProfileComponent";
-import styles from "./Main.module.css";
+import styles from "./MainComponent.module.css";
 import Game from "@tix320/noir-core/src/dto/Game";
 import RemoteGame from "../../../game/RemoteGame";
+import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
+import GameComponent from "../game/GameComponent";
 
 type State = {
     currentGame?: Game
@@ -41,7 +41,7 @@ export default class MainComponent extends RxComponent<{}, State> {
         }
 
         return (
-            <div>
+            <div className={styles.main}>
                 <ProfileComponent className={styles.profile} />
                 {content}
             </div>

@@ -1,0 +1,21 @@
+.main{
+    height: 100%;
+}
+
+.upper{
+    display: flex;
+    justify-content: space-around;
+    height: 80%;
+}
+
+.footer{
+    height: 20%;
+}
+
+.arena{
+
+}
+
+.actions{
+    
+}

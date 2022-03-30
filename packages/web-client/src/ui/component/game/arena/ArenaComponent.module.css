@@ -1,0 +1,13 @@
+.shiftRow{
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.suspectsRow{
+    display: flex;
+    align-items: center;
+}
+
+.card{
+    height: 127px;
+}
