@@ -1,5 +1,4 @@
 import Position from "./util/Position";
-import Shift from "@tix320/noir-core/src/game/Shift";
 import StandardGame from "./game/StandardGame";
 import { Bomber, Detective, Killer, RoleSelection, Psycho, Suit, Undercover } from "./game/Game";
 import { RoleType } from "./game/RoleType";
@@ -37,16 +36,13 @@ const UNDERCOVER: Undercover<Id> = players.find(p => p.role === RoleType.UNDERCO
 
 const position = KILLER.locate();
 
-KILLER.onGameEvent(event => {
-    const currentPlayer = event.currentTurnPlayer;
-    console.log(currentPlayer);
-    const shift: Shift = { direction: Direction.UP, index: 3, fast: false};
-    currentPlayer.shift(shift);
+KILLER.gameEvents().subscribe(event => {
+    console.log(event);
 });
 
 
 
 
-KILLER.kill(new Position(position.x, position.y - 1));
+KILLER.doAction('knifeKill', { target: new Position(position.x, position.y - 1) });
 
 console.log(2312);

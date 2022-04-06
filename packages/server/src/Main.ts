@@ -44,7 +44,7 @@ const GAME_EVENTS_STREAM_EVENT = (gameId: string) => `gameEventsStream_${gameId}
 function gameResponse(gameInfo: GameInfo, game: Game<User>): GameDto {
     return ({
         ...gameInfo,
-        currentPlayersCount: game.getPlayersCount(),
+        currentPlayersCount: game.getState().getPlayersCount(),
         maxPlayersCount: StandardGame.ROLE_SETS.at(-1)!.size,
         state: game.state
     })
@@ -185,7 +185,7 @@ io.on("connection", (socket) => {
 
         socket.join(name);
 
-        player.onGameEvent(event => socket.emit(name, event));
+        player.gameEvents().subscribe(event => socket.emit(name, event));
     });
 });
 

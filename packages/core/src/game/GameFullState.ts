@@ -1,7 +1,7 @@
 import Matrix from "../util/Matrix";
 import Position from "../util/Position";
 import { Player } from "./Game";
-import Shift from "./Shift";
+import { GameActions } from "./GameActions";
 import { Suspect } from "./Suspect";
 
 export default interface GameFullState {
@@ -10,7 +10,7 @@ export default interface GameFullState {
     players: Player<any>[];
     currentTurnPlayer: Player<any>;
 
-    lastShift?: Shift;
+    lastShift?: GameActions.Shift;
 
     bomber: BomberState;
     detective: DetectiveState;

@@ -1,92 +1,114 @@
 import { Direction } from "../util/Direction";
-import Identifiable from "../util/Identifiable";
 import Position from "../util/Position";
-import { Player, RoleSelection } from "./Game";
+import { Player, Team, Winner } from "./Game";
+import { GameActions } from "./GameActions";
 import { Marker } from "./Marker";
 import { RoleType } from "./RoleType";
-import Shift from "./Shift";
 import { Suspect } from "./Suspect";
 
 export namespace GameEvents {
 
-    export interface Event {
+    export interface Base {
         readonly type: string;
     }
 
-    export interface ActionEvent extends Event {
+    export interface Complete extends Base {
+        readonly type: 'Complete';
 
-        readonly actor: RoleType;
-        readonly currentTurnPlayer: Player<any>;
+        readonly winner: Winner;
     }
 
-    export interface AbstractKillEvent extends ActionEvent {
+    export interface TurnChanged extends Base {
+        readonly type: 'TurnChanged';
+
+        readonly player: RoleType;
+    }
+
+    export interface Action extends Base {
+    }
+
+    export interface TryKill extends Action {
+        readonly type: 'TryKill';
 
         readonly target: Position;
+    }
+
+    export interface AbstractKill extends Action {
+
+        readonly killed: Position;
         readonly newIdentity?: Position;
     }
 
-    export interface AccuseEvent extends ActionEvent {
+    export interface Accuse extends Action {
         readonly type: 'Accuse';
 
         readonly target: Position;
         readonly mafioso: RoleType;
     }
 
-    export interface ArestEvent extends ActionEvent {
-        readonly type: 'Arest';
+    export interface UnsuccessfulAccuse extends Action {
+        readonly type: 'UnsuccessfulAccuse';
 
         readonly target: Position;
+    }
+
+    export interface Arrest extends Action {
+        readonly type: 'Arrest';
+
+        readonly arrested: Position;
         readonly newIdentity: Position;
     }
 
-    export interface BombDetonationEvent extends AbstractKillEvent {
+    export interface AutoSpy extends Action {
+        readonly type: 'AutoSpy';
+
+        readonly target: Position;
+        readonly mafiosi: RoleType[];        
+    }
+
+    export interface BombDetonation extends AbstractKill {
         readonly type: 'BombDetonation';
     }
 
-    export interface CanvasEvent extends ActionEvent {
+    export interface Canvas extends Action {
         readonly type: 'Canvas';
 
         readonly target: Position;
         readonly players: RoleType[];
     }
 
-    export interface CollapseEvent extends ActionEvent {
+    export interface Collapse extends Action {
         readonly type: 'Collapse';
 
         readonly direction: Direction;
     }
 
-    export interface CompleteEvent extends ActionEvent {
-
-        readonly winner: 'mafia' | 'fbi';
-    }
-
-    export interface DisarmEvent extends ActionEvent {
+    export interface Disarm extends Action {
         readonly type: 'Disarm';
 
         readonly target: Position;
         readonly marker: Marker;
     }
 
-    export interface DisguiseEvent extends ActionEvent {
+    export interface Disguise extends Action {
         readonly type: 'Disguise';
 
         readonly oldIdentity: Position;
-        readonly newIdentity: Position;
+        readonly newIdentity?: Position;
     }
 
-    export interface FarAccuseEvent extends ActionEvent {
+    export interface FarAccuse extends Action {
         readonly type: 'FarAccuse';
 
         readonly target: Position;
         readonly mafioso: RoleType;
     }
 
-    export interface KniveKillEvent extends AbstractKillEvent {
-        readonly type: 'KniveKill';
+    export interface KnifeKill extends AbstractKill {
+        readonly type: 'KnifeKill';
     }
 
-    export interface MoveMarkerEvent extends ActionEvent {
+    export interface MoveMarker extends Action {
         readonly type: 'MoveMarker';
 
         readonly from: Position;
@@ -94,72 +116,87 @@ export namespace GameEvents {
         readonly marker: Marker;
     }
 
-    export interface PeekSuspectsForCanvasEvent extends ActionEvent {
+    export interface PeekSuspectsForCanvas extends Action {
         readonly type: 'PeekSuspectsForCanvas';
 
-        readonly suspects: [Suspect, Suspect];
+        readonly suspects: [Position, Position];
     }
 
-    export interface PlaceBombEvent extends ActionEvent {
+    export interface SelfDestructionActivated extends Action {
+        readonly type: 'SelfDestructionActivated';
+
+        readonly target: Position;
+    }
+
+    export interface PlaceBomb extends Action {
         readonly type: 'PlaceBomb';
 
         readonly target: Position;
     }
 
-    export interface PlaceProtectionEvent extends ActionEvent {
+    export interface PlaceProtection extends Action {
         readonly type: 'PlaceProtection';
 
         readonly target: Position;
     }
 
-    export interface PlaceThreatEvent extends ActionEvent {
+    export interface PlaceThreat extends Action {
         readonly type: 'PlaceThreat';
 
-        readonly target: Position;
+        readonly targets: Position[];
     }
 
-    export interface ProfileEvent extends ActionEvent {
+    export interface Profile extends Action {
         readonly type: 'Profile';
 
         readonly target: Position;
+        readonly mafiosi: RoleType[];  
         readonly newHand: Suspect[];
     }
 
-    export interface ProtectDecisionEvent extends ActionEvent {
-        readonly type: 'DecideProtect';
+    export interface ProtectionActivated extends Action {
+        readonly type: 'ProtectionActivated';
+
+        readonly target: Position;
+    }
+
+    export interface ProtectDecision extends Action {
+        readonly type: 'ProtectDecision';
 
         readonly target: Position;
         readonly protect: boolean;
     }
 
-    export interface RemoveProtectionEvent extends ActionEvent {
+    export interface RemoveProtection extends Action {
         readonly type: 'RemoveProtection';
 
         readonly target: Position;
     }
 
-    export interface ShiftEvent extends ActionEvent {
+    export interface Shift extends Action {
         readonly type: 'Shift';
 
-        readonly shift: Shift;
+        readonly shift: GameActions.Shift;
     }
 
-    export interface SniperKillEvent extends AbstractKillEvent {
+    export interface SniperKill extends AbstractKill {
         readonly type: 'SniperKill';
     }
 
-    export interface StopDetonationEvent extends ActionEvent {
+    export interface StopDetonation extends Action {
         readonly type: 'StopDetonation';
     }
 
-    export interface SwapSuspectsEvent extends ActionEvent {
+    export interface SwapSuspects extends Action {
         readonly type: 'SwapSuspects';
 
         readonly position1: Position;
         readonly position2: Position;
     }
 
-    export interface ThreatKillEvent extends AbstractKillEvent {
+    export interface ThreatKill extends AbstractKill {
         readonly type: 'ThreatKill';
     }
+
+    export type Kills = KnifeKill | ThreatKill | BombDetonation | SniperKill;
 }

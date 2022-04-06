@@ -1,7 +1,8 @@
-import Game, { CompletedState as ICompletedState, GameState, Player as IPlayer, PlayingState as IPlayingState, PreparingState as IPreparingState, RoleSelection, Team } from '@tix320/noir-core/src/game/Game';
+import Game, { CompletedState as ICompletedState, GameState, Player as IPlayer, PlayingState as IPlayingState, PreparingState as IPreparingState, RoleSelection, State as IState, Team } from '@tix320/noir-core/src/game/Game';
+import { GameActions } from '@tix320/noir-core/src/game/GameActions';
+import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
 import GameFullState from '@tix320/noir-core/src/game/GameFullState';
 import { RoleType } from '@tix320/noir-core/src/game/RoleType';
-import Shift from '@tix320/noir-core/src/game/Shift';
 import { Direction } from '@tix320/noir-core/src/util/Direction';
 import Position from '@tix320/noir-core/src/util/Position';
 import { Constructor } from '@tix320/noir-core/src/util/Types';
@@ -28,8 +29,8 @@ export default class RemoteGame implements Game<User> {
         }
     }
 
-    getPlayersCount(): number {
-        return 6;
+    getState(): IState<User> {
+        return this.stateObj;
     }
 
     getPreparingState(): IPreparingState<User> {
@@ -53,7 +54,7 @@ export default class RemoteGame implements Game<User> {
     }
 }
 
-abstract class State {
+abstract class State implements IState<User> {
 
     constructor(protected game: RemoteGame) { }
 
@@ -88,6 +89,12 @@ class PreparingState extends State implements IPreparingState<User> {
 }
 
 class PlayingState extends State implements IPlayingState<User>{
+    getCurrentState(): GameFullState {
+        throw new Error('Method not implemented.');
+    }
+    gameEvents(): Observable<GameEvents.Base> {
+        throw new Error('Method not implemented.');
+    }
     getPlayersCount(): number {
         throw new Error('Method not implemented.');
     }
@@ -97,7 +104,7 @@ class PlayingState extends State implements IPlayingState<User>{
     }
     getPlayers(team: Team): IPlayer<User>[] {
         return team === 'MAFIA' ? [new Player(new User('K', 'K'), RoleType.KILLER), new Player(new User('B', 'B'), RoleType.BOMBER), new Player(new User('P', 'P'), RoleType.PSYCHO)]
-         : [new Player(new User('S', 'S'), RoleType.SUIT), new Player(new User('D', 'D'), RoleType.DETECTIVE), new Player(new User('U', 'U'), RoleType.UNDERCOVER)];
+            : [new Player(new User('S', 'S'), RoleType.SUIT), new Player(new User('D', 'D'), RoleType.DETECTIVE), new Player(new User('U', 'U'), RoleType.UNDERCOVER)];
     }
     getPlayer(role: RoleType): IPlayer<User> {
         throw new Error('Method not implemented.');
@@ -113,6 +120,12 @@ class Player implements IPlayer<User> {
     constructor(public identity: User, public role: RoleType) {
 
     }
+    get isCompleted(): boolean {
+        throw new Error('Method not implemented.');
+    }
+    gameEvents(): Observable<GameEvents.Base> {
+        throw new Error('Method not implemented.');
+    }
 
     getCurrentState(): GameFullState {
         throw new Error('Method not implemented.');
@@ -123,7 +136,7 @@ class Player implements IPlayer<User> {
     locate(): Position {
         throw new Error('Method not implemented.');
     }
-    shift(shift: Shift): void {
+    shift(shift: GameActions.Shift): void {
         throw new Error('Method not implemented.');
     }
     collapse(direction: Direction): void {

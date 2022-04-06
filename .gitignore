@@ -9,6 +9,8 @@ node_modules
 # production
 /build
 
+packages/web-client/target
+
 # misc
 .DS_Store
 .env.local

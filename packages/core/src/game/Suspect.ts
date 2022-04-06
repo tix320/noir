@@ -1,16 +1,54 @@
+import { assert } from "../util/Assertions";
 import { Character } from "./Character";
 import { Player } from "./Game";
 import { Marker } from "./Marker";
 
+type Role = Player<any> | 'suspect' | 'innocent' | 'arrested' | 'killed'
+
 export class Suspect {
     readonly character: Character;
-    role: Player<any> | 'suspect' | 'innocent' | 'arested' | 'killed';
-    markers: Set<Marker>;
+    #role: Role;
+    #markers: Set<Marker>;
 
     constructor(character: Character) {
         this.character = character;
-        this.role = 'suspect';
-        this.markers = new Set();
+        this.#role = 'suspect';
+        this.#markers = new Set();
+    }
+
+    set role(value: Role) {
+        this.assertClosedState();
+
+        if (value === 'killed' || value === 'arrested') {
+            this.#role = value;
+            this.#markers.clear();
+        }
+    }
+
+    get role(): Role {
+        return this.#role;
+    }
+
+    hasMarker(marker: Marker): boolean {
+        this.assertClosedState();
+
+        return this.#markers.has(marker);
+    }
+
+    addMarker(marker: Marker) {
+        this.assertClosedState();
+
+        this.#markers.add(marker);
+    }
+
+    removeMarker(marker: Marker): boolean {
+        this.assertClosedState();
+
+        return this.#markers.delete(marker);
+    }
+
+    assertClosedState() {
+        assert(this.#role !== 'arrested' && this.#role !== 'killed', "Suspect is arrested or killed");
     }
 
     toString(): string {

@@ -1,21 +1,22 @@
 import { Observable } from "rxjs";
-import { Direction } from "../util/Direction";
 import Identifiable from "../util/Identifiable";
 import Position from "../util/Position";
+import { GameActions } from "./GameActions";
+import { GameEvents } from "./GameEvents";
 import GameFullState from "./GameFullState";
-import { Marker } from "./Marker";
 import { RoleType } from "./RoleType";
-import Shift from "./Shift";
 
 export type GameState = 'PREPARING' | 'PLAYING' | 'COMPLETED'
 
 export type Team = 'FBI' | 'MAFIA'
 
+export type Winner = Team | 'DRAW'
+
 export default interface Game<I extends Identifiable> {
 
     get state(): GameState;
 
-    getPlayersCount(): number;
+    getState(): State<I>;
 
     getPreparingState(): PreparingState<I>;
 
@@ -24,7 +25,12 @@ export default interface Game<I extends Identifiable> {
     getCompletedState(): CompletedState<I>;
 }
 
-export interface PreparingState<I extends Identifiable> {
+export interface State<I extends Identifiable> {
+
+    getPlayersCount(): number;
+}
+
+export interface PreparingState<I extends Identifiable> extends State<I> {
 
     get participants(): RoleSelection<I>[];
 
@@ -37,139 +43,107 @@ export interface PreparingState<I extends Identifiable> {
     participantChanges(): Observable<RoleSelection<I>[]>;
 }
 
-export interface PlayingState<I extends Identifiable> {
+export interface PlayingState<I extends Identifiable> extends State<I>, PlayingGameStateOps {
 
     get players(): Player<I>[];
 
     getPlayers(team: Team): Player<I>[];
 
     getPlayer(role: RoleType): Player<I>;
+}
 
+export interface CompletedState<I extends Identifiable> extends State<I> {
+
+}
+
+export interface PlayingGameStateOps {
     get isCompleted(): boolean;
+
+    getCurrentState(): GameFullState;
+
+    gameEvents(): Observable<GameEvents.Base>;
 }
 
-export interface CompletedState<I extends Identifiable> {
-
-}
-
-export type RoleSelection<I extends Identifiable> = PlayerRoleUnreadySelection<I> | PlayerRoleReadySelection<I>
+export type RoleSelection<I extends Identifiable> =
+    { readonly identity: I }
+    &
+    (PlayerRoleUnreadySelection<I> | PlayerRoleReadySelection<I>)
 
 export interface PlayerRoleUnreadySelection<I> {
-    readonly identity: I,
     readonly role?: RoleType,
     ready: false
 }
 
 export interface PlayerRoleReadySelection<I> {
-    readonly identity: I,
     readonly role: RoleType,
     ready: true
 }
 
-export interface Player<I extends Identifiable> {
+export interface Player<I extends Identifiable> extends PlayingGameStateOps {
     readonly identity: I;
     readonly role: RoleType;
 
-    getCurrentState(): GameFullState;
-
-    onGameEvent(listener: (event: any) => void): void;
-
     locate(): Position;
-
-    shift(shift: Shift): void;
-
-    collapse(direction: Direction): void;
 }
 
 export interface Mafioso<I extends Identifiable> extends Player<I> {
-
 }
 
 export interface Agent<I extends Identifiable> extends Player<I> {
-
-    disarm(target: Position, marker: Marker): void;
 }
 
 export interface Killer<I extends Identifiable> extends Mafioso<I> {
 
     readonly role: RoleType.KILLER;
 
-    kill(targetPosition: Position): void;
-
-    disguise(): void;
+    doAction<T extends GameActions.Key<GameActions.OfKiller>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Psycho<I extends Identifiable> extends Mafioso<I> {
 
     readonly role: RoleType.PSYCHO;
 
-    kill(targetPosition: Position): void;
-
-    swap(position1: Position, position2: Position): void;
-
-    placeThreat(positions: Position[]): void;
+    doAction<T extends GameActions.Key<GameActions.OfPsycho>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Bomber<I extends Identifiable> extends Mafioso<I> {
 
     readonly role: RoleType.BOMBER;
 
-    placeBomb(target: Position): void;
-
-    detonateBomb(target: Position): void;
-
-    stopDetonation(): void;
+    doAction<T extends GameActions.Key<GameActions.OfBomber>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Sniper<I extends Identifiable> extends Mafioso<I> {
 
     readonly role: RoleType.SNIPER;
 
-    snipe(target: Position): void;
-
-    setup(from: Position, to: Position, marker: Marker): void;
+    doAction<T extends GameActions.Key<GameActions.OfSniper>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Undercover<I extends Identifiable> extends Agent<I> {
 
     readonly role: RoleType.UNDERCOVER;
 
-    accuse(target: Position, mafioso: Mafioso<I>): void;
-
-    disguise(): void;
-
-    autoSpy(target: Position): void;
+    doAction<T extends GameActions.Key<GameActions.OfUndercover>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Detective<I extends Identifiable> extends Agent<I> {
 
     readonly role: RoleType.DETECTIVE;
 
-    farAccuse(target: Position, mafioso: Mafioso<I>): void;
-
-    peekSuspects(): void;
-
-    canvas(index: number): void;
+    doAction<T extends GameActions.Key<GameActions.OfDetective>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Suit<I extends Identifiable> extends Agent<I> {
 
     readonly role: RoleType.SUIT;
 
-    placeProtection(target: Position): void;
-
-    removeProtection(target: Position): void;
-
-    accuse(target: Position, mafioso: Mafioso<I>): void;
-
-    decideProtect(protect: boolean): void;
+    doAction<T extends GameActions.Key<GameActions.OfSuit>>(key: T, data: GameActions.Params<T>): void;
 }
 
 export interface Profiler<I extends Identifiable> extends Agent<I> {
 
     readonly role: RoleType.PROFILER;
 
-    accuse(target: Position, mafioso: Mafioso<I>): void;
-
-    profile(index: number): void;
+    doAction<T extends GameActions.Key<GameActions.OfProfiler>>(key: T, data: GameActions.Params<T>): void;
 }

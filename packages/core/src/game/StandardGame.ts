@@ -1,6 +1,6 @@
-import EventEmitter from 'events';
 import { Observable, Subject } from 'rxjs';
 import { swap } from '../util/ArrayUtils';
+import { assert } from '../util/Assertions';
 import { Direction } from '../util/Direction';
 import Identifiable from '../util/Identifiable';
 import Matrix from '../util/Matrix';
@@ -10,12 +10,13 @@ import { Constructor } from '../util/Types';
 import './../extension/ArrayExtension';
 import './../extension/SetExtension';
 import Game, {
-    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, RoleSelection, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, Sniper as ISniper, Suit as ISuit, Undercover as IUndercover, Team
+    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, State as IState, Suit as ISuit, Team, Undercover as IUndercover, Winner
 } from './Game';
+import { GameActions } from './GameActions';
+import { GameEvents } from './GameEvents';
 import GameFullState from './GameFullState';
 import { Marker } from './Marker';
 import { RoleType } from './RoleType';
-import Shift from './Shift';
 import { Suspect } from './Suspect';
 
 export default class StandardGame<I extends Identifiable> implements Game<I> {
@@ -25,7 +26,7 @@ export default class StandardGame<I extends Identifiable> implements Game<I> {
         new Set([RoleType.KILLER, RoleType.BOMBER, RoleType.PSYCHO, RoleType.SNIPER, RoleType.UNDERCOVER, RoleType.SUIT, RoleType.DETECTIVE, RoleType.PROFILER])
     ];
 
-    stateObj: State<I> = new PreparingState(this);
+    private stateObj: State<I> = new PreparingState(this);
 
     get state(): GameState {
         if (this.stateObj instanceof PreparingState) {
@@ -38,8 +39,8 @@ export default class StandardGame<I extends Identifiable> implements Game<I> {
         }
     }
 
-    public getPlayersCount(): number {
-        return this.stateObj.getPlayersCount();
+    public getState(): IState<I> {
+        return this.stateObj;
     }
 
     public getPreparingState(): IPreparingState<I> {
@@ -63,7 +64,7 @@ export default class StandardGame<I extends Identifiable> implements Game<I> {
     }
 }
 
-abstract class State<I extends Identifiable> {
+abstract class State<I extends Identifiable> implements IState<I> {
 
     constructor(protected game: StandardGame<I>) { }
 
@@ -82,7 +83,7 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
     public join(identity: I) {
         if (this.participants.find(p => p.identity === identity)) {
             throw new Error('Already in game');
-        };
+        }
 
         const maxPlayersCount = StandardGame.ROLE_SETS.at(-1)!.size;
 
@@ -94,10 +95,6 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
     }
 
     public changeRole(participant: RoleSelection<I>) {
-        if (participant.ready && !participant.role) {
-            throw new Error('Cannot be ready without role');
-        }
-
         const currentParticipant = this.participants.removeFirstBy(p => participant.identity === p.identity);
 
         if (!currentParticipant) {
@@ -115,22 +112,18 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
             }
         }
 
-        const minPlayersCount = StandardGame.ROLE_SETS.at(0)!.size;
-
         this.participants.push(participant);
         this.emitParticipants();
 
-        const roles = new Set(this.participants.map(p => p.role)) as Set<RoleType>;
-
-        if (this.readyCount === minPlayersCount && this.matchRoleSet(roles)) {
+        if (this.readyForGame()) {
             this.prepareGame();
         }
     }
 
     public leave(identity: I) {
-        const pariticpant = this.participants.removeFirstBy(p => p.identity !== identity);
+        const participant = this.participants.removeFirstBy(p => p.identity !== identity);
 
-        if (pariticpant) {
+        if (participant) {
             // reset ready states
             this.resetReadiness();
 
@@ -148,6 +141,13 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
 
     private resetReadiness() {
         this.participants.forEach(p => p.ready = false);
+    }
+
+    private readyForGame(): boolean {
+        const minPlayersCount = StandardGame.ROLE_SETS.at(0)!.size;
+        const roles = new Set(this.participants.map(p => p.role)) as Set<RoleType>;
+
+        return this.readyCount === minPlayersCount && this.matchRoleSet(roles);
     }
 
     private get readyCount() {
@@ -232,7 +232,7 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
 
         const players: Player<I>[] = this.participants.map(participant => this.createPlayerForRole(participant.identity, participant.role!, context));
 
-        this.reolvePlayersOrder(players);
+        this.resolvePlayersOrder(players);
 
         players.forEach(player => suspects.pop()!.role = player);
 
@@ -242,7 +242,7 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
         this.game['stateObj'] = new PlayingState(this.game, context, winningScores);
     }
 
-    private reolvePlayersOrder(players: Player<any>[]): void {
+    private resolvePlayersOrder(players: Player<any>[]): void {
         const mafia: Player<I>[] = players.filter(p => p instanceof Mafioso);
         const fbi: Player<I>[] = players.filter(p => p instanceof Agent);
 
@@ -264,38 +264,50 @@ class PreparingState<I extends Identifiable> extends State<I> implements IPrepar
 
 class PlayingState<I extends Identifiable> extends State<I> implements IPlayingState<I> {
 
-    eventEmmiter: EventEmitter;
+    private events = new Subject<GameEvents.Base>();
 
     constructor(game: StandardGame<I>, private context: GameContext, private winningScores: [number, number]) {
         super(game);
-        this.eventEmmiter = new EventEmitter();
         context.game = this;
     }
 
-    getPlayersCount(): number {
+    public getPlayersCount(): number {
         return this.context.players.length;
     }
 
-    get players(): IPlayer<I>[] {
+    public get players(): IPlayer<I>[] {
         return this.context.players;
     }
 
-    getPlayers(team: Team): IPlayer<I>[] {
+    public getPlayers(team: Team): IPlayer<I>[] {
         const type = team === 'MAFIA' ? Mafioso : Agent;
         return this.context.players.filter(player => player instanceof type);
     }
-    getPlayer(role: RoleType): IPlayer<I> {
+
+    public getPlayer(role: RoleType): IPlayer<I> {
         throw this.context.players.filter(player => player.role === role);
     }
 
-    checkWin(scores: number[]): number | undefined {
-        for (let i = 0; i < this.winningScores.length; i++) {
-            if (scores[i] >= this.winningScores[i]) {
-                return i;
-            }
+    public getCurrentState(): GameFullState {
+        throw new Error('Method not implemented.'); //TODO:
+    }
+
+    public gameEvents(): Observable<GameEvents.Base> {
+        return this.events.asObservable();
+    }
+
+    checkWin(scores: [number, number]): Winner | undefined {
+        if (scores[0] >= this.winningScores[0] && scores[1] >= this.winningScores[1]) {
+            return 'DRAW';
         }
 
-        return undefined;
+        if (scores[0] >= this.winningScores[0]) {
+            return 'MAFIA';
+        } else if (scores[1] >= this.winningScores[1]) {
+            return 'FBI';
+        } else {
+            return undefined;
+        }
     }
 
     complete() {
@@ -305,11 +317,15 @@ class PlayingState<I extends Identifiable> extends State<I> implements IPlayingS
     get isCompleted() {
         return this.game['stateObj'] instanceof CompletedState;
     }
+
+    fireEvent(event: GameEvents.Base) {
+        this.events.next(event);
+    }
 }
 
 class CompletedState<I extends Identifiable> extends State<I> implements ICompletedState<I> {
 
-    getPlayersCount(): number {
+    public getPlayersCount(): number {
         throw new Error("TODO");
     }
 }
@@ -318,100 +334,137 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
 
     abstract readonly role: RoleType;
 
+    protected abstract readonly phases: readonly string[];
+
+    protected readonly phaseHistory: number[] = [];
+
+    private currentPhaseIndex: number = -1;
+
     constructor(public readonly identity: I, protected context: GameContext) {
+    }
+
+    get isCompleted(): boolean {
+        return this.context.game.isCompleted;
+    }
+
+    public getCurrentState(): GameFullState {
+        return this.context.game.getCurrentState();
+    }
+
+    public gameEvents(): Observable<GameEvents.Base> {
+        return this.context.game.gameEvents();
+    }
+
+    public locate(): Position {
+        return GameHelper.findPlayerInArena(this, this.context);
+    }
+
+    public doAction<T extends GameActions.Key<any>>(key: T, data: GameActions.Params<T>): void {
+        const thisAny = this as any;
+        const actionFunc = thisAny[key];
+
+        this.checkStateAndTurn();
+        actionFunc(data);
     }
 
     abstract canDoFastShift(): boolean;
 
     abstract ownMarker(): Marker | undefined;
 
-    protected startTurn() {
-        this.checkStateAndTurn();
+    protected abstract initTurn(): void;
+
+    protected shift(shift: GameActions.Shift): void {
+        this.assertPhase('ACTION');
+
+        GameHelper.shift(shift, this, this.context);
+
+        this.changePhase('END');
+
     }
 
-    protected readonly endTurn = (meta: EndTurnMetadata) => {
-        if (meta.checkScores) {
+    protected collapse(collapse: GameActions.Collapse): void {
+        this.assertPhase('ACTION');
+
+        GameHelper.collapse(collapse.direction, this.context);
+
+        this.changePhase('END');
+    }
+
+    protected assertPhase(mustBe: string) {
+        assert(this.phases[this.currentPhaseIndex] === mustBe, `Not in phase ${mustBe}`);
+    }
+
+    protected getCurrentPhase(): string {
+        return this.phases[this.currentPhaseIndex];
+    }
+
+    protected changePhase(phase: string | number) {
+        if (phase === 'END') {
             if (this.checkWin()) {
                 return;
             }
+
+            this.switchTurn(this.getNextPlayer());
+            return;
         }
 
-        this.context.lastShift = meta.shift;
+        let index;
+        if (typeof phase === 'number') {
+            assert(phase > 0 && phase < this.phases.length, `Invalid phase ${phase}`);
+            index = phase;
+        } else {
+            index = this.phases.findIndex(p => typeof p === phase);
+            assert(index !== -1, `Invalid phase ${phase}`);
+        }
 
-        const nextPlayer = meta.nextPlayer ? this.switchTurn(meta.nextPlayer) : this.switchTurnToNext();
+        this.phaseHistory.push(this.currentPhaseIndex);
+        this.currentPhaseIndex = index;
     }
 
-    protected readonly checkWin = () => {
+    private checkWin(): boolean {
         const winner = this.context.game.checkWin(this.context.scores);
         if (winner) {
             this.context.game.complete();
+            const event: GameEvents.Complete = { type: 'Complete', winner: winner };
+            this.context.game.fireEvent(event);
+
             return true;
         }
 
         return false;
     }
 
-    getCurrentState(): GameFullState {
-        throw new Error('Not implemented');
-        // TODO:
-    }
-
-    onGameEvent(listener: (event: any) => void) {
-        // TODO: 
-    }
-
-    locate(): Position {
-        return GameHelper.findPlayerInArena(this, this.context);
-    }
-
-    shift(shift: Shift) {
-        this.startTurn();
-
-        if (shift.fast && !this.canDoFastShift()) {
-            throw new Error("You cannot do fast shift");
-        }
-
-        GameHelper.shift(shift, this.context);
-
-        this.endTurn({ shift: shift });
-    }
-
-    collapse(direction: Direction) {
-        this.startTurn();
-
-        // TODO:
-
-        this.endTurn({});
-    }
-
     private checkStateAndTurn() {
         if (this.context.game.isCompleted) {
             throw new Error("Game completed");
         }
-        if (this.context.currentTurnPlayer !== this) {
-            throw new Error('Not your turn');
-        };
+
+        const reactions = this.context.reactions;
+        if (reactions.length === 0) {
+            if (this !== this.context.currentTurnPlayer) {
+                throw new Error('Not your turn');
+            };
+        } else {
+            const lastReactionOwner = reactions.at(-1)!;
+            if (this !== lastReactionOwner) {
+                throw new Error('Not your turn (reaction)');
+            }
+        }
     }
 
-    private switchTurnToNext(): Player<any> {
+    private getNextPlayer(): Player<any> {
         const currentTurnPlayer = this.context.currentTurnPlayer;
 
         const nextPlayer: Player<any> = GameHelper.findNextPlayerOf(currentTurnPlayer, this.context);
-        this.switchTurn(nextPlayer);
 
         return nextPlayer;
     }
 
     private switchTurn(player: Player<any>): Player<any> {
         this.context.currentTurnPlayer = player;
+        player.initTurn();
         return player;
     }
-}
-
-interface EndTurnMetadata {
-    nextPlayer?: Player<any>,
-    shift?: Shift,
-    checkScores?: boolean
 }
 
 abstract class Mafioso<I extends Identifiable> extends Player<I> implements IMafioso<I>  {
@@ -420,30 +473,33 @@ abstract class Mafioso<I extends Identifiable> extends Player<I> implements IMaf
 
 abstract class Agent<I extends Identifiable> extends Player<I> implements IAgent<I> {
 
-    disarm(target: Position, marker: Marker): void {
-        this.startTurn();
+    protected disarm(action: GameActions.Disarm): void {
+        const { target, marker } = action;
+
+        assert(marker === Marker.BOMB || marker === Marker.THREAT, "You can remove bomb or threat markers");
 
         const arena = this.context.arena;
 
-        if (!GameHelper.isAdjacentTo(this, target, this.context)) {
-            throw new Error(`Invalid target=${arena.atPosition(target)}. You can place remove marker on adjcaent suspects`);
-        }
+        assert(GameHelper.isAdjacentTo(this, target, this.context), `Invalid target=${arena.atPosition(target)}. You can remove marker on adjacent suspects`);
 
         const suspect = arena.atPosition(target);
 
-        if (!suspect.markers.has(marker)) {
-            throw new Error(`Target does not have marker ${marker}`);
-        }
+        const deleted = suspect.removeMarker(marker);
 
-        suspect.markers.delete(marker);
+        assert(deleted, `Target does not have marker ${marker}`);
 
-        this.endTurn({});
+        const event: GameEvents.Disarm = { type: 'Disarm', target: target, marker: marker };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('END');
     }
 }
 
 class Killer<I extends Identifiable> extends Mafioso<I> implements IKiller<I> {
 
     readonly role = RoleType.KILLER;
+
+    readonly phases: readonly string[] = [];
 
     override canDoFastShift(): boolean {
         return true;
@@ -453,40 +509,32 @@ class Killer<I extends Identifiable> extends Mafioso<I> implements IKiller<I> {
         return undefined;
     }
 
-    kill(targetPosition: Position): void {
-        this.startTurn();
-
-        const arena = this.context.arena;
-
-        const neighborns = arena.getAdjacents(targetPosition);
-
-        const isValidTarget = neighborns.some(position => arena.atPosition(position).role === this);
-        if (!isValidTarget) {
-            throw new Error(`Invalid target=${arena.atPosition(targetPosition)}. You can kill only your neighbors`);
-        }
-
-        const suit = GameHelper.findPlayer(Suit, this.context);
-        const killed = GameHelper.tryKillSuspect(targetPosition, suit, this.context);
-
-        if (killed) {
-            this.endTurn({ checkScores: true });
-        } else {
-            this.endTurn({ nextPlayer: GameHelper.findPlayer(Suit, this.context) });
-        }
+    protected initTurn(): void {
+        // No-op
     }
 
-    disguise() {
-        this.startTurn();
+    protected knifeKill(action: GameActions.KnifeKill): void {
+        const { target } = action;
 
-        GameHelper.tryPeekNewIdentityFor(this, this.context);
+        assert(GameHelper.isAdjacentTo(this, target, this.context), `You can kill only your adjacent suspects`);
 
-        this.endTurn({});
+        GameHelper.tryKillSuspect(target, this.context, 'KnifeKill');
+
+        this.changePhase('END');
+    }
+
+    protected disguise(): void {
+        GameHelper.disguise(this, this.context);
+
+        this.changePhase('END');
     }
 }
 
 class Psycho<I extends Identifiable> extends Mafioso<I> implements IPsycho<I> {
 
     readonly role = RoleType.PSYCHO;
+
+    readonly phases: readonly string[] = ['KILL', 'ACTION', 'PLACE'];
 
     override canDoFastShift(): boolean {
         return false;
@@ -496,96 +544,117 @@ class Psycho<I extends Identifiable> extends Mafioso<I> implements IPsycho<I> {
         return Marker.THREAT;
     }
 
-    kill(targetPosition: Position): void { // TODO: Reimplement with single kills
-        const position = GameHelper.findPlayerInArena(this, this.context);
+    protected initTurn(): void {
+        this.changePhase('KILL');
 
         const arena = this.context.arena;
 
-        const neighborns = arena.getAdjacents(position);
-
-        neighborns.forEach(position => {
-            const suspect = arena.atPosition(position);
-
-            let killed = false;
-            if (suspect.markers.delete(Marker.THREAT)) {
-                const suit = GameHelper.findPlayer(Suit, this.context);
-                killed = GameHelper.tryKillSuspect(position, suit, this.context);
-            }
-
-            if (killed) {
-                this.checkWin();
-            }
-        });
+        const adjacentPositions = arena.getAdjacentPositions(this.locate());
+        this.context.psycho.threatPositions = adjacentPositions.filter(pos => arena.atPosition(pos).hasMarker(Marker.THREAT));
     }
 
-    shift(shift: Shift): void { // TODO: Duplicate code with super
-        this.startTurn();
+    protected threatKill(action: GameActions.ThreatKill): void {
+        const { target } = action;
 
-        if (shift.fast && !this.canDoFastShift()) {
-            throw new Error("You cannot do fast shift");
+        this.assertPhase('KILL');
+
+        const threatPositions = this.context.psycho.threatPositions!;
+
+        const deleted = threatPositions.removeFirst(target);
+        assert(deleted, `Invalid target ${target}`);
+
+        GameHelper.tryKillSuspect(target, this.context, 'ThreatKill');
+
+        if (threatPositions.length === 0) {
+            this.context.psycho.threatPositions = undefined;
+            this.changePhase('ACTION');
         }
-
-        GameHelper.shift(shift, this.context);
-
-        this.endTurn({ shift: shift, nextPlayer: this });
     }
 
-    collapse(direction: Direction): void { // TODO: Duplicate code with super
-        this.startTurn();
+    protected override shift(shift: GameActions.Shift): void {
+        this.assertPhase('ACTION');
 
-        // TODO:
+        GameHelper.shift(shift, this, this.context);
 
-        this.endTurn({ nextPlayer: this });
+        this.changePhase('PLACE');
+
     }
 
-    swap(position1: Position, position2: Position) {
-        this.startTurn();
+    protected override collapse(collapse: GameActions.Collapse): void {
+        this.assertPhase('ACTION');
+
+        GameHelper.collapse(collapse.direction, this.context);
+
+        this.changePhase('PLACE');
+    }
+
+    protected swapSuspects(action: GameActions.SwapSuspects) {
+        const { position1, position2 } = action;
+        this.assertPhase('ACTION');
+
+        assert(!position1.equals(position2), "Same position");
 
         const arena = this.context.arena;
 
-        const neighborns = arena.getAdjacents(position1);
+        const psychoPosition = this.locate();
 
-        const isUniquePositions = position1 === position2 || arena.atPosition(position1).role === this || arena.atPosition(position2).role === this;
-        const isAdjacents = neighborns.some(position => arena.atPosition(position).role === this) && neighborns.some(position => position.equals(position2));
-
-        if (!isUniquePositions || !isAdjacents) {
-            throw new Error(`Invalid targets=${arena.atPosition(position1)},${arena.atPosition(position2)} . You can only swap two adjacent suspects`);
-        }
+        assert(position1.isAdjacentTo(psychoPosition) && position2.isAdjacentTo(psychoPosition), "Not adjacent swap target");
 
         arena.swap(position1, position2);
 
-        this.endTurn({});
+        const event: GameEvents.SwapSuspects = {
+            type: 'SwapSuspects',
+            position1: position1,
+            position2: position2
+        };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('PLACE');
     }
 
-    placeThreat(positions: Position[]) {
-        this.startTurn();
+    protected placeThreat(action: GameActions.PlaceThreat) {
+        const { targets } = action;
 
-        if (positions.length > 3) {
+        this.assertPhase('PLACE');
+
+        if (targets.length > 3) {
             throw new Error("You can mark up to 3 suspects");
         }
 
         const arena = this.context.arena;
 
         const psychoPosition = GameHelper.findPlayerInArena(this, this.context);
-        positions.forEach(position => {
+        targets.forEach(position => {
             const rowDiff = Math.abs(psychoPosition.x - position.x);
             const colDiff = Math.abs(psychoPosition.x - position.x);
-            if (rowDiff + colDiff > 3) {
+            if (rowDiff === 0 || colDiff === 0 || rowDiff + colDiff > 3) {
                 throw new Error("You can mark within 3 orthogonal spaces");
             }
         });
 
-        positions.forEach(position => {
-            arena.atPosition(position).markers.add(Marker.THREAT);
+        targets.forEach(position => {
+            arena.atPosition(position).addMarker(Marker.THREAT);
         });
 
-        this.endTurn({ shift: this.context.lastShift });
+        const event: GameEvents.PlaceThreat = {
+            type: 'PlaceThreat',
+            targets: targets
+        };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('END');
     }
+}
+
+interface PsychoContext {
+    threatPositions?: Position[];
 }
 
 class Bomber<I extends Identifiable> extends Mafioso<I> implements IBomber<I> {
 
     readonly role = RoleType.BOMBER;
+
+    readonly phases: Readonly<string[]> = ['ACTION', 'SELF_DESTRUCT'];
 
     override canDoFastShift(): boolean {
         return false;
@@ -595,91 +664,126 @@ class Bomber<I extends Identifiable> extends Mafioso<I> implements IBomber<I> {
         return Marker.BOMB;
     }
 
-    protected startTurn(): void {
-        super.startTurn();
-        if (this.context.bomber.lastDetonatedBomb) {
-            throw new Error("You must continue bomb detonation");
-        }
+    protected initTurn(): void {
+        this.changePhase('ACTION');
     }
 
-    placeBomb(target: Position) {
-        this.startTurn();
+    enableReaction(context: SelfDestructContext) {
+        this.context.bomber.selfDestruct = context;
+        this.context.reactions.push(this);
+        this.changePhase('SELF_DESTRUCT');
+    }
+
+    protected placeBomb(action: GameActions.PlaceBomb) {
+        const { target } = action;
+
+        this.assertPhase('ACTION');
 
         const arena = this.context.arena;
 
         const targetSuspect = arena.atPosition(target);
 
         const isValidTarget = targetSuspect.role === this || GameHelper.isAdjacentTo(this, target, this.context);
-        if (!isValidTarget) {
-            throw new Error(`Invalid target=${arena.atPosition(target)}. You can place bomb only on yourself or adjacent suspects`);
-        }
+        assert(isValidTarget, `Invalid target=${arena.atPosition(target)}. You can place bomb only on yourself or adjacent suspects`);
 
-        if (targetSuspect.markers.has(Marker.BOMB)) {
+        if (targetSuspect.hasMarker(Marker.BOMB)) {
             throw new Error('Target already has bomb');
         }
 
-        targetSuspect.markers.add(Marker.BOMB);
+        targetSuspect.addMarker(Marker.BOMB);
 
-        this.endTurn({});
+        const event: GameEvents.PlaceBomb = {
+            type: 'PlaceBomb',
+            target: target
+        };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('END');
+
     }
 
-    detonateBomb(target: Position) {
-        super.startTurn();
+    protected detonateBomb(action: GameActions.DetonateBomb) {
+        const { target } = action;
+
+        this.assertPhase('ACTION');
+
+        this._detonate(target);
+    }
+
+    protected stopDetonation() {
+        this._stopDetonation();
+
+        const event: GameEvents.StopDetonation = {
+            type: 'StopDetonation'
+        };
+        this.context.game.fireEvent(event);
+    }
+
+    protected selfDestruct() {
+        this.assertPhase('SELF_DESTRUCT');
+
+        return this._detonate(this.context.bomber.selfDestruct!.target);
+    }
+
+    private _detonate(target: Position): void {
+        const suspect = this.context.arena.atPosition(target);
+        const hasBombMarker = suspect.removeMarker(Marker.BOMB);
+
+        if (this.context.bomber.contDetonation) {
+            assert(this.context.bomber.contDetonation.some(p => p.equals(target)), 'Non adjacent position');
+        } else {
+            assert(hasBombMarker, `Suspect ${suspect} does not have bomb marker`);
+        }
 
         const arena = this.context.arena;
 
-        const suspect = arena.atPosition(target);
-
-        const hasBombMarker = suspect.markers.delete(Marker.BOMB);
-
-        if (this.context.bomber.lastDetonatedBomb) {
-            const adjacents = arena.getAdjacents(this.context.bomber.lastDetonatedBomb);
-            if (!adjacents.find(pos => pos.equals(target))) {
-                throw new Error("Non adjacent targets");
-            }
-        } else {
-            if (!hasBombMarker) {
-                throw new Error(`Suspect ${suspect} does not have bomb marker`);
-            }
-        }
-
-        this.context.bomber.lastDetonatedBomb = undefined;
-
-        const suit = GameHelper.findPlayer(Suit, this.context);
-        const killed = GameHelper.tryKillSuspect(target, suit, this.context);
-
-        if (killed) {
-            if (hasBombMarker) {
-                this.context.bomber.lastDetonatedBomb = target;
-                this.endTurn({ checkScores: true, nextPlayer: this });
+        GameHelper.tryKillSuspect(target, this.context, 'BombDetonation', (isProtected) => {
+            let adjacentCells;
+            if (!isProtected && hasBombMarker && (adjacentCells = arena.getAdjacentPositions(target)).length !== 0) {
+                this.context.bomber.contDetonation = adjacentCells;
             } else {
-                this.endTurn({ checkScores: true });
+                this._stopDetonation();
             }
+        });
+    }
+
+    private _stopDetonation() {
+        const currentPhase = this.getCurrentPhase();
+
+        this.context.bomber.contDetonation = undefined;
+        if (currentPhase === 'SELF_DESTRUCT') {
+            this.endReaction();
         } else {
-            this.endTurn({ nextPlayer: GameHelper.findPlayer(Suit, this.context) });
+            this.changePhase('END');
         }
     }
 
-    stopDetonation() {
-        super.startTurn();
+    private endReaction() {
+        this.context.bomber.selfDestruct!.onReactionEnd();
 
-        if (!this.context.bomber.lastDetonatedBomb) {
-            throw new Error("There are no detonation");
-        }
-
-        this.context.bomber.lastDetonatedBomb = undefined;
-
-        this.endTurn({});
+        const phaseBeforeReaction = this.phaseHistory.at(-2)!;
+        this.changePhase(phaseBeforeReaction);
+        this.context.bomber.selfDestruct = undefined;
+        this.context.reactions.pop();
     }
 }
 
-class BomberContext {
-    lastDetonatedBomb?: Position;
+interface BomberContext {
+    selfDestruct?: SelfDestructContext;
+    contDetonation?: Position[];
+}
+
+type SelfDestructEndHandler = () => void;
+
+interface SelfDestructContext {
+    target: Position;
+    onReactionEnd: SelfDestructEndHandler;
 }
 
 class Sniper<I extends Identifiable> extends Mafioso<I> implements ISniper<I> {
-
     readonly role = RoleType.SNIPER;
+
+    readonly phases: Readonly<string[]> = [];
 
     override canDoFastShift(): boolean {
         return true;
@@ -689,8 +793,12 @@ class Sniper<I extends Identifiable> extends Mafioso<I> implements ISniper<I> {
         return undefined;
     }
 
-    snipe(target: Position) {
-        this.startTurn();
+    protected initTurn(): void {
+        // No-op
+    }
+
+    protected snipeKill(action: GameActions.SnipeKill) {
+        const { target } = action;
 
         const arena = this.context.arena;
         const diagonals = arena.getDiagonals(target, 3);
@@ -699,46 +807,43 @@ class Sniper<I extends Identifiable> extends Mafioso<I> implements ISniper<I> {
             throw new Error(`Invalid target=${arena.atPosition(target)}. You can kill only suspects 3 spaces away from you in diagonal line`);
         }
 
-        const suit = GameHelper.findPlayer(Suit, this.context);
-        const killed = GameHelper.tryKillSuspect(target, suit, this.context);
+        GameHelper.tryKillSuspect(target, this.context, 'SniperKill');
 
-        if (killed) {
-            this.endTurn({ checkScores: true });
-        } else {
-            this.endTurn({ nextPlayer: GameHelper.findPlayer(Suit, this.context) });
-        }
+        this.changePhase('END');
     }
 
-    setup(from: Position, to: Position, marker: Marker) {
-        this.startTurn();
+    protected setup(action: GameActions.Setup) {
+        const { from, to, marker } = action;
 
-        if (!from.isAdjacentTo(to)) {
-            throw new Error('Not adjacents suspects');
-        }
+        assert(from.isAdjacentTo(to), 'Non adjacent suspects');
 
         const arena = this.context.arena;
 
         const fromSuspect = arena.atPosition(from);
         const toSuspect = arena.atPosition(to);
 
-        if (!fromSuspect.markers.has(marker)) {
-            throw new Error(`Suspect does not have marker ${marker}`);
+        assert(fromSuspect.hasMarker(marker), `Suspect does not have marker ${marker}`);
+        assert(toSuspect.hasMarker(marker), `Suspect already have marker ${marker}`);
+
+        fromSuspect.removeMarker(marker);
+        toSuspect.removeMarker(marker);
+
+        const event: GameEvents.MoveMarker = {
+            type: 'MoveMarker',
+            from: from,
+            to: to,
+            marker: marker
         }
+        this.context.game.fireEvent(event);
 
-        if (toSuspect.markers.has(marker)) {
-            throw new Error(`Suspect already have marker ${marker}`);
-        }
-
-        fromSuspect.markers.delete(marker);
-        toSuspect.markers.add(marker);
-
-        this.endTurn({});
+        this.changePhase('END');
     }
 }
 
 class Undercover<I extends Identifiable> extends Agent<I> implements IUndercover<I> {
-
     readonly role = RoleType.UNDERCOVER;
+
+    readonly phases: Readonly<string[]> = [];
 
     override canDoFastShift(): boolean {
         return false;
@@ -748,34 +853,32 @@ class Undercover<I extends Identifiable> extends Agent<I> implements IUndercover
         return undefined;
     }
 
-    accuse(target: Position, mafioso: Mafioso<I>): void {
-        this.startTurn();
+    protected initTurn(): void {
+        // No-op
+    }
+
+    protected accuse(action: GameActions.Accuse): void {
+        const { target, mafioso } = action;
 
         const arena = this.context.arena;
 
         if (!GameHelper.isAdjacentTo(this, target, this.context)) {
-            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse only your adjacanets`);
+            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse only your adjacent suspects`);
         }
 
-        const arested = GameHelper.accuse(target, mafioso, this.context);
+        GameHelper.accuse(target, mafioso, this.context);
 
-        if (arested) {
-            this.endTurn({ checkScores: true });
-        } else {
-            this.endTurn({});
-        }
+        this.changePhase('END');
     }
 
-    disguise() {
-        this.startTurn();
+    protected disguise() {
+        GameHelper.disguise(this, this.context);
 
-        GameHelper.tryPeekNewIdentityFor(this, this.context);
-
-        this.endTurn({});
+        this.changePhase('END');
     }
 
-    autoSpy(target: Position): Mafioso<I>[] {
-        this.startTurn();
+    protected autoSpy(action: GameActions.AutoSpy) {
+        const { target } = action;
 
         const suspect = this.context.arena.atPosition(target);
 
@@ -785,15 +888,21 @@ class Undercover<I extends Identifiable> extends Agent<I> implements IUndercover
 
         const mafiosi = GameHelper.getAdjacentMafiosi(target, this.context);
 
-        this.endTurn({});
+        const event: GameEvents.AutoSpy = {
+            type: 'AutoSpy',
+            target: target,
+            mafiosi: mafiosi.map(m => m.role)
+        }
+        this.context.game.fireEvent(event);
 
-        return mafiosi;
+        this.changePhase('END');
     }
 }
 
 class Detective<I extends Identifiable> extends Agent<I> implements IDetective<I> {
-
     readonly role = RoleType.DETECTIVE;
+
+    readonly phases: Readonly<string[]> = ['ACTION', 'CANVAS'];
 
     override canDoFastShift(): boolean {
         return true;
@@ -803,73 +912,84 @@ class Detective<I extends Identifiable> extends Agent<I> implements IDetective<I
         return undefined;
     }
 
-    farAccuse(target: Position, mafioso: Mafioso<I>) {
-        this.startTurn();
+    protected initTurn(): void {
+        this.changePhase('ACTION');
+    }
+
+    protected accuse(action: GameActions.Accuse) {
+        const { target, mafioso } = action;
+
+        this.assertPhase('ACTION');
 
         const arena = this.context.arena;
 
         const isValidTarget = arena.getCross(target, 3).some(ps => arena.atPosition(ps).role === this);
 
-        if (!isValidTarget) {
-            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse within 3 spaces vertically or 
-            horizontally of your card, but not diagonally.`);
-        }
+        assert(isValidTarget, `Invalid target=${arena.atPosition(target)}. You can accuse within 3 spaces vertically or 
+        horizontally of your card, but not diagonally.`);
 
-        const arested = GameHelper.accuse(target, mafioso, this.context);
+        GameHelper.accuse(target, mafioso, this.context);
 
-        if (arested) {
-            this.endTurn({ checkScores: true });
-        } else {
-            this.endTurn({});
-        }
+        this.changePhase('END');
     }
 
-    peekSuspects(): [Suspect, Suspect] {
-        this.startTurn();
+    protected peekSuspects() {
+        this.assertPhase('ACTION');
 
         const first = this.context.evidenceDeck.pop()!;
         const second = this.context.evidenceDeck.pop()!;
 
-        this.endTurn({ nextPlayer: this });
+        const suspects: [Position, Position] = [
+            GameHelper.findSuspectInArena(first, this.context),
+            GameHelper.findSuspectInArena(second, this.context)
+        ];
 
-        const canvas: [Suspect, Suspect] = [first, second];
+        this.context.detective.canvas = suspects;
 
-        this.context.detective.canvas = canvas;
+        const event: GameEvents.PeekSuspectsForCanvas = {
+            type: 'PeekSuspectsForCanvas',
+            suspects: suspects
+        }
+        this.context.game.fireEvent(event);
 
-        return canvas;
+        this.changePhase('CANVAS');
     }
 
-    canvas(index: number): Player<I>[] {
-        this.startTurn();
+    protected canvas(action: GameActions.Canvas) {
+        const { index } = action;
 
-        const canvas = this.context.detective.canvas;
+        this.assertPhase('CANVAS');
 
-        if (!canvas) {
-            throw new Error("You are not picked cards");
-        }
+        const canvas = this.context.detective.canvas!;
 
-        const suspect = canvas[index];
+        const suspectPos = canvas[index];
 
-        if (!suspect) {
+        if (!suspectPos) {
             throw new Error("Illegal state");
         }
 
-        const adjacentPlayers = GameHelper.canvasAll(suspect, this.context);
+        const adjacentPlayers = GameHelper.canvasAll(suspectPos, this.context);
 
-        const nextPlayer = GameHelper.findNextPlayerOf(this, this.context);
-        this.endTurn({ nextPlayer: nextPlayer });
+        const event: GameEvents.Canvas = {
+            type: 'Canvas',
+            target: suspectPos,
+            players: adjacentPlayers.map(p => p.role)
+        }
+        this.context.game.fireEvent(event);
 
-        return adjacentPlayers;
+        this.changePhase('END');
     }
 }
 
 class DetectiveContext {
-    canvas?: [Suspect, Suspect];
+    canvas?: [Position, Position];
 }
 
 class Suit<I extends Identifiable> extends Agent<I> implements ISuit<I> {
 
     readonly role = RoleType.SUIT;
+
+    readonly phases: readonly string[] = ['MARKER', 'ACTION', 'PROTECTION'];
 
     override canDoFastShift(): boolean {
         return true;
@@ -879,12 +999,23 @@ class Suit<I extends Identifiable> extends Agent<I> implements ISuit<I> {
         return Marker.PROTECTION;
     }
 
-    placeProtection(target: Position) {
-        this.startTurn();
+    protected initTurn(): void {
+        this.changePhase('MARKER');
+    }
 
+    enableReaction(context: ProtectionContext) {
+        this.context.suit.protection = context;
+        this.context.reactions.push(this);
+        this.changePhase('PROTECTION');
+    }
+
+    protected placeProtection(action: GameActions.PlaceProtection) {
+        const { target } = action;
+
+        this.assertPhase('MARKER');
         const arena = this.context.arena;
 
-        const protectionsCount = arena.count(suspect => suspect.markers.has(Marker.PROTECTION));
+        const protectionsCount = arena.count(suspect => suspect.hasMarker(Marker.PROTECTION));
         if (protectionsCount === 6) {
             throw new Error("You may not have more than 6 protections in play at a time.");
         };
@@ -892,88 +1023,100 @@ class Suit<I extends Identifiable> extends Agent<I> implements ISuit<I> {
 
         const suspect = arena.atPosition(target);
 
-        if (suspect.markers.has(Marker.PROTECTION)) {
+        if (suspect.hasMarker(Marker.PROTECTION)) {
             throw new Error("Suspect already have protection marker");
         }
 
-        suspect.markers.add(Marker.PROTECTION);
+        suspect.addMarker(Marker.PROTECTION);
 
-        this.endTurn({ nextPlayer: this });
+        const event: GameEvents.PlaceProtection = { type: 'PlaceProtection', target: target };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('ACTION');
     }
 
-    removeProtection(target: Position) {
-        this.startTurn();
+    protected removeProtection(action: GameActions.RemoveProtection) {
+        const { target } = action;
+
+        this.assertPhase('MARKER');
 
         const arena = this.context.arena;
 
         const suspect = arena.atPosition(target);
 
-        if (!suspect.markers.delete(Marker.PROTECTION)) {
+        if (!suspect.removeMarker(Marker.PROTECTION)) {
             throw new Error("Suspect does not have protection marker");
         }
 
-        this.endTurn({ nextPlayer: this });
+        const event: GameEvents.RemoveProtection = { type: 'RemoveProtection', target: target };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('ACTION');
     }
 
-    accuse(target: Position, mafioso: Mafioso<I>): void {
-        this.startTurn();
+    protected accuse(action: GameActions.Accuse): void {
+        const { target, mafioso } = action;
+
+        this.assertPhase('ACTION');
 
         const arena = this.context.arena;
 
         if (!GameHelper.isAdjacentTo(this, target, this.context)) {
-            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse only your adjacanets`);
+            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse only your adjacent suspects`);
         }
 
-        const arested = GameHelper.accuse(target, mafioso, this.context);
+        GameHelper.accuse(target, mafioso, this.context);
 
-        if (arested) {
-            this.endTurn({ checkScores: true });
-        } else {
-            this.endTurn({});
-        }
+        this.changePhase('END');
     }
 
-    decideProtect(protect: boolean): void {
-        this.startTurn();
+    protected decideProtect(action: GameActions.DecideProtect): void {
+        const { protect } = action;
+
+        this.assertPhase('PROTECTION');
 
         const protectionContext = this.context.suit.protection;
         if (!protectionContext) {
-            throw new Error("There are nor protection target");
+            throw new Error("There are nor protection context");
         }
 
-        const arena = this.context.arena;
-
         if (protect) {
+            const arena = this.context.arena;
+
             const crosses = arena.getCross(protectionContext.target, arena.size);
 
             if (!crosses.some(pos => arena.atPosition(pos).role === this)) {
                 throw new Error("You cannot protect from your position");
             }
-
-            this.endTurn({ nextPlayer: protectionContext.switchToPlayerAfterDescision });
-        } else {
-            const suspect = arena.atPosition(protectionContext.target);
-
-            GameHelper.killSuspect(suspect, this.context);
-            this.endTurn({ nextPlayer: protectionContext.switchToPlayerAfterDescision, checkScores: true });
         }
 
+        const event: GameEvents.ProtectDecision = { type: 'ProtectDecision', target: protectionContext.target, protect: protect };
+        this.context.game.fireEvent(event);
+
+        protectionContext.onReactionEnd(protect);
+
+        const phaseBeforeReaction = this.phaseHistory.at(-2)!;
+        this.changePhase(phaseBeforeReaction);
         this.context.suit.protection = undefined;
+        this.context.reactions.pop();
     }
 }
 
-class SuitContext {
-    protection?: ProtectionContext
+interface SuitContext {
+    protection?: ProtectionContext;
 }
+
+type ProtectionEndHandler = (isProtected: boolean) => void;
 
 interface ProtectionContext {
     target: Position;
-    switchToPlayerAfterDescision: Player<any>;
+    onReactionEnd: ProtectionEndHandler;
 }
 
 class Profiler<I extends Identifiable> extends Agent<I> implements IProfiler<I> {
-
     readonly role = RoleType.PROFILER;
+
+    readonly phases: Readonly<string[]> = [];
 
     override canDoFastShift(): boolean {
         return false;
@@ -983,26 +1126,26 @@ class Profiler<I extends Identifiable> extends Agent<I> implements IProfiler<I> 
         return undefined;
     }
 
-    accuse(target: Position, mafioso: Mafioso<I>): void {
-        this.startTurn();
+    protected initTurn(): void {
+        // No-op
+    }
+
+    protected accuse(action: GameActions.Accuse): void {
+        const { target, mafioso } = action;
 
         const arena = this.context.arena;
 
         if (!GameHelper.isAdjacentTo(this, target, this.context)) {
-            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse only your adjacanets`);
+            throw new Error(`Invalid target=${arena.atPosition(target)}. You can accuse only your adjacent suspects`);
         }
 
-        const arested = GameHelper.accuse(target, mafioso, this.context);
+        GameHelper.accuse(target, mafioso, this.context);
 
-        if (arested) {
-            this.endTurn({ checkScores: true });
-        } else {
-            this.endTurn({});
-        }
+        this.changePhase('END');
     }
 
-    profile(index: number): void {
-        this.startTurn();
+    protected profile(action: GameActions.Profile): void {
+        const { index } = action;
 
         let hand = this.context.profiler.evidenceHand;
         const suspect = hand[index];
@@ -1011,8 +1154,9 @@ class Profiler<I extends Identifiable> extends Agent<I> implements IProfiler<I> 
             throw new Error(`Suspect with index ${index} not found`);
         }
 
-        GameHelper.canvasMafioso(suspect, this.context);
+        const position = GameHelper.findSuspectInArena(suspect, this.context);
 
+        const mafiosi = GameHelper.canvasMafioso(position, this.context);
 
         hand = hand.filter(suspect => suspect.role !== 'killed');
         hand.removeFirst(suspect);
@@ -1023,16 +1167,15 @@ class Profiler<I extends Identifiable> extends Agent<I> implements IProfiler<I> 
 
         this.context.profiler.evidenceHand = hand;
 
-        this.endTurn({});
+        const event: GameEvents.Profile = { type: 'Profile', target: position, mafiosi: mafiosi.map(m => m.role), newHand: [...hand] };
+        this.context.game.fireEvent(event);
+
+        this.changePhase('END');
     }
 }
 
-class ProfilerContext {
-    evidenceHand: Suspect[]
-
-    constructor(evidenceHand: Suspect[]) {
-        this.evidenceHand = evidenceHand;
-    }
+interface ProfilerContext {
+    evidenceHand: Suspect[];
 }
 
 class GameContext {
@@ -1041,10 +1184,13 @@ class GameContext {
     players: Player<any>[];
     currentTurnPlayer: Player<any>;
 
+    reactions: Player<any>[];
+
     evidenceDeck: Suspect[];
 
-    lastShift?: Shift;
+    lastShift?: GameActions.Shift;
 
+    psycho: PsychoContext;
     bomber: BomberContext;
     detective: DetectiveContext;
     suit: SuitContext;
@@ -1058,11 +1204,13 @@ class GameContext {
         this.arena = arena;
         this.players = undefined as any;
         this.currentTurnPlayer = undefined as any;
+        this.reactions = [];
         this.evidenceDeck = evidenceDeck;
+        this.psycho = {};
         this.bomber = {};
         this.detective = {};
         this.suit = {};
-        this.profiler = new ProfilerContext(profilerEvidenceHand);
+        this.profiler = { evidenceHand: profilerEvidenceHand };
         this.scores = [0, 0];
         this.game = undefined as any;
     }
@@ -1073,7 +1221,7 @@ namespace GameHelper {
     export function findNextPlayerOf(player: Player<any>, context: GameContext): Player<any> {
         const players = context.players;
 
-        const currentPlayerIndex = context.players.findIndex(p => p === player);
+        const currentPlayerIndex = players.findIndex(p => p === player);
         if (currentPlayerIndex === -1) {
             throw new Error("Player not found");
         }
@@ -1088,9 +1236,9 @@ namespace GameHelper {
     export function isAdjacentTo(player: Player<any>, position: Position, context: GameContext): boolean {
         const arena = context.arena;
 
-        const adjacents = arena.getAdjacents(position);
+        const adjacentPositions = arena.getAdjacentPositions(position);
 
-        return adjacents.some(pos => arena.atPosition(pos).role === player);
+        return adjacentPositions.some(pos => arena.atPosition(pos).role === player);
     }
 
     export function getAdjacentPlayers(position: Position, context: GameContext, predicate?: (suspect: Suspect) => boolean): Player<any>[] {
@@ -1098,98 +1246,136 @@ namespace GameHelper {
 
         const arena = context.arena;
 
-        const adjacents = arena.getAdjacents(position);
+        const adjacentPositions = arena.getAdjacentPositions(position);
 
-        return adjacents.map(pos => arena.atPosition(pos)).filter(suspect => predicate!(suspect)).map(sus => sus.role) as Player<any>[];
+        return adjacentPositions.map(pos => arena.atPosition(pos)).filter(suspect => predicate!(suspect)).map(sus => sus.role) as Player<any>[];
     }
 
     export function getAdjacentMafiosi(position: Position, context: GameContext): Mafioso<any>[] {
         const arena = context.arena;
 
-        const adjacents = arena.getAdjacents(position);
+        const adjacentPositions = arena.getAdjacentPositions(position);
 
-        return adjacents.map(pos => arena.atPosition(pos).role).filter(role => role instanceof Mafioso) as Mafioso<any>[];
+        return adjacentPositions.map(pos => arena.atPosition(pos).role).filter(role => role instanceof Mafioso) as Mafioso<any>[];
     }
 
-    export function shift(shift: Shift, context: GameContext) {
-        if (context.lastShift && context.lastShift.direction === Direction.getReverse(shift.direction) && context.lastShift.index === shift.index) {
-            throw new Error("Cannot undo last shift");
-        }
+    export function shift(shift: GameActions.Shift, actor: Player<any>, context: GameContext) {
+        assert(!shift.fast || actor.canDoFastShift(), "You cannot do fast shift");
+
+        assert(!context.lastShift || !GameActions.isReverseShifts(shift, context.lastShift), "Cannot undo last shift");
 
         const arena = context.arena;
 
         arena.shift(shift.direction, shift.index, shift.fast ? 2 : 1);
+
+        this.context.lastShift = shift;
+
+        const event: GameEvents.Shift = { type: 'Shift', shift: shift };
+        context.game.fireEvent(event);
     }
 
-    /**
-     * Try kill suspect. Return false if suspect can be protected by suit.
-     */
-    export function tryKillSuspect(position: Position, suit: Player<any>, context: GameContext): boolean {
-        const suspect = context.arena.atPosition(position);
+    export function collapse(direction: Direction, context: GameContext) {
+        throw new Error("Not implemented"); // TODO
 
-        const suspectRole = suspect.role;
-        if (suspectRole === 'arested' || suspectRole === 'killed') {
-            throw new Error(`Target ${suspect} cannot be killed.`);
+        // const event: ActionEvent<GameEvents.Collapse> = { type: 'Collapse', direction: direction };
+    }
+
+
+    export function tryKillSuspect(target: Position, context: GameContext, killEventType: GameEvents.Kills['type'], onProtectionEnd?: ProtectionEndHandler): void {
+        const tryKillEvent: GameEvents.TryKill = {
+            type: 'TryKill',
+            target: target,
+        };
+        this.fireEvent(tryKillEvent);
+
+        const suspect = context.arena.atPosition(target);
+
+        const handler = (isProtected: boolean) => {
+            if (!isProtected) {
+                killSuspect(target, context, killEventType);
+            }
+
+            onProtectionEnd?.(isProtected);
         }
 
-        if (suspect.markers.has(Marker.PROTECTION) && suspect.role !== suit
-            && (isPlayerInRow(suit, context.arena, position.x) || isPlayerInColumn(suit, context.arena, position.y))) {
-            return false;
+        if (suspect.hasMarker(Marker.PROTECTION)) {
+            const suit = findSuit(context);
+            suit.enableReaction({ target: target, onReactionEnd: handler })
         } else {
-            killSuspect(suspect, context);
-            return true;
+            handler(false);
         }
     }
 
-    export function killSuspect(suspect: Suspect, context: GameContext) {
+    function killSuspect(target: Position, context: GameContext, killEventType: GameEvents.Kills['type']): void {
+        const suspect = context.arena.atPosition(target);
+
         const suspectRole = suspect.role;
+
+        suspect.assertClosedState();
+
+        let event: GameEvents.Arrest | GameEvents.Kills;
 
         if (suspectRole instanceof Mafioso) {
-            arestMafioso(suspect, context);
-            return false;
+            const newIdentity = arrestMafioso(suspect, context);
+            event = { type: 'Arrest', arrested: target, newIdentity: newIdentity }
         } else {
             suspect.role = 'killed';
 
             if (suspectRole instanceof Player) {
                 context.scores[0] += 2;
 
-                const ownMarker = suspectRole.ownMarker();
-                if (ownMarker) {
-                    removeMarkersFromArena(ownMarker, context);
-                }
+                const newIdentity = peekNewIdentityFor(suspectRole, context);
 
-                peekNewIdentityFor(suspectRole, context);
+                event = { type: killEventType, killed: target, newIdentity: GameHelper.findSuspectInArena(newIdentity, context) };
             } else {
                 context.scores[0] += 1;
+                event = { type: killEventType, killed: target };
             }
+        }
 
-            suspect.markers.clear();
+        context.game.fireEvent(event);
+    }
 
-            return true;
+    export function accuse(target: Position, mafiosoRole: RoleType, context: GameContext) {
+        const accuseEvent: GameEvents.Accuse = {
+            type: 'Accuse',
+            target: target,
+            mafioso: mafiosoRole
+        };
+        this.fireEvent(accuseEvent);
+
+        const suspect = context.arena.atPosition(target);
+
+        const handler = () => arrestMafioso(suspect, context);
+
+        suspect.assertClosedState();
+
+        assert(suspect.role !== 'innocent', `You cannot accuse innocents`);
+
+        const mafioso = context.game.getPlayer(mafiosoRole);
+
+        if (suspect.role === 'suspect' || suspect.role !== mafioso) {
+            const event: GameEvents.UnsuccessfulAccuse = { type: 'UnsuccessfulAccuse', target: target };
+            context.game.fireEvent(event);
+        }
+        else {
+            if (suspect.hasMarker(Marker.BOMB)) {
+                const bomber = findBomber(context);
+                bomber.enableReaction({ target: target, onReactionEnd: handler });
+            } else {
+                handler();
+            }
         }
     }
 
-    export function accuse(target: Position, mafioso: Mafioso<any>, context: GameContext): boolean {
-        const arena = context.arena;
-
-        const suspect = arena.atPosition(target);
-
-        if (suspect.role === mafioso) {
-            arestMafioso(suspect, context);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    function arestMafioso(suspect: Suspect, context: GameContext) { // TODO: bomber self estrcut
+    function arrestMafioso(suspect: Suspect, context: GameContext): Position {
         if (!(suspect.role instanceof Mafioso)) {
-            throw new Error("Only mafioso can be arested");
+            throw new Error("Only mafioso can be arrested");
         }
 
         const suspectRole = suspect.role;
 
-        suspect.role = 'arested';
+        suspect.role = 'arrested';
 
         context.scores[1] += 1;
 
@@ -1198,50 +1384,78 @@ namespace GameHelper {
             removeMarkersFromArena(ownMarker, context);
         }
 
-        peekNewIdentityFor(suspectRole, context);
+        const newIdentity = peekNewIdentityFor(suspectRole, context);
 
-        suspect.markers.clear();
+        return GameHelper.findSuspectInArena(newIdentity, context);
     }
 
-    export function canvasAll(suspect: Suspect, context: GameContext): Player<any>[] {
-        return canvas(suspect, context);
+    export function disguise(player: Killer<any> | Undercover<any>, context: GameContext) {
+        const oldIdentity = GameHelper.findPlayerInArena(player, context);
+        const newIdentity = GameHelper.tryPeekNewIdentityFor(player, context);
+        const newIdentityPos = newIdentity ? GameHelper.findSuspectInArena(newIdentity, this.context) : undefined;
+
+        const event: GameEvents.Disguise = {
+            type: 'Disguise',
+            oldIdentity: oldIdentity,
+            newIdentity: newIdentityPos
+        };
+        this.fireEvent(event);
+    }
+
+    function suitCanProtect(target: Position, context: GameContext) {
+        const suspect = context.arena.atPosition(target);
+
+        const suit = GameHelper.findPlayer(Suit, this.context);
+
+        return suspect.role !== suit
+            && (isPlayerInRow(suit, context.arena, target.x) || isPlayerInColumn(suit, context.arena, target.y));
+    }
+
+    export function canvasAll(target: Position, context: GameContext): Player<any>[] {
+        return canvas(target, context);
     }
 
 
-    export function canvasMafioso(suspect: Suspect, context: GameContext): Player<any>[] {
-        return canvas(suspect, context, (suspect: Suspect) => suspect.role instanceof Mafioso);
+    export function canvasMafioso(target: Position, context: GameContext): Mafioso<any>[] {
+        return canvas(target, context, (suspect: Suspect) => suspect.role instanceof Mafioso) as Mafioso<any>[];
     }
 
-    function canvas(suspect: Suspect, context: GameContext, predicate?: (suspect: Suspect) => boolean): Player<any>[] {
+    function canvas(target: Position, context: GameContext, predicate?: (suspect: Suspect) => boolean): Player<any>[] {
+        const suspect = context.arena.atPosition(target);
+
         if (suspect.role !== 'suspect') {
             throw new Error("Illegal state");
         }
 
         suspect.role = 'innocent';
 
-        const position = GameHelper.findSuspectInArena(suspect, context);
-
-        const adjacentPlayers = GameHelper.getAdjacentPlayers(position, context, predicate);
+        const adjacentPlayers = GameHelper.getAdjacentPlayers(target, context, predicate);
 
         return adjacentPlayers;
     }
 
-    export function peekNewIdentityFor(player: Player<any>, context: GameContext) {
-        while (!tryPeekNewIdentityFor(player, context)) {
+    export function peekNewIdentityFor(player: Player<any>, context: GameContext): Suspect {
+        while (true) {
+            const newIdentity = tryPeekNewIdentityFor(player, context);
+            if (newIdentity) {
+                return newIdentity;
+            }
         }
     }
 
-    export function tryPeekNewIdentityFor(player: Player<any>, context: GameContext): boolean {
+    export function tryPeekNewIdentityFor(player: Player<any>, context: GameContext): Suspect | undefined {
         const newIdentity = context.evidenceDeck.pop();
         if (!newIdentity) {
             throw new Error("hmmm"); // TODO: wtf state
         }
 
         if (newIdentity.role === 'killed') {
-            return false;
-        } else {
+            return undefined;
+        } else if (newIdentity.role === 'suspect') {
             newIdentity.role = player;
-            return true;
+            return newIdentity;
+        } else {
+            throw new Error(`Illegal suspect role ${newIdentity.role}`);
         }
     }
 
@@ -1249,6 +1463,17 @@ namespace GameHelper {
         return context.players.find(player => player instanceof type)!;
     }
 
+    export function findSuit(context: GameContext): Suit<any> {
+        return GameHelper.findPlayer(Suit, context) as Suit<any>;
+    }
+
+    export function findBomber(context: GameContext): Bomber<any> {
+        return GameHelper.findPlayer(Bomber, context) as Bomber<any>;
+    }
+
+    export function findPsycho(context: GameContext): Psycho<any> {
+        return GameHelper.findPlayer(Psycho, context) as Psycho<any>;
+    }
 
     export function findPlayerInArena(player: Player<any>, context: GameContext): Position {
         return findFirstInArena(suspect => suspect.role === player, context);
@@ -1301,7 +1526,7 @@ namespace GameHelper {
         for (let i = 0; i < arena.size; i++) {
             for (let j = 0; j < arena.size; j++) {
                 const suspect = arena.at(i, j);
-                suspect.markers.delete(marker);
+                suspect.removeMarker(marker);
             }
         }
     }

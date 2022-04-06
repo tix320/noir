@@ -38,7 +38,7 @@ export default class Matrix<T> {
         this.setToPosition(position2, temp);
     }
 
-    getAdjacents(position: Position): Position[] {
+    getAdjacentPositions(position: Position): Position[] {
         if (position.x < 0 || position.x >= this.size || position.y < 0 || position.y >= this.size) {
             throw new Error(`Out of bounds position ${position}`);
         }
