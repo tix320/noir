@@ -1,4 +1,4 @@
-import Game, { RoleSelection } from "@tix320/noir-core/src/game/Game";
+import { Game, RoleSelection } from "@tix320/noir-core/src/game/Game";
 import { RoleType } from "@tix320/noir-core/src/game/RoleType";
 import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
@@ -7,11 +7,12 @@ import User from "../../../entity/User";
 import Api from "../../../service/Api";
 import RoleCard from "../cards/role/RoleCardComponent";
 import RxComponent from "../common/RxComponent";
+
 import styles from './GamePreparationComponent.module.css';
 
 type Props = {
     user: User,
-    game: Game<User>,
+    game: Game.Preparation<User>,
 }
 
 type State = {
@@ -28,7 +29,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
 
     componentDidMount(): void {
         const game = this.props.game;
-        game.getPreparingState().participantChanges().pipe(takeUntil(this.destroy$)).subscribe((state) => {
+        game.participantChanges().pipe(takeUntil(this.destroy$)).subscribe((state) => {
             const adaptedState = this.adaptParticipants(state);
             this.setState({
                 ...adaptedState,
@@ -60,7 +61,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
                     {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
 
 
-                    <div className={styles.avaialbleRolesContainer}>
+                    <div className={styles.availableRolesContainer}>
                         {this.state.availableRoles
                             .map(role => <RoleCard className={styles.availableRoleCard} key={role} role={role} onClick={this.selectRole} ></RoleCard>)}
                     </div>

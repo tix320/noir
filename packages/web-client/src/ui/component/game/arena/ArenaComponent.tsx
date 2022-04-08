@@ -1,4 +1,4 @@
-import Game from "@tix320/noir-core/src/game/Game";
+import {Game} from "@tix320/noir-core/src/game/Game";
 import { RoleType } from "@tix320/noir-core/src/game/RoleType";
 import { Direction } from "@tix320/noir-core/src/util/Direction";
 import User from "../../../../entity/User";
@@ -9,13 +9,13 @@ import Shift from "./shift/ShiftComponent";
 
 type Props = {
     className: string,
-    game: Game<User>
+    game: Game.Play<User>
 }
 
 export default function ArenaComponent(props: Props) {
     const { className, game } = props;
 
-    const playersCount = game.getState().getPlayersCount();
+    const playersCount = game.players.length;
 
     const for6 = playersCount === 6;
 

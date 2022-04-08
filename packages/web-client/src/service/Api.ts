@@ -1,6 +1,7 @@
-import Game from "@tix320/noir-core/src/dto/Game";
-import User from "@tix320/noir-core/src/dto/User";
+import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
 import { RoleSelection } from "@tix320/noir-core/src/game/Game";
+import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
 import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import store from "./Store";
@@ -9,7 +10,7 @@ class API {
 
     #socket?: Socket
 
-    connect(token: string): Promise<User> {
+    connect(token: string): Promise<Dto.User> {
         this.#socket = io("http://10.10.10.11:5000", {
             auth: {
                 token: token
@@ -20,7 +21,7 @@ class API {
             const socket = this.socket();
 
             socket.once('connect', () => {
-                socket.emit("myUser", (user: User) => {
+                socket.emit(ApiEvents.GET_MY_USER, (user: Dto.User) => {
                     resolve(user);
                 })
             });
@@ -31,11 +32,11 @@ class API {
         })
     }
 
-    createGame(gameDetails: any): Promise<Game> {
-        return new Promise<Game>(resolve => {
+    createGame(gameDetails: any): Promise<Dto.GamePreparation> {
+        return new Promise<Dto.GamePreparation>(resolve => {
             const socket = this.socket();
 
-            socket.emit("createGame", gameDetails, (game: Game) => {
+            socket.emit(ApiEvents.CREATE_GAME, gameDetails, (game: Dto.GamePreparation) => {
                 resolve(game);
             });
         });
@@ -45,7 +46,7 @@ class API {
         return new Promise<void>(resolve => {
             const socket = this.socket();
 
-            socket.emit("joinGame", gameId, () => {
+            socket.emit(ApiEvents.JOIN_GAME, gameId, () => {
                 resolve();
             });
         });
@@ -55,7 +56,7 @@ class API {
         return new Promise<void>(resolve => {
             const socket = this.socket();
 
-            socket.emit("changeGameRole", roleSelection, () => {
+            socket.emit(ApiEvents.CHANGE_ROLE_IN_GAME, roleSelection, () => {
                 resolve();
             });
         });
@@ -65,23 +66,30 @@ class API {
         return new Promise<void>(resolve => {
             const socket = this.socket();
 
-            socket.emit("leaveGame", () => {
+            socket.emit(ApiEvents.LEAVE_GAME, () => {
                 resolve();
             });
         });
     }
 
-    gamesStream(): Observable<Game> {
-        return this.pingAndSubscribeToStream('gamesStream', 'gamesStream');
+    gamesStream(): Observable<Dto.GamePreparation> {
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_GAMES, ApiEvents.ROOM_GAMES);
     }
 
-    myCurrentGameStream(): Observable<Game> {
+    myCurrentGameStream(): Observable<Dto.UserCurrentGame> {
         const user = store.getState().user;
-        return this.pingAndSubscribeToStream('myCurrentGameStream', `myCurrentGameStream_${user!.id}`);
+        if (!user) {
+            throw new Error('User does not exists in state');
+        }
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, ApiEvents.ROOM_MY_CURRENT_GAME(user.id));
     }
 
-    gamePreparationStream(gameId: string): Observable<RoleSelection<User>[]> {
-        return this.pingAndSubscribeToStream('gamePreparationStream', `gamePreparationStream_${gameId}`);
+    preparingGameStream(gameId: string): Observable<Dto.GamePreparation> {
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PREPARING_GAME, ApiEvents.ROOM_PREPARING_GAME(gameId), gameId);
+    }
+
+    playingGameStream(gameId: string): Observable<GameEvents.Base> {
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PLAYING_GAME, ApiEvents.ROOM_PLAYING_GAME(gameId), gameId);
     }
 
     private subscribeToStream<T>(subscribeName: string): Observable<T> {

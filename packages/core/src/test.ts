@@ -1,10 +1,9 @@
-import Position from "./util/Position";
-import StandardGame from "./game/StandardGame";
-import { Bomber, Detective, Killer, RoleSelection, Psycho, Suit, Undercover } from "./game/Game";
+import { Bomber, Detective, Game, Killer, Psycho, RoleSelection, Suit, Undercover } from "./game/Game";
 import { RoleType } from "./game/RoleType";
-import { Direction } from "./util/Direction";
+import { StandardGame } from "./game/StandardGame";
+import Position from "./util/Position";
 
-const game = new StandardGame<Id>();
+let gamePreparation: StandardGame.Preparation<Id> = new StandardGame.Preparation<Id>();
 
 class Id {
 
@@ -21,11 +20,13 @@ const participants: RoleSelection<Id>[] = [
 ];
 
 participants.forEach(p => {
-    game.getPreparingState().join(p.identity);
-    game.getPreparingState().changeRole(p);
+    gamePreparation.join(p.identity);
+    gamePreparation.changeRole(p);
 });
 
-const players = game.getPlayingState().players;
+const game = gamePreparation.start() as Game.Play<Id>;
+
+const players = game.players;
 
 const KILLER: Killer<Id> = players.find(p => p.role === RoleType.KILLER) as Killer<Id>;
 const BOMBER: Bomber<Id> = players.find(p => p.role === RoleType.BOMBER) as Bomber<Id>;
@@ -36,7 +37,7 @@ const UNDERCOVER: Undercover<Id> = players.find(p => p.role === RoleType.UNDERCO
 
 const position = KILLER.locate();
 
-KILLER.gameEvents().subscribe(event => {
+KILLER.getState()[1].subscribe(event => {
     console.log(event);
 });
 

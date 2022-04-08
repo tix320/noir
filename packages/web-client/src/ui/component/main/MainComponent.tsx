@@ -4,13 +4,13 @@ import { takeUntil } from "rxjs/operators";
 import LobbyComponent from "../lobby/LobbyComponent";
 import ProfileComponent from "./profile/ProfileComponent";
 import styles from "./MainComponent.module.css";
-import Game from "@tix320/noir-core/src/dto/Game";
-import RemoteGame from "../../../game/RemoteGame";
+import { RemoteGame } from "../../../game/RemoteGame";
 import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
 import GameComponent from "../game/GameComponent";
+import { Dto } from "@tix320/noir-core/src/api/Dto";
 
 type State = {
-    currentGame?: Game
+    currentGame?: Dto.UserCurrentGame
 }
 
 export default class MainComponent extends RxComponent<{}, State> {
@@ -26,15 +26,18 @@ export default class MainComponent extends RxComponent<{}, State> {
     }
 
     render() {
-        const currentGame = this.state.currentGame
+        const currentGame = this.state.currentGame;
 
         let content;
         if (currentGame) {
-            const game = new RemoteGame(currentGame.id);
             if (currentGame.state === 'PREPARING') {
+                const game = new RemoteGame.Preparation(currentGame.id);
                 content = <GamePreparationComponent game={game} />;
-            } else {
+            } else if (currentGame.state === 'PLAYING') {
+                const game = new RemoteGame.Play(currentGame.id);
                 content = <GameComponent game={game} />;
+            } else {
+                throw new Error(`Illegal state ${currentGame.state}`);
             }
         } else {
             content = <LobbyComponent />;

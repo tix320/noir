@@ -12,56 +12,31 @@ export type Team = 'FBI' | 'MAFIA'
 
 export type Winner = Team | 'DRAW'
 
-export default interface Game<I extends Identifiable> {
+export namespace Game {
 
-    get state(): GameState;
+    export interface Preparation<I extends Identifiable> {
+        get participants(): RoleSelection<I>[];
 
-    getState(): State<I>;
+        join(identity: I): void;
 
-    getPreparingState(): PreparingState<I>;
+        changeRole(selection: RoleSelection<I>): void;
 
-    getPlayingState(): PlayingState<I>;
+        leave(identity: I): void;
 
-    getCompletedState(): CompletedState<I>;
-}
+        participantChanges(): Observable<RoleSelection<I>[]>;
 
-export interface State<I extends Identifiable> {
+        start(): Game.Play<I> | undefined;
+    }
 
-    getPlayersCount(): number;
-}
+    export interface Play<I extends Identifiable> {
+        get players(): Player<I>[];
 
-export interface PreparingState<I extends Identifiable> extends State<I> {
+        getPlayersOfTeam(team: Team): Player<I>[];
 
-    get participants(): RoleSelection<I>[];
+        getPlayerOfRole(role: RoleType): Player<I>;
 
-    join(identity: I): void;
-
-    changeRole(selection: RoleSelection<I>): void;
-
-    leave(identity: I): void;
-
-    participantChanges(): Observable<RoleSelection<I>[]>;
-}
-
-export interface PlayingState<I extends Identifiable> extends State<I>, PlayingGameStateOps {
-
-    get players(): Player<I>[];
-
-    getPlayers(team: Team): Player<I>[];
-
-    getPlayer(role: RoleType): Player<I>;
-}
-
-export interface CompletedState<I extends Identifiable> extends State<I> {
-
-}
-
-export interface PlayingGameStateOps {
-    get isCompleted(): boolean;
-
-    getCurrentState(): GameFullState;
-
-    gameEvents(): Observable<GameEvents.Base>;
+        getState(): [GameFullState, Observable<GameEvents.Base>];
+    }
 }
 
 export type RoleSelection<I extends Identifiable> =
@@ -79,11 +54,13 @@ export interface PlayerRoleReadySelection<I> {
     ready: true
 }
 
-export interface Player<I extends Identifiable> extends PlayingGameStateOps {
+export interface Player<I extends Identifiable> {
     readonly identity: I;
     readonly role: RoleType;
 
     locate(): Position;
+
+    getState(): [GameFullState, Observable<GameEvents.Base>];
 }
 
 export interface Mafioso<I extends Identifiable> extends Player<I> {

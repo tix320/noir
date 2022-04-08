@@ -6,11 +6,10 @@ import Identifiable from '../util/Identifiable';
 import Matrix from '../util/Matrix';
 import Position from '../util/Position';
 import { shuffle } from '../util/RandUtils';
-import { Constructor } from '../util/Types';
 import './../extension/ArrayExtension';
 import './../extension/SetExtension';
-import Game, {
-    Agent as IAgent, Bomber as IBomber, CompletedState as ICompletedState, Detective as IDetective, GameState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, PlayingState as IPlayingState, PreparingState as IPreparingState, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, State as IState, Suit as ISuit, Team, Undercover as IUndercover, Winner
+import {
+    Agent as IAgent, Bomber as IBomber, Detective as IDetective, Game, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, Suit as ISuit, Team, Undercover as IUndercover, Winner
 } from './Game';
 import { GameActions } from './GameActions';
 import { GameEvents } from './GameEvents';
@@ -19,314 +18,258 @@ import { Marker } from './Marker';
 import { RoleType } from './RoleType';
 import { Suspect } from './Suspect';
 
-export default class StandardGame<I extends Identifiable> implements Game<I> {
+export namespace StandardGame {
 
-    static ROLE_SETS = [
+    export const ROLE_SETS = [
         new Set([RoleType.KILLER, RoleType.BOMBER, RoleType.PSYCHO, RoleType.UNDERCOVER, RoleType.SUIT, RoleType.DETECTIVE]),
         new Set([RoleType.KILLER, RoleType.BOMBER, RoleType.PSYCHO, RoleType.SNIPER, RoleType.UNDERCOVER, RoleType.SUIT, RoleType.DETECTIVE, RoleType.PROFILER])
     ];
 
-    private stateObj: State<I> = new PreparingState(this);
+    export class Preparation<I extends Identifiable> implements Game.Preparation<I> {
 
-    get state(): GameState {
-        if (this.stateObj instanceof PreparingState) {
-            return 'PREPARING';
-        }
-        else if (this.stateObj instanceof PlayingState) {
-            return 'PLAYING';
-        } else {
-            return 'COMPLETED';
-        }
-    }
+        readonly participants: RoleSelection<I>[] = [];
+        private participantsSubject = new Subject<RoleSelection<I>[]>();
 
-    public getState(): IState<I> {
-        return this.stateObj;
-    }
-
-    public getPreparingState(): IPreparingState<I> {
-        return this.tryGetState<PreparingState<I>>(PreparingState);
-    }
-
-    public getPlayingState(): IPlayingState<I> {
-        return this.tryGetState<PlayingState<I>>(PlayingState);
-    }
-
-    public getCompletedState(): ICompletedState<I> {
-        return this.tryGetState<CompletedState<I>>(CompletedState);
-    }
-
-    private tryGetState<T extends State<I>>(state: Constructor<T>): T {
-        if (!(this.stateObj instanceof state)) {
-            throw new Error(`Not in state ${state.name}. Current: ${this.state}`);
+        getPlayersCount(): number {
+            return this.participants.length;
         }
 
-        return this.stateObj;
-    }
-}
+        public join(identity: I) {
+            if (this.participants.find(p => p.identity === identity)) {
+                throw new Error('Already in game');
+            }
 
-abstract class State<I extends Identifiable> implements IState<I> {
+            const maxPlayersCount = ROLE_SETS.at(-1)!.size;
 
-    constructor(protected game: StandardGame<I>) { }
+            if (this.participants.length === maxPlayersCount) {
+                throw new Error("Fully");
+            }
 
-    abstract getPlayersCount(): number;
-}
-
-class PreparingState<I extends Identifiable> extends State<I> implements IPreparingState<I> {
-
-    readonly participants: RoleSelection<I>[] = [];
-    private participantsSubject = new Subject<RoleSelection<I>[]>();
-
-    getPlayersCount(): number {
-        return this.participants.length;
-    }
-
-    public join(identity: I) {
-        if (this.participants.find(p => p.identity === identity)) {
-            throw new Error('Already in game');
+            this.participants.push({ identity: identity, ready: false });
         }
 
-        const maxPlayersCount = StandardGame.ROLE_SETS.at(-1)!.size;
+        public changeRole(participant: RoleSelection<I>) {
+            const currentParticipant = this.participants.removeFirstBy(p => participant.identity === p.identity);
 
-        if (this.participants.length === maxPlayersCount) {
-            throw new Error("Fully");
-        }
+            if (!currentParticipant) {
+                throw new Error(`Player ${participant.identity} not joined this game`);
+            }
 
-        this.participants.push({ identity: identity, ready: false });
-    }
+            if (currentParticipant.role !== participant.role) {
+                this.resetReadiness();
+                this.emitParticipants();
+            }
 
-    public changeRole(participant: RoleSelection<I>) {
-        const currentParticipant = this.participants.removeFirstBy(p => participant.identity === p.identity);
+            if (participant.role) {
+                if (this.participants.find(p => p.role === participant.role)) {
+                    throw new Error(`Role ${participant.role} already selected`);
+                }
+            }
 
-        if (!currentParticipant) {
-            throw new Error(`Player ${participant.identity} not joined this game`);
-        }
-
-        if (currentParticipant.role !== participant.role) {
-            this.resetReadiness();
+            this.participants.push(participant);
             this.emitParticipants();
         }
 
-        if (participant.role) {
-            if (this.participants.find(p => p.role === participant.role)) {
-                throw new Error(`Role ${participant.role} already selected`);
+        public leave(identity: I) {
+            const participant = this.participants.removeFirstBy(p => p.identity !== identity);
+
+            if (participant) {
+                // reset ready states
+                this.resetReadiness();
+
+                this.emitParticipants();
             }
         }
 
-        this.participants.push(participant);
-        this.emitParticipants();
-
-        if (this.readyForGame()) {
-            this.prepareGame();
-        }
-    }
-
-    public leave(identity: I) {
-        const participant = this.participants.removeFirstBy(p => p.identity !== identity);
-
-        if (participant) {
-            // reset ready states
-            this.resetReadiness();
-
-            this.emitParticipants();
-        }
-    }
-
-    public participantChanges(): Observable<RoleSelection<I>[]> {
-        return this.participantsSubject.asObservable();
-    }
-
-    private emitParticipants() {
-        this.participantsSubject.next(this.participants);
-    }
-
-    private resetReadiness() {
-        this.participants.forEach(p => p.ready = false);
-    }
-
-    private readyForGame(): boolean {
-        const minPlayersCount = StandardGame.ROLE_SETS.at(0)!.size;
-        const roles = new Set(this.participants.map(p => p.role)) as Set<RoleType>;
-
-        return this.readyCount === minPlayersCount && this.matchRoleSet(roles);
-    }
-
-    private get readyCount() {
-        let readyCount = 0;
-        this.participants.forEach(p => {
-            if (p.ready) {
-                readyCount++;
+        public start(): Game.Play<I> | undefined {
+            if (this.readyForGame()) {
+                return this.createGame();
+            } else {
+                return undefined;
             }
-        });
+        }
 
-        return readyCount;
-    }
+        public participantChanges(): Observable<RoleSelection<I>[]> {
+            return this.participantsSubject.asObservable();
+        }
 
-    private matchRoleSet(roles: Set<RoleType>): boolean {
-        return StandardGame.ROLE_SETS.some(set => set.equals(roles));
-    }
+        private emitParticipants() {
+            this.participantsSubject.next(this.participants);
+        }
 
-    private createPlayerForRole(identity: I, role: RoleType, context: GameContext): Player<I> {
-        switch (role) {
-            case RoleType.KILLER:
-                return new Killer(identity, context);
-            case RoleType.PSYCHO:
-                return new Psycho(identity, context);
-            case RoleType.BOMBER:
-                return new Bomber(identity, context);
-            case RoleType.SNIPER:
-                return new Sniper(identity, context);
-            case RoleType.UNDERCOVER:
-                return new Undercover(identity, context);
-            case RoleType.DETECTIVE:
-                return new Detective(identity, context);
-            case RoleType.SUIT:
-                return new Suit(identity, context);
-            case RoleType.PROFILER:
-                return new Profiler(identity, context);
+        private resetReadiness() {
+            this.participants.forEach(p => p.ready = false);
+        }
+
+        private readyForGame(): boolean {
+            const minPlayersCount = ROLE_SETS.at(0)!.size;
+            const roles = new Set(this.participants.map(p => p.role)) as Set<RoleType>;
+
+            return this.readyCount === minPlayersCount && this.matchRoleSet(roles);
+        }
+
+        private get readyCount() {
+            let readyCount = 0;
+            this.participants.forEach(p => {
+                if (p.ready) {
+                    readyCount++;
+                }
+            });
+
+            return readyCount;
+        }
+
+        private matchRoleSet(roles: Set<RoleType>): boolean {
+            return ROLE_SETS.some(set => set.equals(roles));
+        }
+
+        private createPlayerForRole(identity: I, role: RoleType, context: GameContext): Player<I> {
+            switch (role) {
+                case RoleType.KILLER:
+                    return new Killer(identity, context);
+                case RoleType.PSYCHO:
+                    return new Psycho(identity, context);
+                case RoleType.BOMBER:
+                    return new Bomber(identity, context);
+                case RoleType.SNIPER:
+                    return new Sniper(identity, context);
+                case RoleType.UNDERCOVER:
+                    return new Undercover(identity, context);
+                case RoleType.DETECTIVE:
+                    return new Detective(identity, context);
+                case RoleType.SUIT:
+                    return new Suit(identity, context);
+                case RoleType.PROFILER:
+                    return new Profiler(identity, context);
+            }
+        }
+
+        private createGame(): StandardGame.Play<I> {
+            if (this.participants.length !== 6 && this.participants.length !== 8) {
+                throw new Error(`Invalid players count ${this.participants.length}`);
+            }
+
+            const for6: boolean = this.participants.length === 6;
+
+            const winningScores: [number, number] = for6 ? [18, 5] : [25, 6];
+
+            const arenaSize = for6 ? 6 : 7;
+
+            const suspects = Suspect.generateSet(arenaSize * arenaSize);
+
+            let matrix: Suspect[][]
+
+            if (for6) {
+                matrix = [
+                    suspects.slice(0, 6),
+                    suspects.slice(6, 12),
+                    suspects.slice(12, 18),
+                    suspects.slice(18, 24),
+                    suspects.slice(24, 30),
+                    suspects.slice(30, 36),
+                ]
+            } else {
+                matrix = [
+                    suspects.slice(0, 7),
+                    suspects.slice(7, 14),
+                    suspects.slice(14, 21),
+                    suspects.slice(21, 28),
+                    suspects.slice(28, 35),
+                    suspects.slice(35, 42),
+                    suspects.slice(42, 49),
+                ]
+            }
+
+            const arena = new Matrix(matrix);
+
+            shuffle(suspects);
+
+            const profilerEvidenceHand = for6 ? [] : suspects.splice(-1, 4);
+
+            const context = new GameContext(arena, suspects, profilerEvidenceHand);
+
+            const players: Player<I>[] = this.participants.map(participant => this.createPlayerForRole(participant.identity, participant.role!, context));
+
+            this.resolvePlayersOrder(players);
+
+            players.forEach(player => suspects.pop()!.role = player);
+
+            context.players = players;
+            context.currentTurnPlayer = players[0];
+
+            return new StandardGame.Play(context, winningScores);
+        }
+
+        private resolvePlayersOrder(players: Player<any>[]): void {
+            const mafia: Player<I>[] = players.filter(p => p instanceof Mafioso);
+            const fbi: Player<I>[] = players.filter(p => p instanceof Agent);
+
+            shuffle(mafia);
+            shuffle(fbi);
+
+            const killerIndex = mafia.findIndex(player => player instanceof Killer);
+            swap(mafia, 0, killerIndex);
+
+            let maf = true;
+            const mafiaIter = mafia[Symbol.iterator]();
+            const fbiIter = fbi[Symbol.iterator]();
+            for (let i = 0; i < players.length; i++) {
+                players[i] = maf ? mafiaIter.next().value : fbiIter.next().value;
+                maf = !maf;
+            }
         }
     }
 
-    private prepareGame() {
-        if (this.participants.length !== 6 && this.participants.length !== 8) {
-            throw new Error(`Invalid players count ${this.participants.length}`);
+    export class Play<I extends Identifiable> implements Game.Play<I>{
+
+        completed = false;
+
+        private events = new Subject<GameEvents.Base>();
+
+        constructor(private context: GameContext, private winningScores: [number, number]) {
+            context.game = this;
         }
 
-        const for6: boolean = this.participants.length === 6;
-
-        const winningScores: [number, number] = for6 ? [18, 5] : [25, 6];
-
-        const arenaSize = for6 ? 6 : 7;
-
-        const suspects = Suspect.generateSet(arenaSize * arenaSize);
-
-        let matrix: Suspect[][]
-
-        if (for6) {
-            matrix = [
-                suspects.slice(0, 6),
-                suspects.slice(6, 12),
-                suspects.slice(12, 18),
-                suspects.slice(18, 24),
-                suspects.slice(24, 30),
-                suspects.slice(30, 36),
-            ]
-        } else {
-            matrix = [
-                suspects.slice(0, 7),
-                suspects.slice(7, 14),
-                suspects.slice(14, 21),
-                suspects.slice(21, 28),
-                suspects.slice(28, 35),
-                suspects.slice(35, 42),
-                suspects.slice(42, 49),
-            ]
+        public getPlayersCount(): number {
+            return this.context.players.length;
         }
 
-        const arena = new Matrix(matrix);
-
-        shuffle(suspects);
-
-        const profilerEvidenceHand = for6 ? [] : suspects.splice(-1, 4);
-
-        const context = new GameContext(arena, suspects, profilerEvidenceHand);
-
-        const players: Player<I>[] = this.participants.map(participant => this.createPlayerForRole(participant.identity, participant.role!, context));
-
-        this.resolvePlayersOrder(players);
-
-        players.forEach(player => suspects.pop()!.role = player);
-
-        context.players = players;
-        context.currentTurnPlayer = players[0];
-
-        this.game['stateObj'] = new PlayingState(this.game, context, winningScores);
-    }
-
-    private resolvePlayersOrder(players: Player<any>[]): void {
-        const mafia: Player<I>[] = players.filter(p => p instanceof Mafioso);
-        const fbi: Player<I>[] = players.filter(p => p instanceof Agent);
-
-        shuffle(mafia);
-        shuffle(fbi);
-
-        const killerIndex = mafia.findIndex(player => player instanceof Killer);
-        swap(mafia, 0, killerIndex);
-
-        let maf = true;
-        const mafiaIter = mafia[Symbol.iterator]();
-        const fbiIter = fbi[Symbol.iterator]();
-        for (let i = 0; i < players.length; i++) {
-            players[i] = maf ? mafiaIter.next().value : fbiIter.next().value;
-            maf = !maf;
-        }
-    }
-}
-
-class PlayingState<I extends Identifiable> extends State<I> implements IPlayingState<I> {
-
-    private events = new Subject<GameEvents.Base>();
-
-    constructor(game: StandardGame<I>, private context: GameContext, private winningScores: [number, number]) {
-        super(game);
-        context.game = this;
-    }
-
-    public getPlayersCount(): number {
-        return this.context.players.length;
-    }
-
-    public get players(): IPlayer<I>[] {
-        return this.context.players;
-    }
-
-    public getPlayers(team: Team): IPlayer<I>[] {
-        const type = team === 'MAFIA' ? Mafioso : Agent;
-        return this.context.players.filter(player => player instanceof type);
-    }
-
-    public getPlayer(role: RoleType): IPlayer<I> {
-        throw this.context.players.filter(player => player.role === role);
-    }
-
-    public getCurrentState(): GameFullState {
-        throw new Error('Method not implemented.'); //TODO:
-    }
-
-    public gameEvents(): Observable<GameEvents.Base> {
-        return this.events.asObservable();
-    }
-
-    checkWin(scores: [number, number]): Winner | undefined {
-        if (scores[0] >= this.winningScores[0] && scores[1] >= this.winningScores[1]) {
-            return 'DRAW';
+        public get players(): IPlayer<I>[] {
+            return this.context.players;
         }
 
-        if (scores[0] >= this.winningScores[0]) {
-            return 'MAFIA';
-        } else if (scores[1] >= this.winningScores[1]) {
-            return 'FBI';
-        } else {
-            return undefined;
+        public getPlayersOfTeam(team: Team): IPlayer<I>[] {
+            const type = team === 'MAFIA' ? Mafioso : Agent;
+            return this.context.players.filter(player => player instanceof type);
         }
-    }
 
-    complete() {
-        this.game['stateObj'] = new CompletedState(this.game);
-    }
+        public getPlayerOfRole(role: RoleType): IPlayer<I> {
+            throw this.context.players.filter(player => player.role === role);
+        }
 
-    get isCompleted() {
-        return this.game['stateObj'] instanceof CompletedState;
-    }
+        public getState(): [GameFullState, Observable<GameEvents.Base>] {
+            assert(!this.completed, 'Game is already completed');
 
-    fireEvent(event: GameEvents.Base) {
-        this.events.next(event);
-    }
-}
+            return [null as any, this.events]; // TODO:
+        }
 
-class CompletedState<I extends Identifiable> extends State<I> implements ICompletedState<I> {
+        checkWin(scores: [number, number]): Winner | undefined {
+            if (scores[0] >= this.winningScores[0] && scores[1] >= this.winningScores[1]) {
+                return 'DRAW';
+            }
 
-    public getPlayersCount(): number {
-        throw new Error("TODO");
+            if (scores[0] >= this.winningScores[0]) {
+                return 'MAFIA';
+            } else if (scores[1] >= this.winningScores[1]) {
+                return 'FBI';
+            } else {
+                return undefined;
+            }
+        }
+
+        fireEvent(event: GameEvents.Base) {
+            this.events.next(event);
+        }
     }
 }
 
@@ -343,16 +286,8 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
     constructor(public readonly identity: I, protected context: GameContext) {
     }
 
-    get isCompleted(): boolean {
-        return this.context.game.isCompleted;
-    }
-
-    public getCurrentState(): GameFullState {
-        return this.context.game.getCurrentState();
-    }
-
-    public gameEvents(): Observable<GameEvents.Base> {
-        return this.context.game.gameEvents();
+    public getState(): [GameFullState, Observable<GameEvents.Base>] {
+        return this.context.game.getState();
     }
 
     public locate(): Position {
@@ -424,7 +359,7 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
     private checkWin(): boolean {
         const winner = this.context.game.checkWin(this.context.scores);
         if (winner) {
-            this.context.game.complete();
+            this.context.game.completed = true;
             const event: GameEvents.Complete = { type: 'Complete', winner: winner };
             this.context.game.fireEvent(event);
 
@@ -435,7 +370,7 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
     }
 
     private checkStateAndTurn() {
-        if (this.context.game.isCompleted) {
+        if (this.context.game.completed) {
             throw new Error("Game completed");
         }
 
@@ -1198,7 +1133,7 @@ class GameContext {
 
     scores: [number, number];
 
-    game: PlayingState<any>;
+    game: StandardGame.Play<any>;
 
     constructor(arena: Matrix<Suspect>, evidenceDeck: Suspect[], profilerEvidenceHand: Suspect[]) {
         this.arena = arena;
@@ -1352,7 +1287,7 @@ namespace GameHelper {
 
         assert(suspect.role !== 'innocent', `You cannot accuse innocents`);
 
-        const mafioso = context.game.getPlayer(mafiosoRole);
+        const mafioso = context.game.getPlayerOfRole(mafiosoRole);
 
         if (suspect.role === 'suspect' || suspect.role !== mafioso) {
             const event: GameEvents.UnsuccessfulAccuse = { type: 'UnsuccessfulAccuse', target: target };

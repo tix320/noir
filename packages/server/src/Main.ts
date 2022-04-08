@@ -1,7 +1,8 @@
-import GameDto from "@tix320/noir-core/src/dto/Game";
-import UserDto from "@tix320/noir-core/src/dto/User";
-import Game, { RoleSelection } from "@tix320/noir-core/src/game/Game";
-import StandardGame from "@tix320/noir-core/src/game/StandardGame";
+import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
+import { Game, RoleSelection } from "@tix320/noir-core/src/game/Game";
+import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
+import { StandardGame } from "@tix320/noir-core/src/game/StandardGame";
 import { Server } from "socket.io";
 import GameInfo from "./game/GameInfo";
 import { default as GameService, default as GAME_SERVICE } from "./game/GameService";
@@ -36,40 +37,64 @@ io.use((socket, next) => {
 });
 
 
-const GAMES_STREAM_EVENT = "gamesStream";
-const MY_CURRENT_GAME_STREAM_EVENT = (userId: string) => `myCurrentGameStream_${userId}`;
-const GAMES_PREPARATION_STREAM_EVENT = (gameId: string) => `gamePreparationStream_${gameId}`;
-const GAME_EVENTS_STREAM_EVENT = (gameId: string) => `gameEventsStream_${gameId}`;
+function gamePreparationResponse(gameInfo: GameInfo, game: Game.Preparation<User>): Dto.GamePreparation {
+    const participants = game.participants;
 
-function gameResponse(gameInfo: GameInfo, game: Game<User>): GameDto {
-    return ({
-        ...gameInfo,
-        currentPlayersCount: game.getState().getPlayersCount(),
+    return {
+        id: gameInfo.id,
+        name: gameInfo.name,
         maxPlayersCount: StandardGame.ROLE_SETS.at(-1)!.size,
-        state: game.state
-    })
+        roles: participants.map(participant => {
+            return {
+                ...participant,
+                identity: userResponse(participant.identity)
+            }
+        })
+    };
 }
 
-function gamesResponse(games: Map<string, [GameInfo, Game<User>]>): Array<GameDto> {
-    return Array.from(games.values()).map(([gameInfo, game]) => gameResponse(gameInfo, game));
-}
-
-function userResponse(user: User): UserDto {
+function userResponse(user: User): Dto.User {
     return {
         id: user.id,
         name: user.name,
     };
 }
 
-function gamePreparationResponse(game: Game<User>): RoleSelection<any>[] {
-    const participants = game.getPreparingState().participants;
+function joinPreparingGameChange(socket: any, gameId: string) {
+    const name = ApiEvents.ROOM_PREPARING_GAME(gameId);
+    socket.join(name);
+}
 
-    return participants.map(participant => {
-        return {
-            ...participant,
-            identity: userResponse(participant.identity)
-        }
-    });
+function emitPreparingGameChange(target: any, game: Dto.GamePreparation) {
+    target.to(ApiEvents.ROOM_GAMES).emit(ApiEvents.ROOM_GAMES, game);
+
+    const roomName = ApiEvents.ROOM_PREPARING_GAME(game.id);
+    target.to(roomName).emit(roomName, game);
+}
+
+function joinPlayingGameChange(socket: any, gameId: string) {
+    const name = ApiEvents.ROOM_PLAYING_GAME(gameId);
+    socket.join(name);
+}
+
+function emitPlayingGameChange(target: any, gameId: string, event: GameEvents.Base) {
+    const roomName = ApiEvents.ROOM_PLAYING_GAME(gameId);
+    target.to(roomName).emit(roomName, event);
+}
+
+function joinMyCurrentGameChange(socket: any, user: User) {
+    const name = ApiEvents.ROOM_MY_CURRENT_GAME(user.id);
+    socket.join(name);
+}
+
+function emitUserCurrentGame(user: User, gameInfo: GameInfo) {
+    const dto: Dto.UserCurrentGame = {
+        id: gameInfo.id,
+        state: gameInfo.state
+    }
+
+    const name = ApiEvents.ROOM_MY_CURRENT_GAME(user.id);
+    io.to(name).emit(name, dto);
 }
 
 io.on("connection", (socket) => {
@@ -77,115 +102,93 @@ io.on("connection", (socket) => {
 
     const user: User = USERS_BY_TOKEN.get(token)!;
 
-    socket.on('myUser', (cb) => {
+    socket.on(ApiEvents.GET_MY_USER, (cb) => {
         const response = userResponse(user);
         cb(response);
     });
 
-    socket.on('createGame', (gameInfo, cb) => {
-        const [gameId, game] = GAME_SERVICE.createGame(user, gameInfo);
+    socket.on(ApiEvents.CREATE_GAME, (info, cb) => {
+        const [gameInfo, game] = GAME_SERVICE.createGame(user, info);
 
-        const response = gameResponse(gameId, game);
-        cb(response);
+        const response = gamePreparationResponse(gameInfo, game);
 
-        socket.broadcast.to(GAMES_STREAM_EVENT).emit(GAMES_STREAM_EVENT, gamesResponse(GameService.getGames()));
-
-        const name = MY_CURRENT_GAME_STREAM_EVENT(user.id);
-        io.to(name).emit(name, response);
+        emitPreparingGameChange(socket.broadcast, response);
+        emitUserCurrentGame(user, gameInfo);
     });
 
-    socket.on('joinGame', (gameId: string, cb) => {
+    socket.on(ApiEvents.JOIN_GAME, (gameId: string, cb) => {
         const [gameInfo, game] = GAME_SERVICE.joinGame(user, gameId);
-        cb(true);
 
-        socket.broadcast.to(GAMES_STREAM_EVENT).emit(GAMES_STREAM_EVENT, gamesResponse(GameService.getGames()));
+        const response = gamePreparationResponse(gameInfo, game);
 
-        const name = MY_CURRENT_GAME_STREAM_EVENT(user.id);
-        io.to(name).emit(name, gameResponse(gameInfo, game));
-
-        const roomName = GAMES_PREPARATION_STREAM_EVENT(gameId);
-        socket.broadcast.to(roomName).emit(roomName, gamePreparationResponse(game));
+        emitPreparingGameChange(socket.broadcast, response);
+        emitUserCurrentGame(user, gameInfo);
     });
 
-    socket.on('changeGameRole', (roleSelection: RoleSelection<never>, cb) => {
+    socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: RoleSelection<never>, cb) => {
         const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, roleSelection);
-        cb(true);
 
-        if (game.state === 'PREPARING') {
-            const roomName = GAMES_PREPARATION_STREAM_EVENT(gameInfo.id);
-            io.to(roomName).emit(roomName, gamePreparationResponse(game));
-        } else if (game.state === 'PLAYING') {
-            const gameResp = gameResponse(gameInfo, game);
-            game.getPlayingState().players.forEach(player => {
-                const userId = player.identity.id;
+        const response = gamePreparationResponse(gameInfo, game);
 
-                const name = MY_CURRENT_GAME_STREAM_EVENT(userId);
-                io.to(name).emit(name, gameResp);
-            });
-        } else {
-            throw new Error('Illegal state');
+        emitPreparingGameChange(io, response);
+
+        const gamePlay = GameService.startGame(gameInfo.id);
+        if (gamePlay) {
+            gamePlay.players.forEach(player => emitUserCurrentGame(player.identity, gameInfo));
         }
     });
 
-    socket.on('leaveGame', (cb) => {
+    socket.on(ApiEvents.LEAVE_GAME, (cb) => {
         const [gameInfo, game] = GAME_SERVICE.leaveGame(user);
-        cb();
 
-        socket.broadcast.to(GAMES_STREAM_EVENT).emit(GAMES_STREAM_EVENT, gamesResponse(GameService.getGames()));
+        const response = gamePreparationResponse(gameInfo, game);
 
-        const name = MY_CURRENT_GAME_STREAM_EVENT(user.id);
-        io.to(name).emit(name, null);
-
-        const roomName = GAMES_PREPARATION_STREAM_EVENT(gameInfo.id);
-        socket.leave(roomName);
-        socket.broadcast.to(roomName).emit(roomName, gamePreparationResponse(game));
+        emitPreparingGameChange(io, response);
     });
 
-    socket.on(GAMES_STREAM_EVENT, () => {
-        socket.join(GAMES_STREAM_EVENT);
+    socket.on(ApiEvents.SUBSCRIBE_GAMES, () => {
+        socket.join(ApiEvents.ROOM_GAMES);
 
-        socket.emit(GAMES_STREAM_EVENT, gamesResponse(GameService.getGames()));
+        GameService.getGames().forEach(([gameInfo, game]) => {
+            if (gameInfo.state === 'PREPARING') {
+                emitPreparingGameChange(io, gamePreparationResponse(gameInfo, game as Game.Preparation<User>));
+            }
+        }
+        );
     })
 
-    socket.on('myCurrentGameStream', () => {
-        const name = MY_CURRENT_GAME_STREAM_EVENT(user.id);
-
-        socket.join(name);
+    socket.on(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, () => {
+        joinMyCurrentGameChange(socket, user);
 
         const gameId = user.currentGameId;
         if (gameId) {
             const [gameInfo, game] = GameService.getGame(gameId);
-            io.to(name).emit(name, gameResponse(gameInfo, game));
+            emitUserCurrentGame(user, gameInfo);
         }
     });
 
-    socket.on('gamePreparationStream', () => {
-        const gameId = user.currentGameId;
+    socket.on(ApiEvents.SUBSCRIBE_PREPARING_GAME, (gameId: string) => {
+        const [gameInfo, game] = GameService.getGamePreparation(gameId);
 
-        const [gameInfo, game] = GameService.getGame(gameId);
-
-        const name = GAMES_PREPARATION_STREAM_EVENT(gameId!);
-
-        socket.join(name);
-        socket.emit(name, gamePreparationResponse(game));
+        joinPreparingGameChange(socket, gameId);
+        emitPreparingGameChange(socket, gamePreparationResponse(gameInfo, game));
     });
 
-    socket.on('gameEventsStream', (gameId: string, cb) => {
-        const [gameInfo, game] = GameService.getGame(gameId);
+    socket.on(ApiEvents.SUBSCRIBE_PLAYING_GAME, (gameId: string, cb) => {
+        const [gameInfo, game] = GameService.getGamePlay(gameId);
 
-        const playingState = game.getPlayingState();
-        const player = playingState.players.find(player => player.identity === user);
+        const player = game.players.find(player => player.identity === user);
+
         if (!player) {
             throw new Error('Yoe are not in this game');
         }
 
-        cb(player.getCurrentState());
+        const [currentState, events] = player.getState();
+        cb(currentState);
 
-        const name = GAME_EVENTS_STREAM_EVENT(gameId);
+        joinPlayingGameChange(socket, gameId);
 
-        socket.join(name);
-
-        player.gameEvents().subscribe(event => socket.emit(name, event));
+        events.subscribe(event => emitPlayingGameChange(socket, gameId, event));
     });
 });
 

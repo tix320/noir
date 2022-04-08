@@ -1,17 +1,24 @@
+import { Game, RoleSelection } from '@tix320/noir-core/src/game/Game';
+import { StandardGame } from '@tix320/noir-core/src/game/StandardGame';
+import { assert } from '@tix320/noir-core/src/util/Assertions';
 import { v4 as uuid } from 'uuid';
-import GameInfo from './GameInfo';
 import { User } from '../user/User';
-import Game, { CompletedState, PlayingState, PreparingState, RoleSelection } from '@tix320/noir-core/src/game/Game';
-import StandardGame from '@tix320/noir-core/src/game/StandardGame';
+import GameInfo from './GameInfo';
+
+type GamePreparationInfo = [GameInfo, Game.Preparation<User>];
+type GamePlayInfo = [GameInfo, Game.Play<User>];
+
+type GameData = GamePreparationInfo | GamePlayInfo;
 
 class GameService {
-    #games: Map<string, [GameInfo, Game<User>]> = new Map()
+
+    #games: Map<string, GameData> = new Map()
 
     getGames() {
         return this.#games;
     }
 
-    getGame(gameId?: string): [GameInfo, Game<User>] {
+    getGame(gameId?: string): GameData {
         const game = this.#games.get(gameId!);
         if (!game) {
             throw new Error(`Game with id ${gameId} not found`);
@@ -20,75 +27,84 @@ class GameService {
         return game;
     }
 
-    createGame(creator: User, gameInfo: GameInfo): [GameInfo, Game<User>] {
+    getGamePreparation(gameId?: string): GamePreparationInfo {
+        const game = this.getGame(gameId);
+        assert(game[0].state === 'PREPARING', 'Not in preparing state');
+
+        return game as GamePreparationInfo;
+    }
+
+    getGamePlay(gameId?: string): GamePlayInfo {
+        const game = this.getGame(gameId);
+        assert(game[0].state === 'PLAYING', 'Not in preparing state');
+
+        return game as GamePlayInfo;
+    }
+
+    createGame(creator: User, info: { name: string }): GamePreparationInfo {
         if (creator.currentGameId) {
             throw new Error("In game right now");
         }
 
         const id = uuid();
-        gameInfo = {...gameInfo, id};
+        const gameInfo: GameInfo = { id: id, name: info.name, state: 'PREPARING' };
 
-        const game = new StandardGame<User>();
+        const game = new StandardGame.Preparation<User>();
         this.#games.set(id, [gameInfo, game]);
 
-        game.getPreparingState().join(creator);
+        game.join(creator);
         creator.currentGameId = id;
 
         return [gameInfo, game];
     }
 
-    joinGame(user: User, gameId: string): [GameInfo, Game<User>] {
-        const [gameInfo, game] = this.getGame(gameId);
+    joinGame(user: User, gameId: GameInfo['id']): GamePreparationInfo {
+        const [gameInfo, game] = this.getGamePreparation(gameId);
 
         if (user.currentGameId && user.currentGameId !== gameId) {
             throw new Error("Already in another game");
         }
 
-        game.getPreparingState().join(user);
+        game.join(user);
         user.currentGameId = gameId;
 
         return [gameInfo, game];
     }
 
-    changeGameRole(user: User, selection: RoleSelection<never>): [GameInfo, Game<User>] {
+    changeGameRole(user: User, selection: RoleSelection<never>): GamePreparationInfo {
         const gameId = user.currentGameId;
 
         if (!gameId) {
             throw new Error('Currently not in game');
         }
 
-        const [gameInfo, game] = this.getGame(gameId);
+        const [gameInfo, game] = this.getGamePreparation(gameId);
 
-        game.getPreparingState().changeRole({ ...selection, identity: user });
+        game.changeRole({ ...selection, identity: user });
         user.currentGameId = gameId;
 
         return [gameInfo, game];
     }
 
-    leaveGame(user: User): [GameInfo, Game<User>] {
+    leaveGame(user: User): GamePreparationInfo {
         const gameId = user.currentGameId;
 
         if (!gameId) {
             throw new Error('Currently not in game');
         }
 
-        const [gameInfo, game] = this.getGame(gameId);
-
-        switch (game.state) {
-            case 'PREPARING':
-                game.getPreparingState().leave(user);
-                break;
-            case 'PLAYING':
-                // TODO: Complete game immidielty     
-                break;
-            case 'COMPLETED':
-                // Only clear currentGame status 
-                break;
-        }
+        const [gameInfo, game] = this.getGamePreparation(gameId);
+        game.leave(user);
 
         user.currentGameId = undefined;
 
         return [gameInfo, game];
+    }
+
+    startGame(gameId: string): Game.Play<User> | undefined {
+        const [gameInfo, game] = this.getGamePreparation(gameId);
+
+        return game.start();
     }
 }
 

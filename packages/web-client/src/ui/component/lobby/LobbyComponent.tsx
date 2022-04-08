@@ -1,16 +1,17 @@
 import { Button } from "react-bootstrap";
+import '@tix320/noir-core/src/extension/ArrayExtension';
 import GameCreationComponent from "./GameCreationComponent";
 import GameSelectionComponent from "./GameSelectionComponent";
 import API from "../../../service/Api";
 import RxComponent from "../common/RxComponent";
 import { takeUntil } from "rxjs/operators";
-import Game from "@tix320/noir-core/src/dto/Game";
+import { Dto } from "@tix320/noir-core/src/api/Dto";
 
 type Props = {
 }
 
 type State = {
-    games: Array<Game>,
+    games: Array<Dto.GamePreparation>,
     creatingGame: boolean
 }
 
@@ -24,12 +25,16 @@ export default class LobbyComponent extends RxComponent<Props, State> {
     componentDidMount(): void {
         API.gamesStream()
             .pipe(takeUntil(this.destroy$))
-            .subscribe((games) => {
-                this.setState({ games: Array.from(Object.values(games)) });
+            .subscribe((game) => {
+                this.setState(prevState => {
+                    prevState.games.removeFirstBy(g => g.id === game.id);
+                    const games = [...prevState.games, game];
+                    return { games: games };
+                })
             });
     }
 
-    joinGame = (game: Game) => {
+    joinGame = (game: Dto.GamePreparation) => {
         API.joinGame(game.id);
     }
 

@@ -1,20 +1,20 @@
-import Game from '@tix320/noir-core/src/game/Game';
-import User from '../../../entity/User';
-import ArenaComponent from './arena/ArenaComponent';
-import PlayersPlaceComponent from './TeamPlayersPlaceComponent';
-import styles from './GameComponent.module.css';
+import { Game } from '@tix320/noir-core/src/game/Game';
 import { useSelector } from 'react-redux';
+import User from '../../../entity/User';
 import { StoreState } from '../../../service/Store';
+import ArenaComponent from './arena/ArenaComponent';
+import styles from './GameComponent.module.css';
+import PlayersPlaceComponent from './TeamPlayersPlaceComponent';
 
 type Props = {
-    game: Game<User>
+    game: Game.Play<User>
 }
 
 export default function GameComponent(props: Props) {
     const { game } = props;
 
-    const mafiaTeam = game.getPlayingState().getPlayers('MAFIA');
-    const fbiTeam = game.getPlayingState().getPlayers('FBI');
+    const mafiaTeam = game.getPlayersOfTeam('MAFIA');
+    const fbiTeam = game.getPlayersOfTeam('FBI');
 
     const user = useSelector((state: StoreState) => state.user)!;
 
