@@ -104,7 +104,12 @@ class GameService {
     startGame(gameId: string): Game.Play<User> | undefined {
         const [gameInfo, game] = this.getGamePreparation(gameId);
 
-        return game.start();
+        const gamePlay = game.start();
+        if (gamePlay) {
+            gameInfo.state = 'PLAYING';
+        }
+
+        return gamePlay;
     }
 }
 

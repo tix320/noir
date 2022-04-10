@@ -1,33 +1,21 @@
 import { Dto } from '@tix320/noir-core/src/api/Dto';
-import { Game, Player as IPlayer, RoleSelection, Team } from '@tix320/noir-core/src/game/Game';
+import { Arena, EvidenceDeck, Game, InitialState, Player as IPlayer, RoleSelection, Team } from '@tix320/noir-core/src/game/Game';
 import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
-import GameFullState from '@tix320/noir-core/src/game/GameFullState';
 import { RoleType } from '@tix320/noir-core/src/game/RoleType';
+import Matrix from '@tix320/noir-core/src/util/Matrix';
 import Position from '@tix320/noir-core/src/util/Position';
-import { BehaviorSubject, map, Observable } from 'rxjs';
+import { BehaviorSubject, map, Observable, Subject } from 'rxjs';
 import User from "../entity/User";
 import Api from '../service/Api';
 
 export namespace RemoteGame {
 
     export class Preparation implements Game.Preparation<User>{
-        private readonly gameChanges: BehaviorSubject<Dto.GamePreparation>;
-
         constructor(public readonly id: string) {
-            this.gameChanges = new BehaviorSubject({
-                id: id,
-                maxPlayersCount: 0,
-                name: 'Unknown',
-                roles: [],
-            });
-
-            Api.preparingGameStream(id).subscribe((game) => {
-                this.gameChanges.next(game);
-            });
         }
 
         get participants(): RoleSelection<User>[] {
-            return this.gameChanges.value.roles;
+            throw new Error("Not implemented");
         }
 
         join(identity: User): void {
@@ -43,7 +31,7 @@ export namespace RemoteGame {
         }
 
         participantChanges(): Observable<RoleSelection<User>[]> {
-            return this.gameChanges.asObservable().pipe(map(game => game.roles));
+            return Api.preparingGameStream(this.id).pipe(map(dto=> dto.roles));
         }
 
         start(): Game.Play<User> | undefined {
@@ -53,38 +41,45 @@ export namespace RemoteGame {
 
     export class Play implements Game.Play<User> {
 
+        #initialState: InitialState<User> =
+            new Proxy({} as any, {
+                get(target, name) {
+                    throw new Error('Not ready yet');
+                }
+            });
+
         constructor(public readonly id: string) {
+            Api.getInitialState(id).then((initialState: Dto.GameInitialState) => {
+                this.#initialState = {
+                    players: initialState.players.map(player => new Player(player.identity, player.role)),
+                    arena: initialState.arena,
+                    get evidenceDeck(): EvidenceDeck {
+                        throw new Error('Evidence deck not available in remote game');
+                    }
+                };
+            });
         }
 
-        get players(): IPlayer<User>[] {
-            throw new Error('Method not implemented.');
-        }
-        getPlayersOfTeam(team: Team): IPlayer<User>[] {
-            throw new Error('Method not implemented.');
-        }
-        getPlayerOfRole(role: RoleType): IPlayer<User> {
-            throw new Error('Method not implemented.');
-        }
-        getState(): [GameFullState, Observable<GameEvents.Base>] {
-            throw new Error('Method not implemented.');
+        get initialState(): InitialState<User> {
+            return this.#initialState;
         }
 
+        events(): Observable<GameEvents.Base> {
+            return Api.playingGameStream(this.id);
+        }
     }
 }
 
 class Player implements IPlayer<User> {
 
     constructor(public identity: User, public role: RoleType) {
-
     }
 
     locate(): Position {
         throw new Error('Method not implemented.');
     }
-    get isCompleted(): boolean {
-        throw new Error('Method not implemented.');
-    }
-    getState(): [GameFullState, Observable<GameEvents.Base>] {
+
+    gameEvents(): Observable<GameEvents.Base> {
         throw new Error('Method not implemented.');
     }
 }

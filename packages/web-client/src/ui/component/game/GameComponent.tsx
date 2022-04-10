@@ -1,4 +1,4 @@
-import { Game } from '@tix320/noir-core/src/game/Game';
+import { filterPlayersByTeam, Game } from '@tix320/noir-core/src/game/Game';
 import { useSelector } from 'react-redux';
 import User from '../../../entity/User';
 import { StoreState } from '../../../service/Store';
@@ -13,12 +13,13 @@ type Props = {
 export default function GameComponent(props: Props) {
     const { game } = props;
 
-    const mafiaTeam = game.getPlayersOfTeam('MAFIA');
-    const fbiTeam = game.getPlayersOfTeam('FBI');
+    const mafiaTeam = filterPlayersByTeam(game, 'MAFIA');
+    const fbiTeam = filterPlayersByTeam(game, 'FBI');
 
     const user = useSelector((state: StoreState) => state.user)!;
 
-    // const myPlayer = game.getPlayingState().players.find(player => player.identity.id === user.id);
+    const players = game.initialState.players;
+    const myPlayer = players.find(player => player.identity.id === user.id);
 
     return (
         <div className={styles.main}>

@@ -26,7 +26,7 @@ participants.forEach(p => {
 
 const game = gamePreparation.start() as Game.Play<Id>;
 
-const players = game.players;
+const players = game.initialState.players;
 
 const KILLER: Killer<Id> = players.find(p => p.role === RoleType.KILLER) as Killer<Id>;
 const BOMBER: Bomber<Id> = players.find(p => p.role === RoleType.BOMBER) as Bomber<Id>;
@@ -37,7 +37,7 @@ const UNDERCOVER: Undercover<Id> = players.find(p => p.role === RoleType.UNDERCO
 
 const position = KILLER.locate();
 
-KILLER.getState()[1].subscribe(event => {
+KILLER.gameEvents().subscribe(event => {
     console.log(event);
 });
 

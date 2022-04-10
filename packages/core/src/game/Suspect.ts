@@ -51,6 +51,14 @@ export class Suspect {
         assert(this.#role !== 'arrested' && this.#role !== 'killed', "Suspect is arrested or killed");
     }
 
+    clone(): Suspect {
+        const suspect = new Suspect(this.character);
+        suspect.#role = this.#role;
+        suspect.#markers = new Set(this.#markers);
+
+        return suspect;
+    }
+
     toString(): string {
         return `${this.character}[${this.role}]`;
     }

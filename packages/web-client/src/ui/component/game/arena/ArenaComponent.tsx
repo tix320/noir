@@ -15,7 +15,7 @@ type Props = {
 export default function ArenaComponent(props: Props) {
     const { className, game } = props;
 
-    const playersCount = game.players.length;
+    const playersCount = game.initialState.players.length;
 
     const for6 = playersCount === 6;
 

@@ -179,4 +179,17 @@ export default class Matrix<T> {
                 break;
         }
     }
+
+    clone(itemsCloning: (item: T) => T): Matrix<T> {
+        const newMatrix = [...Array(this.size)].map(a => Array(this.size));
+        
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                const item = this.matrix[i][j];
+                newMatrix[i][j] = itemsCloning(item);
+            }
+        }
+
+        return new Matrix(newMatrix);
+    }
 }

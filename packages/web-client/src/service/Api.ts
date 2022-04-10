@@ -72,6 +72,16 @@ class API {
         });
     }
 
+    getInitialState(gameId: string): Promise<Dto.GameInitialState> {
+        return new Promise<Dto.GameInitialState>(resolve => {
+            const socket = this.socket();
+
+            socket.emit(ApiEvents.GET_GAME_INITIAL_STATE, gameId, (players: Dto.GameInitialState) => {
+                resolve(players);
+            });
+        });
+    }
+
     gamesStream(): Observable<Dto.GamePreparation> {
         return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_GAMES, ApiEvents.ROOM_GAMES);
     }

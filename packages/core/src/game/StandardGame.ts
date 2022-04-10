@@ -9,11 +9,10 @@ import { shuffle } from '../util/RandUtils';
 import './../extension/ArrayExtension';
 import './../extension/SetExtension';
 import {
-    Agent as IAgent, Bomber as IBomber, Detective as IDetective, Game, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, Suit as ISuit, Team, Undercover as IUndercover, Winner
+    Agent as IAgent, Arena, Bomber as IBomber, Detective as IDetective, EvidenceDeck, findPlayerByRole, Game, InitialState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, Suit as ISuit, Team, Undercover as IUndercover, Winner
 } from './Game';
 import { GameActions } from './GameActions';
 import { GameEvents } from './GameEvents';
-import GameFullState from './GameFullState';
 import { Marker } from './Marker';
 import { RoleType } from './RoleType';
 import { Suspect } from './Suspect';
@@ -224,33 +223,27 @@ export namespace StandardGame {
 
         completed = false;
 
-        private events = new Subject<GameEvents.Base>();
+        #initialState: InitialState<I>;
+
+        #events = new Subject<GameEvents.Base>();
 
         constructor(private context: GameContext, private winningScores: [number, number]) {
             context.game = this;
+            this.#initialState = {
+                players: [...this.context.players],
+                arena: this.context.arena.clone(suspect => suspect.clone()),
+                evidenceDeck: this.context.evidenceDeck.map(suspect => suspect.clone())
+            }
         }
 
-        public getPlayersCount(): number {
-            return this.context.players.length;
+        public get initialState(): InitialState<I> {
+            return this.#initialState;
         }
 
-        public get players(): IPlayer<I>[] {
-            return this.context.players;
-        }
-
-        public getPlayersOfTeam(team: Team): IPlayer<I>[] {
-            const type = team === 'MAFIA' ? Mafioso : Agent;
-            return this.context.players.filter(player => player instanceof type);
-        }
-
-        public getPlayerOfRole(role: RoleType): IPlayer<I> {
-            throw this.context.players.filter(player => player.role === role);
-        }
-
-        public getState(): [GameFullState, Observable<GameEvents.Base>] {
+        public events(): Observable<GameEvents.Base> {
             assert(!this.completed, 'Game is already completed');
 
-            return [null as any, this.events]; // TODO:
+            return this.#events.asObservable();
         }
 
         checkWin(scores: [number, number]): Winner | undefined {
@@ -268,8 +261,9 @@ export namespace StandardGame {
         }
 
         fireEvent(event: GameEvents.Base) {
-            this.events.next(event);
+            this.#events.next(event);
         }
+
     }
 }
 
@@ -286,8 +280,8 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
     constructor(public readonly identity: I, protected context: GameContext) {
     }
 
-    public getState(): [GameFullState, Observable<GameEvents.Base>] {
-        return this.context.game.getState();
+    public gameEvents(): Observable<GameEvents.Base> {
+        return this.context.game.events();
     }
 
     public locate(): Position {
@@ -1114,14 +1108,14 @@ interface ProfilerContext {
 }
 
 class GameContext {
-    arena: Matrix<Suspect>;
+    arena: Arena;
 
     players: Player<any>[];
     currentTurnPlayer: Player<any>;
 
     reactions: Player<any>[];
 
-    evidenceDeck: Suspect[];
+    evidenceDeck: EvidenceDeck;
 
     lastShift?: GameActions.Shift;
 
@@ -1287,7 +1281,7 @@ namespace GameHelper {
 
         assert(suspect.role !== 'innocent', `You cannot accuse innocents`);
 
-        const mafioso = context.game.getPlayerOfRole(mafiosoRole);
+        const mafioso = findPlayerByRole(context.game, mafiosoRole)!;
 
         if (suspect.role === 'suspect' || suspect.role !== mafioso) {
             const event: GameEvents.UnsuccessfulAccuse = { type: 'UnsuccessfulAccuse', target: target };

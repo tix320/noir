@@ -1,3 +1,5 @@
+import { Player, Team } from "./Game";
+
 export enum RoleType {
     KILLER = 'KILLER',
     PSYCHO = 'PSYCHO',
@@ -11,6 +13,9 @@ export enum RoleType {
 }
 
 export namespace RoleType {
+
+    export const MAFIA_TEAM: RoleType[] = [RoleType.KILLER, RoleType.PSYCHO, RoleType.BOMBER, RoleType.SNIPER];
+    export const FBI_TEAM: RoleType[] = [RoleType.UNDERCOVER, RoleType.DETECTIVE, RoleType.SUIT, RoleType.PROFILER];
 
     export function for6() {
         return [RoleType.KILLER, RoleType.PSYCHO, RoleType.BOMBER, RoleType.UNDERCOVER, RoleType.DETECTIVE, RoleType.SUIT];

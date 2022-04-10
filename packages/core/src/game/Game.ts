@@ -1,16 +1,20 @@
 import { Observable } from "rxjs";
 import Identifiable from "../util/Identifiable";
+import Matrix from "../util/Matrix";
 import Position from "../util/Position";
 import { GameActions } from "./GameActions";
 import { GameEvents } from "./GameEvents";
-import GameFullState from "./GameFullState";
 import { RoleType } from "./RoleType";
+import { Suspect } from "./Suspect";
 
-export type GameState = 'PREPARING' | 'PLAYING' | 'COMPLETED'
+export type GameState = 'PREPARING' | 'PLAYING' | 'COMPLETED';
 
-export type Team = 'FBI' | 'MAFIA'
+export type Team = 'FBI' | 'MAFIA';
 
-export type Winner = Team | 'DRAW'
+export type Winner = Team | 'DRAW';
+
+export type Arena = Matrix<Suspect>;
+export type EvidenceDeck = Suspect[];
 
 export namespace Game {
 
@@ -29,13 +33,9 @@ export namespace Game {
     }
 
     export interface Play<I extends Identifiable> {
-        get players(): Player<I>[];
+        get initialState(): InitialState<I>;
 
-        getPlayersOfTeam(team: Team): Player<I>[];
-
-        getPlayerOfRole(role: RoleType): Player<I>;
-
-        getState(): [GameFullState, Observable<GameEvents.Base>];
+        events(): Observable<GameEvents.Base>;
     }
 }
 
@@ -54,13 +54,19 @@ export interface PlayerRoleReadySelection<I> {
     ready: true
 }
 
+export interface InitialState<I extends Identifiable> {
+    readonly players: Player<I>[];
+    readonly arena: Arena;
+    readonly evidenceDeck: EvidenceDeck;
+}
+
 export interface Player<I extends Identifiable> {
     readonly identity: I;
     readonly role: RoleType;
 
     locate(): Position;
 
-    getState(): [GameFullState, Observable<GameEvents.Base>];
+    gameEvents(): Observable<GameEvents.Base>;
 }
 
 export interface Mafioso<I extends Identifiable> extends Player<I> {
@@ -123,4 +129,13 @@ export interface Profiler<I extends Identifiable> extends Agent<I> {
     readonly role: RoleType.PROFILER;
 
     doAction<T extends GameActions.Key<GameActions.OfProfiler>>(key: T, data: GameActions.Params<T>): void;
+}
+
+export function filterPlayersByTeam<I extends Identifiable>(game: Game.Play<I>, team: Team): Player<I>[] {
+    const arr = team === 'MAFIA' ? RoleType.MAFIA_TEAM : RoleType.FBI_TEAM;
+    return game.initialState.players.filter(player => arr.includes(player.role));
+}
+
+export function findPlayerByRole<I extends Identifiable>(game: Game.Play<I>, role: RoleType): Player<I> | undefined {
+    return game.initialState.players.find(player => player.role === role);
 }
