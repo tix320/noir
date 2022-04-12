@@ -5,13 +5,16 @@ import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
 import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import store from "./Store";
+import User from "../entity/User";
+
+const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://10.10.10.11:5000"
 
 class API {
 
     #socket?: Socket
 
     connect(token: string): Promise<Dto.User> {
-        this.#socket = io("http://10.10.10.11:5000", {
+        this.#socket = io(SERVER_ADDRESS, {
             auth: {
                 token: token
             }
@@ -72,7 +75,7 @@ class API {
         });
     }
 
-    getInitialState(gameId: string): Promise<Dto.GameInitialState> {
+    getGameInitialState(gameId: string): Promise<Dto.GameInitialState> {
         return new Promise<Dto.GameInitialState>(resolve => {
             const socket = this.socket();
 
@@ -82,8 +85,8 @@ class API {
         });
     }
 
-    gamesStream(): Observable<Dto.GamePreparation> {
-        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_GAMES, ApiEvents.ROOM_GAMES);
+    allPreparingGamesStream(): Observable<Dto.GamePreparation> {
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, ApiEvents.ROOM_ALL_PREPARING_GAMES);
     }
 
     myCurrentGameStream(): Observable<Dto.UserCurrentGame> {
@@ -98,7 +101,7 @@ class API {
         return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PREPARING_GAME, ApiEvents.ROOM_PREPARING_GAME(gameId), gameId);
     }
 
-    playingGameStream(gameId: string): Observable<GameEvents.Base> {
+    playingGameEventsStream(gameId: string): Observable<GameEvents.Base> {
         return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PLAYING_GAME, ApiEvents.ROOM_PLAYING_GAME(gameId), gameId);
     }
 
@@ -114,6 +117,7 @@ class API {
                 socket.on(subscribeName, listener);
 
                 return () => {
+                    observer.complete();
                     socket.off(subscribeName, listener);
                 };
             }
@@ -134,6 +138,7 @@ class API {
                 socket.emit(requestName, ...args);
 
                 return () => {
+                    observer.complete();
                     socket.off(subscribeName, listener);
                 };
             }

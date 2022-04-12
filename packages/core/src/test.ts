@@ -1,3 +1,4 @@
+import '@tix320/noir-core';
 import { Bomber, Detective, Game, Killer, Psycho, RoleSelection, Suit, Undercover } from "./game/Game";
 import { RoleType } from "./game/RoleType";
 import { StandardGame } from "./game/StandardGame";
@@ -24,6 +25,10 @@ participants.forEach(p => {
     gamePreparation.changeRole(p);
 });
 
+participants.forEach(p => {
+    gamePreparation.changeRole(p);
+});
+
 const game = gamePreparation.start() as Game.Play<Id>;
 
 const players = game.initialState.players;
@@ -44,6 +49,4 @@ KILLER.gameEvents().subscribe(event => {
 
 
 
-KILLER.doAction('knifeKill', { target: new Position(position.x, position.y - 1) });
-
-console.log(2312);
+KILLER.doAction('knifeKill', { target: new Position(position.x, position.y === 0 ? 1 : position.y - 1) });

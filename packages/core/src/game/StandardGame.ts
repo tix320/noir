@@ -1,4 +1,4 @@
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { swap } from '../util/ArrayUtils';
 import { assert } from '../util/Assertions';
 import { Direction } from '../util/Direction';
@@ -6,10 +6,8 @@ import Identifiable from '../util/Identifiable';
 import Matrix from '../util/Matrix';
 import Position from '../util/Position';
 import { shuffle } from '../util/RandUtils';
-import './../extension/ArrayExtension';
-import './../extension/SetExtension';
 import {
-    Agent as IAgent, Arena, Bomber as IBomber, Detective as IDetective, EvidenceDeck, findPlayerByRole, Game, InitialState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, Suit as ISuit, Team, Undercover as IUndercover, Winner
+    Agent as IAgent, Arena, Bomber as IBomber, Detective as IDetective, EvidenceDeck, findPlayerByRole, Game, InitialState, Killer as IKiller, Mafioso as IMafioso, Player as IPlayer, Profiler as IProfiler, Psycho as IPsycho, RoleSelection, Sniper as ISniper, Suit as ISuit, Undercover as IUndercover, Winner
 } from './Game';
 import { GameActions } from './GameActions';
 import { GameEvents } from './GameEvents';
@@ -26,14 +24,19 @@ export namespace StandardGame {
 
     export class Preparation<I extends Identifiable> implements Game.Preparation<I> {
 
-        readonly participants: RoleSelection<I>[] = [];
-        private participantsSubject = new Subject<RoleSelection<I>[]>();
+        #participantsSubject = new BehaviorSubject<RoleSelection<I>[]>([]);
 
-        getPlayersCount(): number {
-            return this.participants.length;
+        #not_started = true;
+
+        get participants(): RoleSelection<I>[] {
+            this.assertNotStarted();
+
+            return this.#participantsSubject.value;
         }
 
         public join(identity: I) {
+            this.assertNotStarted();
+
             if (this.participants.find(p => p.identity === identity)) {
                 throw new Error('Already in game');
             }
@@ -48,6 +51,8 @@ export namespace StandardGame {
         }
 
         public changeRole(participant: RoleSelection<I>) {
+            this.assertNotStarted();
+
             const currentParticipant = this.participants.removeFirstBy(p => participant.identity === p.identity);
 
             if (!currentParticipant) {
@@ -65,11 +70,13 @@ export namespace StandardGame {
                 }
             }
 
-            this.participants.push(participant);
+            this.participants.push({ ...participant });
             this.emitParticipants();
         }
 
         public leave(identity: I) {
+            this.assertNotStarted();
+
             const participant = this.participants.removeFirstBy(p => p.identity !== identity);
 
             if (participant) {
@@ -80,20 +87,31 @@ export namespace StandardGame {
             }
         }
 
+        public participantChanges(): Observable<RoleSelection<I>[]> {
+            return this.#participantsSubject.asObservable();
+        }
+
         public start(): Game.Play<I> | undefined {
+            this.assertNotStarted();
+
             if (this.readyForGame()) {
+                this.#participantsSubject.complete();
                 return this.createGame();
             } else {
                 return undefined;
             }
         }
 
-        public participantChanges(): Observable<RoleSelection<I>[]> {
-            return this.participantsSubject.asObservable();
+        public isStarted(): boolean {
+            return !this.#not_started;
+        }
+
+        private assertNotStarted() {
+            assert(this.#not_started, "Game already started");
         }
 
         private emitParticipants() {
-            this.participantsSubject.next(this.participants);
+            this.#participantsSubject.next(this.participants);
         }
 
         private resetReadiness() {
@@ -155,6 +173,7 @@ export namespace StandardGame {
             const arenaSize = for6 ? 6 : 7;
 
             const suspects = Suspect.generateSet(arenaSize * arenaSize);
+            shuffle(suspects);
 
             let matrix: Suspect[][]
 
@@ -179,9 +198,9 @@ export namespace StandardGame {
                 ]
             }
 
-            const arena = new Matrix(matrix);
-
             shuffle(suspects);
+
+            const arena = new Matrix(matrix);
 
             const profilerEvidenceHand = for6 ? [] : suspects.splice(-1, 4);
 
@@ -293,7 +312,7 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
         const actionFunc = thisAny[key];
 
         this.checkStateAndTurn();
-        actionFunc(data);
+        actionFunc.call(this, data);
     }
 
     abstract canDoFastShift(): boolean;
@@ -342,7 +361,7 @@ abstract class Player<I extends Identifiable> implements IPlayer<I> {
             assert(phase > 0 && phase < this.phases.length, `Invalid phase ${phase}`);
             index = phase;
         } else {
-            index = this.phases.findIndex(p => typeof p === phase);
+            index = this.phases.findIndex(p => p === phase);
             assert(index !== -1, `Invalid phase ${phase}`);
         }
 
@@ -1215,7 +1234,7 @@ namespace GameHelper {
             type: 'TryKill',
             target: target,
         };
-        this.fireEvent(tryKillEvent);
+        context.game.fireEvent(tryKillEvent);
 
         const suspect = context.arena.atPosition(target);
 
@@ -1240,7 +1259,7 @@ namespace GameHelper {
 
         const suspectRole = suspect.role;
 
-        suspect.assertClosedState();
+        suspect.assertAlive();
 
         let event: GameEvents.Arrest | GameEvents.Kills;
 
@@ -1271,13 +1290,14 @@ namespace GameHelper {
             target: target,
             mafioso: mafiosoRole
         };
-        this.fireEvent(accuseEvent);
+
+        context.game.fireEvent(accuseEvent);
 
         const suspect = context.arena.atPosition(target);
 
         const handler = () => arrestMafioso(suspect, context);
 
-        suspect.assertClosedState();
+        suspect.assertAlive();
 
         assert(suspect.role !== 'innocent', `You cannot accuse innocents`);
 
@@ -1328,7 +1348,8 @@ namespace GameHelper {
             oldIdentity: oldIdentity,
             newIdentity: newIdentityPos
         };
-        this.fireEvent(event);
+
+        context.game.fireEvent(event);
     }
 
     function suitCanProtect(target: Position, context: GameContext) {

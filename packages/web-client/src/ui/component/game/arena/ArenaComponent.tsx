@@ -1,7 +1,7 @@
-import {Game} from "@tix320/noir-core/src/game/Game";
+import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { Arena } from "@tix320/noir-core/src/game/Game";
 import { RoleType } from "@tix320/noir-core/src/game/RoleType";
 import { Direction } from "@tix320/noir-core/src/util/Direction";
-import User from "../../../../entity/User";
 import RoleCard from "../../cards/role/RoleCardComponent";
 import styles from './ArenaComponent.module.css';
 import Shift from "./shift/ShiftComponent";
@@ -9,17 +9,13 @@ import Shift from "./shift/ShiftComponent";
 
 type Props = {
     className: string,
-    game: Game.Play<User>
+    arena: Arena
 }
 
 export default function ArenaComponent(props: Props) {
-    const { className, game } = props;
+    const { className, arena } = props;
 
-    const playersCount = game.initialState.players.length;
-
-    const for6 = playersCount === 6;
-
-    const arenaSize = for6 ? 6 : 7;
+    const arenaSize = arena.size;
 
     const arr = [...Array(arenaSize)].map(a => a + 1);
 

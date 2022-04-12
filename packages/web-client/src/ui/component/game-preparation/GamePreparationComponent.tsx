@@ -29,12 +29,14 @@ class GamePreparationComponent extends RxComponent<Props, State> {
 
     componentDidMount(): void {
         const game = this.props.game;
-        game.participantChanges().pipe(takeUntil(this.destroy$)).subscribe((state) => {
-            const adaptedState = this.adaptParticipants(state);
-            this.setState({
-                ...adaptedState,
-            })
-        });
+        game.participantChanges()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((state) => {
+                const adaptedState = this.adaptParticipants(state);
+                this.setState({
+                    ...adaptedState,
+                })
+            });
     }
 
     selectRole = (selectedRole: RoleType) => {

@@ -4,10 +4,10 @@
   "main": "index.js",
   
   "scripts": {
-    "start": "tsc -w"
+    "start": "tsc -w",
+    "test": "concurrently --kill-others \"tsc -w\" \"nodemon src/test.js\""
   },
   "dependencies": {
-    "rxjs": "^7.5.2"
   },
   "devDependencies": {
     "typescript": "^4.5.5"

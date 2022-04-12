@@ -1,11 +1,11 @@
+import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { onFirst } from "@tix320/noir-core/src/extension/RxJSExtension";
 import { Button } from "react-bootstrap";
-import '@tix320/noir-core/src/extension/ArrayExtension';
-import GameCreationComponent from "./GameCreationComponent";
-import GameSelectionComponent from "./GameSelectionComponent";
+import { takeUntil } from "rxjs/operators";
 import API from "../../../service/Api";
 import RxComponent from "../common/RxComponent";
-import { takeUntil } from "rxjs/operators";
-import { Dto } from "@tix320/noir-core/src/api/Dto";
+import GameCreationComponent from "./GameCreationComponent";
+import GameSelectionComponent from "./GameSelectionComponent";
 
 type Props = {
 }
@@ -23,9 +23,17 @@ export default class LobbyComponent extends RxComponent<Props, State> {
     }
 
     componentDidMount(): void {
-        API.gamesStream()
-            .pipe(takeUntil(this.destroy$))
+        API.allPreparingGamesStream()
+            .pipe(
+                onFirst((games: Dto.GamePreparation[]) => {
+                    this.setState({
+                        games: games
+                    })
+                }),
+                takeUntil(this.destroy$))
             .subscribe((game) => {
+                console.log(game);
+
                 this.setState(prevState => {
                     prevState.games.removeFirstBy(g => g.id === game.id);
                     const games = [...prevState.games, game];

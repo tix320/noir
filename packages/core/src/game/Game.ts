@@ -27,9 +27,12 @@ export namespace Game {
 
         leave(identity: I): void;
 
+        // As first item will be supplied current participants
         participantChanges(): Observable<RoleSelection<I>[]>;
 
         start(): Game.Play<I> | undefined;
+
+        isStarted(): boolean;
     }
 
     export interface Play<I extends Identifiable> {

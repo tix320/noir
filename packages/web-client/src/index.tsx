@@ -1,3 +1,4 @@
+import "@tix320/noir-core";
 import React from 'react';
 import './index.css';
 import AppComponent from './ui/component/app/AppComponent';

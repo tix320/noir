@@ -10,18 +10,19 @@ export class Suspect {
     #role: Role;
     #markers: Set<Marker>;
 
-    constructor(character: Character) {
+    constructor(character: Character, role: Role = 'suspect', markers: Marker[] = []) {
         this.character = character;
-        this.#role = 'suspect';
-        this.#markers = new Set();
+        this.#role = role;
+        this.#markers = new Set(markers);
     }
 
     set role(value: Role) {
-        this.assertClosedState();
+        this.assertAlive();
+        this.#role = value;
 
-        if (value === 'killed' || value === 'arrested') {
-            this.#role = value;
-            this.#markers.clear();
+        if (!this.isAlive()) {
+            this.#markers.delete(Marker.PROTECTION);
+            this.#markers.delete(Marker.THREAT);
         }
     }
 
@@ -29,26 +30,32 @@ export class Suspect {
         return this.#role;
     }
 
-    hasMarker(marker: Marker): boolean {
-        this.assertClosedState();
+    get markers(): Marker[] {
+        return [...this.#markers];
+    }
 
+    hasMarker(marker: Marker): boolean {
         return this.#markers.has(marker);
     }
 
     addMarker(marker: Marker) {
-        this.assertClosedState();
+        if (marker === Marker.PROTECTION || marker === Marker.THREAT) { 
+            this.assertAlive();
+        }
 
         this.#markers.add(marker);
     }
 
     removeMarker(marker: Marker): boolean {
-        this.assertClosedState();
-
         return this.#markers.delete(marker);
     }
 
-    assertClosedState() {
-        assert(this.#role !== 'arrested' && this.#role !== 'killed', "Suspect is arrested or killed");
+    isAlive(): boolean {
+        return this.#role !== 'arrested' && this.#role !== 'killed';
+    }
+
+    assertAlive() {
+        assert(this.isAlive(), "Suspect is arrested or killed");
     }
 
     clone(): Suspect {

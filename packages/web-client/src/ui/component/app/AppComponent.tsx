@@ -7,7 +7,6 @@ import { removeToken, retrieveToken, storeToken } from "../../../service/TokenSt
 import LoginComponent from "../login/LoginComponent";
 import MainComponent from '../main/MainComponent';
 import styles from './AppComponent.module.css';
-
 type Props = {
     user: User
 }
@@ -29,7 +28,7 @@ class AppComponent extends Component<Props, State> {
     login = (token: string, saveToken: boolean) => {
         API.connect(token).then(user => {
             storeToken(token, saveToken)
-            store.dispatch(userChanged(user))
+            store.dispatch(userChanged(new User(user.id, user.name)))
         }).catch(reason => {
             console.error(reason);
             if (reason.message === 'Invalid token') {

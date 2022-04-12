@@ -4,18 +4,26 @@ import { assert } from '@tix320/noir-core/src/util/Assertions';
 import { v4 as uuid } from 'uuid';
 import { User } from '../user/User';
 import GameInfo from './GameInfo';
+import { Subject, Observable } from 'rxjs';
 
-type GamePreparationInfo = [GameInfo, Game.Preparation<User>];
-type GamePlayInfo = [GameInfo, Game.Play<User>];
+export type GamePreparationInfo = [GameInfo, Game.Preparation<User>];
+export type GamePlayInfo = [GameInfo, Game.Play<User>];
 
-type GameData = GamePreparationInfo | GamePlayInfo;
+export type GameData = GamePreparationInfo | GamePlayInfo;
 
 class GameService {
 
     #games: Map<string, GameData> = new Map()
 
+    #gameChanges = new Subject<GameData>();
+
     getGames() {
         return this.#games;
+    }
+
+    // As first item will be supplied current game list
+    gameChanges(): Observable<GameData> {
+        return this.#gameChanges.asObservableWithInitialValue(this.#games);
     }
 
     getGame(gameId?: string): GameData {
@@ -55,7 +63,10 @@ class GameService {
         game.join(creator);
         creator.currentGameId = id;
 
-        return [gameInfo, game];
+        const gameData: GameData = [gameInfo, game];
+        this.#gameChanges.next(gameData);
+
+        return gameData;
     }
 
     joinGame(user: User, gameId: GameInfo['id']): GamePreparationInfo {
@@ -68,7 +79,10 @@ class GameService {
         game.join(user);
         user.currentGameId = gameId;
 
-        return [gameInfo, game];
+        const gameData: GameData = [gameInfo, game];
+        this.#gameChanges.next(gameData);
+
+        return gameData;
     }
 
     changeGameRole(user: User, selection: RoleSelection<never>): GamePreparationInfo {
@@ -83,7 +97,10 @@ class GameService {
         game.changeRole({ ...selection, identity: user });
         user.currentGameId = gameId;
 
-        return [gameInfo, game];
+        const gameData: GameData = [gameInfo, game];
+        this.#gameChanges.next(gameData);
+
+        return gameData;
     }
 
     leaveGame(user: User): GamePreparationInfo {
@@ -98,7 +115,10 @@ class GameService {
 
         user.currentGameId = undefined;
 
-        return [gameInfo, game];
+        const gameData: GameData = [gameInfo, game];
+        this.#gameChanges.next(gameData);
+
+        return gameData;
     }
 
     startGame(gameId: string): Game.Play<User> | undefined {
@@ -106,7 +126,8 @@ class GameService {
 
         const gamePlay = game.start();
         if (gamePlay) {
-            gameInfo.state = 'PLAYING';
+
+            this.#games.set(gameInfo.id, [{ ...gameInfo, state: 'PLAYING' }, gamePlay]);
         }
 
         return gamePlay;

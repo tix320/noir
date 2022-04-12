@@ -7,8 +7,8 @@ export namespace ApiEvents {
     export const LEAVE_GAME = 'leaveGame';
     export const GET_GAME_INITIAL_STATE = 'getGamePlayers';
 
-    export const SUBSCRIBE_GAMES = "subscribe_games";
-    export const ROOM_GAMES = "room_games";
+    export const SUBSCRIBE_ALL_PREPARING_GAMES = "subscribe_allPreparingGames";
+    export const ROOM_ALL_PREPARING_GAMES = "room_allPreparingGames";
 
     export const SUBSCRIBE_MY_CURRENT_GAME = "subscribe_myCurrentGame";
     export const ROOM_MY_CURRENT_GAME = (userId: string) => `room_myCurrentGame_${userId}`;

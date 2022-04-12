@@ -1,3 +1,4 @@
+import { assert } from "./Assertions";
 import { Direction } from "./Direction";
 import Position from "./Position";
 
@@ -17,31 +18,42 @@ export default class Matrix<T> {
     }
 
     at(x: number, y: number): T {
+        this.assertCoords(x, y);
+
+        const d = this.matrix[x][y];
+
         return this.matrix[x][y];
     }
 
     atPosition(position: Position): T {
+        this.assertPosition(position);
+
         return this.at(position.x, position.y);
     }
 
     set(x: number, y: number, value: T) {
+        this.assertCoords(x, y);
+
         this.matrix[x][y] = value;
     }
 
     setToPosition(position: Position, value: T) {
+        this.assertPosition(position);
+
         this.set(position.x, position.y, value);
     }
 
     swap(position1: Position, position2: Position) {
+        this.assertPosition(position1);
+        this.assertPosition(position2);
+
         const temp = this.atPosition(position1);
         this.setToPosition(position1, this.atPosition(position2));
         this.setToPosition(position2, temp);
     }
 
     getAdjacentPositions(position: Position): Position[] {
-        if (position.x < 0 || position.x >= this.size || position.y < 0 || position.y >= this.size) {
-            throw new Error(`Out of bounds position ${position}`);
-        }
+        this.assertPosition(position);
 
         const neighbors: Position[] = [];
 
@@ -49,7 +61,7 @@ export default class Matrix<T> {
             const newX = position.x + offset[0];
             const newY = position.y + offset[1];
 
-            if (newX >= 0 && newX < this.size && newY >= 0 && newY < this.size) {
+            if (this.checkCoords(newX, newY)) {
                 neighbors.push(new Position(newX, newY));
             }
         });
@@ -58,6 +70,8 @@ export default class Matrix<T> {
     }
 
     getCross(position: Position, maxDistance: number): Position[] {
+        this.assertPosition(position);
+
         if (maxDistance < 0) {
             throw new Error(`Invalid distance ${maxDistance}`);
         }
@@ -87,6 +101,8 @@ export default class Matrix<T> {
     }
 
     getDiagonals(position: Position, maxDistance: number): Position[] {
+        this.assertPosition(position);
+
         if (maxDistance < 0) {
             throw new Error(`Invalid distance ${maxDistance}`);
         }
@@ -136,7 +152,7 @@ export default class Matrix<T> {
         }
 
         if (count > this.size) {
-            throw new Error("Shift count cannot be greathr than matrix size");
+            throw new Error("Shift count cannot be greater than matrix size");
         }
 
         const temp: T[] = [];
@@ -180,16 +196,36 @@ export default class Matrix<T> {
         }
     }
 
-    clone(itemsCloning: (item: T) => T): Matrix<T> {
+    map<N>(mapper: (item: T) => N): Matrix<N> {
         const newMatrix = [...Array(this.size)].map(a => Array(this.size));
-        
+
         for (let i = 0; i < this.size; i++) {
             for (let j = 0; j < this.size; j++) {
                 const item = this.matrix[i][j];
-                newMatrix[i][j] = itemsCloning(item);
+                newMatrix[i][j] = mapper(item);
             }
         }
 
         return new Matrix(newMatrix);
+    }
+
+    clone(itemsCloning: (item: T) => T): Matrix<T> {
+        return this.map(itemsCloning);
+    }
+
+    raw(): T[][] {
+        return this.matrix;
+    }
+
+    private assertPosition(position: Position) {
+        this.assertCoords(position.x, position.y);
+    }
+
+    private assertCoords(x: number, y: number) {
+        assert(this.checkCoords(x, y), `Out of bounds position ${x}:${y}`);
+    }
+
+    private checkCoords(x: number, y: number) {
+        return x >= 0 && x < this.size && y >= 0 && y < this.size;
     }
 }

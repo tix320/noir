@@ -1,5 +1,8 @@
-import { Arena, GameState, RoleSelection } from "../game/Game";
+import { Character } from "../game/Character";
+import { GameState, RoleSelection } from "../game/Game";
+import { Marker } from "../game/Marker";
 import { RoleType } from "../game/RoleType";
+import Matrix from "../util/Matrix";
 
 export namespace Dto {
 
@@ -25,6 +28,16 @@ export namespace Dto {
         identity: User,
         role: RoleType
     }
+
+    export type SuspectRole = Player | 'suspect' | 'innocent' | 'arrested' | 'killed'
+
+    export interface Suspect {
+        character: Character,
+        role: SuspectRole,
+        markers: Marker[]
+    }
+
+    export type Arena = Suspect[][]
 
     export interface GameInitialState {
         players: Player[];

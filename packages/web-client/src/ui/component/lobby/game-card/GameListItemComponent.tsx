@@ -19,7 +19,6 @@ export default class GameListItemComponent extends Component<Props,State> {
 
     render() {
         const game = this.props.game;
-        console.log(game.name);
         
         const currentPlayersCount = game.roles.length;
         const maxPlayersCount = game.maxPlayersCount;
