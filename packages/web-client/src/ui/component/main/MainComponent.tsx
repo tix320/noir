@@ -33,8 +33,6 @@ export default function MainComponent() {
             const game = new RemoteGame.Preparation(currentGame.id);
             content = <GamePreparationComponent game={game} />;
         } else if (currentGame.state === 'PLAYING') {
-            console.log('playing');
-
             const game = new RemoteGame.Play(currentGame.id);
             content = <GameComponent game={game} identity={user!} />;
         } else {

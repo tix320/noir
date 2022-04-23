@@ -32,8 +32,6 @@ export default class LobbyComponent extends RxComponent<Props, State> {
                 }),
                 takeUntil(this.destroy$))
             .subscribe((game) => {
-                console.log(game);
-
                 this.setState(prevState => {
                     prevState.games.removeFirstBy(g => g.id === game.id);
                     const games = [...prevState.games, game];

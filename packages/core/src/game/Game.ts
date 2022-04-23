@@ -44,6 +44,7 @@ export interface Suspect<I extends Identifiable = Identifiable> {
     markersSnapshot(): Marker[];
     hasMarker(marker: Marker): boolean;
     isAlive(): boolean; // neither killed nor arrested
+    isPlayerOrSuspect(): boolean; // neither alive nor innocent
 }
 
 export type RoleSelection<I extends Identifiable> =

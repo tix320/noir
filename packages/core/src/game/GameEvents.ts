@@ -172,6 +172,7 @@ export namespace GameEvents {
         readonly type: 'ProtectDecided';
         readonly target: Position;
         readonly protect: boolean;
+        readonly triggerMarker: Marker | null; 
     }
 
     export type Kills = KilledByKnife | KilledByThreat | KilledByBomb | KilledBySniper;

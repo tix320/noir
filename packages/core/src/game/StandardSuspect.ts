@@ -57,7 +57,11 @@ export class StandardSuspect<I extends Identifiable = Identifiable> implements S
     }
 
     assertAlive() {
-        assert(this.isAlive(), "Suspect is arrested or killed");
+        assert(this.isAlive(), `Suspect is ${this.#role}`);
+    }
+
+    assertPlayerOrSuspect() {
+        assert(this.isPlayerOrSuspect(), `Suspect is ${this.#role}`);
     }
 
     clone(): StandardSuspect<I> {

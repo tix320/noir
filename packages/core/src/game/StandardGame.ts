@@ -38,7 +38,7 @@ export namespace StandardGame {
 
         public join(identity: I) {
             this.assertNotStarted();
-            assert(!this.#participants.find(p => p.identity.id === identity.id), 'Already joined');
+            assert(!this.#participants.find(p => equals(p.identity, identity)), 'Already joined');
 
             assert(this.#participants.length !== MAX_PLAYER_COUNT, 'Participants already full');
 
@@ -49,7 +49,7 @@ export namespace StandardGame {
         public changeRole(participant: RoleSelection<I>) {
             this.assertNotStarted();
 
-            const currentParticipant = this.#participants.removeFirstBy(p => participant.identity.id === p.identity.id);
+            const currentParticipant = this.#participants.removeFirstBy(p => equals(participant.identity, p.identity));
             assert(currentParticipant, `Participant ${participant.identity} not joined this game`);
 
             if (currentParticipant.role !== participant.role) {
@@ -67,7 +67,7 @@ export namespace StandardGame {
         public leave(identity: I) {
             this.assertNotStarted();
 
-            const participant = this.#participants.removeFirstBy(p => p.identity.id === identity.id);
+            const participant = this.#participants.removeFirstBy(p => equals(p.identity, identity));
 
             if (participant) {
                 // reset ready states
@@ -108,9 +108,13 @@ export namespace StandardGame {
         }
 
         private readyForGame(): boolean {
-            const roles = new Set(this.#participants.map(p => p.role)) as Set<Role>;
+            if (this.readyCount !== this.#participants.length) {
+                return false;
+            }
 
-            return this.readyCount === this.#participants.length && this.matchRoleSet(roles);
+            const roles = new Set(this.#participants.map(p => p.role!));
+
+            return this.matchRoleSet(roles);
         }
 
         private get readyCount() {
@@ -130,9 +134,7 @@ export namespace StandardGame {
         }
 
         private createGame(): StandardGame.Play<I> {
-            if (this.#participants.length !== 6 && this.#participants.length !== 8) {
-                throw new Error(`Invalid players count ${this.#participants.length}`);
-            }
+            assert(this.#participants.length === 6 || this.#participants.length === 8, `Invalid players count ${this.#participants.length}`);
 
             const for6: boolean = this.#participants.length === 6;
 
@@ -312,6 +314,10 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
         return this.context.game.events();
     }
 
+    locate(): Position {
+        return GameHelper.locatePlayer(this.context.arena, this);
+    }
+
     getActionsAvailability(): Set<GameActions.Key<A>> {
         if (this.isMyTurn()) {
             const availableActions = this.getAvailableActions();
@@ -441,7 +447,7 @@ abstract class Agent<I extends Identifiable = Identifiable, A extends GameAction
 
         const arena = this.context.arena;
 
-        assert(Helper.isAdjacentTo(this, target, this.context), `Invalid target=${arena.atPosition(target)}. You can remove marker on adjacent suspects`);
+        assert(Helper.isAdjacentTo(this, target), `Invalid target=${arena.atPosition(target)}. You can remove marker on adjacent suspects`);
 
         const suspect = arena.atPosition(target);
         const deleted = suspect.removeMarker(marker);
@@ -456,9 +462,7 @@ abstract class Agent<I extends Identifiable = Identifiable, A extends GameAction
     protected canDisarm(): boolean {
         const arena = this.context.arena;
 
-        const myPos = GameHelper.locatePlayer(arena, this);
-
-        return GameHelper.getDisarmPositions(arena, myPos).isNonEmpty();
+        return GameHelper.getDisarmPositions(arena, this.locate()).isNonEmpty();
     }
 }
 
@@ -480,7 +484,7 @@ class Killer<I extends Identifiable> extends Mafioso<I, GameActions.OfKiller>  {
 
     protected getAvailableActions() {
         const arena = this.context.arena;
-        const position = GameHelper.locatePlayer(arena, this);
+        const position = this.locate();
 
         const suitableForKill = GameHelper.getKnifeKillPositions(arena, position);
         if (suitableForKill.isEmpty()) {
@@ -493,9 +497,9 @@ class Killer<I extends Identifiable> extends Mafioso<I, GameActions.OfKiller>  {
     protected knifeKill(action: GameActions.Killer.Kill): void {
         const { target } = action;
 
-        assert(Helper.isAdjacentTo(this, target, this.context), `You can kill only your adjacent suspects`);
+        assert(Helper.isAdjacentTo(this, target), `You can kill only your adjacent suspects`);
 
-        Helper.tryKillSuspect(target, this.context, 'KilledByKnife', () => {
+        Helper.tryKillSuspect(target, this.context, 'KilledByKnife', null, () => {
             this.changePhase('END');
         });
     }
@@ -522,8 +526,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
     override initTurn(): void {
         const arena = this.context.arena;
 
-        const myPos = GameHelper.locatePlayer(this.context.arena, this);
-        const threatPositions = GameHelper.getThreatKillPositions(arena, myPos);
+        const threatPositions = GameHelper.getThreatKillPositions(arena, this.locate());
 
         const iterator = threatPositions[Symbol.iterator]();
 
@@ -533,7 +536,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
                 this.changePhase('ACTION');
             } else {
                 const target = item.value;
-                Helper.tryKillSuspect(target, this.context, 'KilledByThreat', handler);
+                Helper.tryKillSuspect(target, this.context, 'KilledByThreat', Marker.THREAT, handler);
             }
         }
 
@@ -602,7 +605,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
         }
 
         const suitablePositionsForPlace = this.context.psycho.suitablePositionsForPlace;
-        assert(suitablePositionsForPlace, 'Illegal state');
+        assert(suitablePositionsForPlace);
 
         assert(targets.every(position => suitablePositionsForPlace.some(pos => pos.equals(position))), "You can mark within 3 orthogonal spaces");
 
@@ -623,9 +626,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
     private changeToPlacePhaseOrEnd() {
         const arena = this.context.arena;
 
-        const psychoPosition = GameHelper.locatePlayer(this.context.arena, this);
-
-        const suitablePositionsForPlace = GameHelper.getThreatPlacePositions(arena, psychoPosition);
+        const suitablePositionsForPlace = GameHelper.getThreatPlacePositions(arena, this.locate());
 
         if (suitablePositionsForPlace.length === 0) {
             this.changePhase('END');
@@ -659,12 +660,19 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
     protected getAvailableActions() {
         switch (this.getCurrentPhase()) {
             case 'ACTION':
-                const bombCount = this.context.arena.count(suspect => suspect.hasMarker(Marker.BOMB));
-                if (bombCount > 0) {
-                    return ['placeBomb', 'detonateBomb'] as const;
-                } else {
-                    return ['placeBomb'] as const;
+                const canPlaceBomb = GameHelper.getBombPlacePositions(this.context.arena, this.locate()).isNonEmpty();
+                const canDetonateBomb = this.context.arena.count(suspect => suspect.hasMarker(Marker.BOMB)) !== 0;
+
+                const actions: GameActions.Key<GameActions.OfBomber>[] = [];
+                if (canPlaceBomb) {
+                    actions.push('placeBomb');
                 }
+
+                if (canDetonateBomb) {
+                    actions.push('detonateBomb');
+                }
+
+                return actions;
             case 'SELF_DESTRUCT':
                 return ['selfDestruct'] as const;
             default:
@@ -693,12 +701,10 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
         const arena = this.context.arena;
         const targetSuspect = arena.atPosition(target);
 
-        const isValidTarget = targetSuspect.role === this || Helper.isAdjacentTo(this, target, this.context);
+        const isValidTarget = targetSuspect.role === this || Helper.isAdjacentTo(this, target);
         assert(isValidTarget, `Invalid target=${arena.atPosition(target)}. You can place bomb only on yourself or adjacent suspects`);
 
-        if (targetSuspect.hasMarker(Marker.BOMB)) {
-            throw new Error('Target already has bomb');
-        }
+        assert(!targetSuspect.hasMarker(Marker.BOMB), 'Target already has bomb');
 
         targetSuspect.addMarker(Marker.BOMB);
 
@@ -765,7 +771,7 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
             } else {
                 const target = item.value;
                 arena.atPosition(target).removeMarker(Marker.BOMB);
-                Helper.tryKillSuspect(target, this.context, 'KilledByBomb', (isProtect) => {
+                Helper.tryKillSuspect(target, this.context, 'KilledByBomb', Marker.BOMB, (isProtect) => {
                     if (isProtect) {
                         onComplete();
                     } else {
@@ -809,10 +815,8 @@ class Sniper<I extends Identifiable> extends Mafioso<I, GameActions.OfSniper>{
     protected getAvailableActions() {
         const arena = this.context.arena;
 
-        const myPos = GameHelper.locatePlayer(arena, this);
-
-        const canKill = GameHelper.geSnipeKillPositions(arena, myPos).isNonEmpty();
-        const canSetup = GameHelper.getMovableMarkerPositions(arena);;
+        const canKill = GameHelper.geSnipeKillPositions(arena, this.locate()).isNonEmpty();
+        const canSetup = GameHelper.getMovableMarkerPositions(arena);
 
         const actions: GameActions.Key<GameActions.OfSniper>[] = [];
         if (canKill) {
@@ -835,7 +839,7 @@ class Sniper<I extends Identifiable> extends Mafioso<I, GameActions.OfSniper>{
             `Invalid target=${arena.atPosition(target)}. You can kill only suspects 3 spaces away from you in diagonal line`);
 
 
-        Helper.tryKillSuspect(target, this.context, 'KilledBySniper', () => {
+        Helper.tryKillSuspect(target, this.context, 'KilledBySniper', null, () => {
             this.changePhase('END');
         });
     }
@@ -893,10 +897,9 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
         }
 
         const arena = this.context.arena;
-        const myPos = GameHelper.locatePlayer(arena, this);
 
-        const canAccuse = arena.getAdjacentPositions(myPos).some(pos => arena.atPosition(pos).isAlive());
-        const canAutoSpy = arena.getAdjacentPositions(myPos).some(pos => arena.atPosition(pos).role === 'killed');
+        const canAccuse = GameHelper.getAccusePositions(arena, this.locate());
+        const canAutoSpy = GameHelper.getAutoSpyPositions(arena, this.locate());
 
         if (canAccuse) {
             actions.push('accuse');
@@ -914,7 +917,7 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
         const arena = this.context.arena;
         const suspect = arena.atPosition(target);
 
-        assert(suspect.role === this || Helper.isAdjacentTo(this, target, this.context), `You can accuse yourself or your adjacent suspects`);
+        assert(suspect.role === this || Helper.isAdjacentTo(this, target), `You can accuse yourself or your adjacent suspects`);
 
         Helper.accuse(target, mafioso, this.context, () => {
             this.changePhase('END');
@@ -930,9 +933,11 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
     protected autospy(action: GameActions.Undercover.AutoSpy) {
         const { target } = action;
 
+        assert(Helper.isAdjacentTo(this, target), 'Not adjacent target');
+
         const suspect = this.context.arena.atPosition(target);
 
-        assert(suspect.role === 'killed', "Target must be deceased");
+        assert(suspect.role === 'killed', "Target must be killed");
 
         const mafiosi = Helper.getAdjacentMafiosi(target, this.context);
 
@@ -974,8 +979,7 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
                     actions.push('disarm');
                 }
 
-                const myPos = GameHelper.locatePlayer(arena, this);
-                const canAccuse = GameHelper.getFarAccusePositions(arena, myPos).isNonEmpty();
+                const canAccuse = GameHelper.getFarAccusePositions(arena, this.locate()).isNonEmpty();
 
                 if (canAccuse) {
                     actions.push('farAccuse');
@@ -1038,7 +1042,8 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
 
         this.assertPhase('CANVAS');
 
-        const canvas = this.context.detective.canvas!;
+        const canvas = this.context.detective.canvas;
+        assert(canvas);
 
         assert(canvas.find(pos => pos.equals(position)), `Invalid position ${position}`);
 
@@ -1095,8 +1100,7 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
                     actions.push('disarm');
                 }
 
-                const myPos = GameHelper.locatePlayer(arena, this);
-                const canAccuse = arena.getAdjacentPositions(myPos).some(pos => arena.atPosition(pos).isAlive());
+                const canAccuse = GameHelper.getAccusePositions(arena, this.locate())
 
                 if (canAccuse) {
                     actions.push('accuse');
@@ -1171,7 +1175,7 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
 
         const arena = this.context.arena;
         const suspect = arena.atPosition(target);
-        assert(suspect.role === this || Helper.isAdjacentTo(this, target, this.context), `You can accuse yourself or your adjacent suspects`);
+        assert(suspect.role === this || Helper.isAdjacentTo(this, target), `You can accuse yourself or your adjacent suspects`);
 
         Helper.accuse(target, mafioso, this.context, () => {
             this.changePhase('END');
@@ -1184,12 +1188,10 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
         const { protect } = action;
 
         const protectionContext = this.context.suit.protection;
-        if (!protectionContext) {
-            throw new Error("There are nor protection context");
-        }
+        assert(protectionContext, "There are no protection context");
 
         const arena = this.context.arena;
-        assert(!protect || GameHelper.canProtect(GameHelper.locatePlayer(arena, this), protectionContext.target),
+        assert(!protect || GameHelper.canProtect(this.locate(), protectionContext.target),
             "You cannot protect from your position");
 
         if (protect) {
@@ -1197,7 +1199,12 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
             suspect.removeMarker(Marker.PROTECTION);
         }
 
-        const event: GameEvents.ProtectDecided = { type: 'ProtectDecided', target: protectionContext.target, protect: protect };
+        const event: GameEvents.ProtectDecided = {
+            type: 'ProtectDecided',
+            target: protectionContext.target,
+            protect: protect,
+            triggerMarker: protectionContext.triggerMarker
+        };
         this.context.game.fireEvent(event);
 
         this.context.suit.protection = undefined;
@@ -1214,6 +1221,7 @@ type ProtectionEndHandler = (isProtected: boolean) => void;
 
 interface ProtectionContext {
     target: Position;
+    triggerMarker: Marker | null,
     onReactionEnd: ProtectionEndHandler;
 }
 
@@ -1242,9 +1250,7 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
 
         const arena = this.context.arena;
 
-        const myPos = GameHelper.locatePlayer(arena, this);
-
-        const canAccuse = arena.getAdjacentPositions(myPos).some(pos => arena.atPosition(pos).isAlive());
+        const canAccuse = GameHelper.getAccusePositions(arena, this.locate());
         const canProfile = this.context.profiler.evidenceHand.some(suspect => suspect.isAlive());
 
         if (canAccuse) {
@@ -1263,7 +1269,7 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
 
         const arena = this.context.arena;
         const suspect = arena.atPosition(target);
-        assert(suspect.role === this || Helper.isAdjacentTo(this, target, this.context), `You can accuse yourself or your adjacent suspects`);
+        assert(suspect.role === this || Helper.isAdjacentTo(this, target), `You can accuse yourself or your adjacent suspects`);
 
         Helper.accuse(target, mafioso, this.context, () => {
             this.changePhase('END');
@@ -1280,16 +1286,13 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
         const arena = this.context.arena;
         const suspect = arena.atPosition(position);
 
-        if (!hand.includes(suspect)) {
-            throw new Error(`Invalid position ${position}`);
-        }
-
+        assert(hand.includes(suspect), `Invalid position ${position}`);
         assert(suspect.isAlive(), 'Suspect not alive');
 
         const mafiosi = Helper.canvas(position, this.context, false);
 
         const newHand = hand.filter(suspect => suspect.role !== 'killed');
-        newHand.removeFirst(suspect)
+        newHand.removeFirst(suspect);
 
         const newHandCount = 4 - hand.length;
         const newSuspects = this.context.evidenceDeck.splice(-newHandCount, newHandCount);
@@ -1369,30 +1372,18 @@ namespace Helper {
         }
     }
 
-    export function isAdjacentTo(player: Player, position: Position, context: GameContext): boolean {
-        const arena = context.arena;
+    export function isAdjacentTo(player: Player, position: Position): boolean {
+        const playerPosition = player.locate();
 
-        const adjacentPositions = arena.getAdjacentPositions(position);
-
-        return adjacentPositions.some(pos => arena.atPosition(pos).role === player);
+        return playerPosition.isAdjacentTo(position);
     }
 
-    export function getAdjacentPlayers(position: Position, context: GameContext, predicate?: (suspect: Suspect) => boolean): Player[] {
-        predicate = predicate || ((suspect: Suspect) => suspect.role instanceof Player);
-
-        const arena = context.arena;
-
-        const adjacentPositions = arena.getAdjacentPositions(position);
-
-        return adjacentPositions.map(pos => arena.atPosition(pos)).filter(suspect => predicate!(suspect)).map(sus => sus.role) as Player[];
+    export function getAdjacentPlayers(position: Position, context: GameContext): Player[] {
+        return context.players.filter(mafioso => Helper.isAdjacentTo(mafioso, position));
     }
 
-    export function getAdjacentMafiosi(position: Position, context: GameContext): Mafioso<any, any>[] {
-        const arena = context.arena;
-
-        const adjacentPositions = arena.getAdjacentPositions(position);
-
-        return adjacentPositions.map(pos => arena.atPosition(pos).role).filter(role => role instanceof Mafioso) as Mafioso[];
+    export function getAdjacentMafiosi(position: Position, context: GameContext): Mafioso[] {
+        return context.players.filter(player => player instanceof Mafioso).filter(mafioso => Helper.isAdjacentTo(mafioso, position));
     }
 
     export function shift(shift: GameActions.Common.Shift, actor: Player, context: GameContext) {
@@ -1420,7 +1411,7 @@ namespace Helper {
     }
 
 
-    export function tryKillSuspect(target: Position, context: GameContext, killEventType: GameEvents.Kills['type'], onProtectionEnd: ProtectionEndHandler): void {
+    export function tryKillSuspect(target: Position, context: GameContext, killEventType: GameEvents.Kills['type'], killMarker: Marker | null, onProtectionEnd: ProtectionEndHandler): void {
         const tryKillEvent: GameEvents.KillTry = {
             type: 'KillTry',
             target: target,
@@ -1440,7 +1431,7 @@ namespace Helper {
 
         if (suspect.hasMarker(Marker.PROTECTION)) {
             const suit = findSuit(context);
-            suit.enableReaction({ target: target, onReactionEnd: handler })
+            suit.enableReaction({ target: target, triggerMarker: killMarker, onReactionEnd: handler })
         } else {
             handler(false);
         }
@@ -1476,10 +1467,10 @@ namespace Helper {
     export function accuse(target: Position, mafiosoRole: Role, context: GameContext, onEnd: SelfDestructEndHandler) {
         const suspect = context.arena.atPosition(target);
 
-        suspect.assertAlive();
-        assert(suspect.role !== 'innocent', `You cannot accuse innocents`);
+        suspect.assertPlayerOrSuspect();
 
-        const mafioso = GameHelper.findPlayerByRole(context.players, mafiosoRole)!;
+        const mafioso = GameHelper.findPlayerByRole(context.players, mafiosoRole);
+        assert(mafioso instanceof Mafioso, 'Not a mafioso');
 
         const accuseEvent: GameEvents.Accused = {
             type: 'Accused',
@@ -1497,7 +1488,16 @@ namespace Helper {
         else {
             if (suspect.hasMarker(Marker.BOMB)) {
                 const bomber = findBomber(context);
-                bomber.enableReaction({ target: target, onReactionEnd: onEnd });
+                bomber.enableReaction({
+                    target: target,
+                    onReactionEnd: () => {
+                        if (context.arena.atPosition(target).role instanceof Mafioso) { // maybe suit protected him from self destruct, so arrest anyway
+                            arrestMafioso(target, context);
+                        }
+
+                        onEnd?.();
+                    }
+                });
             } else {
                 arrestMafioso(target, context);
                 onEnd?.();
@@ -1519,7 +1519,7 @@ namespace Helper {
 
         const ownMarker = suspectRole.ownMarker();
         if (ownMarker) {
-            removeMarkersFromArena(ownMarker, context);
+            context.arena.foreach((suspect) => suspect.removeMarker(ownMarker));
         }
 
         const newIdentity = peekNewIdentityFor(suspectRole, context);
@@ -1554,13 +1554,11 @@ namespace Helper {
     export function canvas(target: Position, context: GameContext, includeFbi: boolean): Player[] {
         const suspect = context.arena.atPosition(target);
 
-        assert(suspect.role === 'suspect', "Illegal state");
+        assert(suspect.role === 'suspect');
 
         suspect.role = 'innocent';
 
-        const searchPredicate = includeFbi ? undefined : (suspect: Suspect) => suspect.role instanceof Mafioso;
-
-        const adjacentPlayers = Helper.getAdjacentPlayers(target, context, searchPredicate);
+        const adjacentPlayers = includeFbi ? Helper.getAdjacentPlayers(target, context) : Helper.getAdjacentMafiosi(target, context);
 
         return adjacentPlayers;
     }
@@ -1591,7 +1589,9 @@ namespace Helper {
     }
 
     export function findPlayer(type: typeof Player, context: GameContext): Player {
-        return context.players.find(player => player instanceof type)!;
+        const player = context.players.find(player => player instanceof type);
+        assert(player);
+        return player;
     }
 
     export function findSuit(context: GameContext): Suit<any> {
@@ -1612,17 +1612,6 @@ namespace Helper {
         const res = context.arena.findFirst(s => equals(s.character, character));
         assert(res, 'Invalid state');
         return res[1];
-    }
-
-    export function removeMarkersFromArena(marker: Marker, context: GameContext): void {
-        const arena = context.arena;
-
-        for (let i = 0; i < arena.size; i++) {
-            for (let j = 0; j < arena.size; j++) {
-                const suspect = arena.at(i, j);
-                suspect.removeMarker(marker);
-            }
-        }
     }
 
     export function cleanupOnReactionEnd(player: Player, context: GameContext) {

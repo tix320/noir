@@ -1,5 +1,6 @@
 import { Game, RoleSelection } from "@tix320/noir-core/src/game/Game";
 import { Role } from "@tix320/noir-core/src/game/Role";
+import { equals } from "@tix320/noir-core/src/util/Identifiable";
 import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
 import { takeUntil } from 'rxjs/operators';
@@ -81,7 +82,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
-                    <RoleCard key={role!.name} role={role!} />
+                    <RoleCard key={role!.name} role={role!} highlight={equals(user,this.props.user)} />
                     <div>{user.name}</div>
                     <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== this.props.user.id} onClick={() => this.changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}

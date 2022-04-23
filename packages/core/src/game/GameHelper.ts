@@ -46,18 +46,36 @@ export namespace GameHelper {
     }
 
     export function getAccusePositions(arena: Arena, source: Position): Position[] {
-        return [source, ...arena.getAdjacentPositions(source).filter(pos => arena.atPosition(pos).isAlive())];
+        return [source, ...arena.getAdjacentPositions(source).filter(pos => arena.atPosition(pos).isPlayerOrSuspect())];
     }
 
     export function getFarAccusePositions(arena: Arena, source: Position): Position[] {
-        return arena.getOrthogonalPositions(source, 3).filter(pos => arena.atPosition(pos).isAlive());
+        return [source, ...arena.getOrthogonalPositions(source, 3).filter(pos => arena.atPosition(pos).isPlayerOrSuspect())];
     }
 
-    export function getDisarmPositions(arena: Arena, source: Position): Position[] {
-        return arena.getAdjacentPositions(source).filter(pos => {
+    export function getDisarmPositions(arena: Arena, source: Position): [Position, Marker[]][] {
+        const res: [Position, Marker[]][] = [];
+
+        arena.getAdjacentPositions(source).forEach(pos => {
             const suspect = arena.atPosition(pos);
-            return suspect.hasMarker(Marker.BOMB) || suspect.hasMarker(Marker.THREAT);
+
+
+            const markers: Marker[] = [];
+
+            if (suspect.hasMarker(Marker.BOMB)) {
+                markers.push(Marker.BOMB);
+            }
+
+            if (suspect.hasMarker(Marker.THREAT)) {
+                markers.push(Marker.THREAT);
+            }
+
+            if (markers.isNonEmpty()) {
+                res.push([pos, markers]);
+            }
         });
+
+        return res;
     }
 
     export function getKnifeKillPositions(arena: Arena, source: Position): Position[] {

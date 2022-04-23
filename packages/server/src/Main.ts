@@ -274,7 +274,7 @@ io.on("connection", (socket) => {
         GAME_SERVICE.joinGame(user, gameId);
     });
 
-    socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: Dto.GameRoleSelection, cb) => {
+    socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: Dto.GameRoleSelection, cb) => { 
         const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, {
             ready: roleSelection.ready,
             role: roleSelection.role ? Role.getByName(roleSelection.role) : undefined
@@ -337,7 +337,7 @@ io.on("connection", (socket) => {
         GAME_SERVICE.gameEvents(gameId, user).pipe(
             map(event => visitEvent(event, GAME_EVENT_CONVERTER)),
             takeWhile(() => socket.connected)
-        ).subscribe((event) => socket.emit(ApiEvents.ROOM_PLAYING_GAME(gameId), event));
+        ).subscribe((event) => socket.emit(ApiEvents.ROOM_PLAYING_GAME(gameId), event)); 
     });
 });
 

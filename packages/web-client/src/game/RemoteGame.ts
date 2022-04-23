@@ -328,7 +328,8 @@ class EventVisitor extends GameEventDtoVisitor<User> {
         return {
             type: 'ProtectDecided',
             target: convertPosition(event.target),
-            protect: event.protect
+            protect: event.protect,
+            triggerMarker : event.triggerMarker
         }
     }
 }

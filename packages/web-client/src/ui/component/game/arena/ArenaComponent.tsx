@@ -15,7 +15,7 @@ type Props = {
     meHighlight?: Position,
     teamHighlight?: Position[],
     supportHighlight?: Position[],
-    supportHighlightMarkers?: Map<string, Marker[]>,
+    supportHighlightMarkers?: [Position, Marker[]][],
     onShift(direction: Direction, index: number, fast: boolean): void,
     onSuspectClick(position: Position, suspect: Suspect): void,
     onMarkerClick(position: Position, suspect: Suspect, marker: Marker): void,
@@ -23,7 +23,6 @@ type Props = {
 
 export default function ArenaComponent(props: Props) {
     const { className, arena, disableShift, lastShift, teamHighlight, supportHighlight, supportHighlightMarkers, onShift, onSuspectClick, onMarkerClick } = props;
-    console.log(lastShift);
 
     const isReverseShift = (direction: Direction, index: number) => {
         return !!lastShift && GameHelper.isReverseShifts({ direction: direction, index: index }, lastShift);
@@ -51,11 +50,11 @@ export default function ArenaComponent(props: Props) {
 
                         {arr.map((e, column) => <SuspectCard key={column}
                             suspect={arena.at(row, column)}
-                            highlight={supportHighlight?.some(pos => pos.x === row && pos.y === column)}
                             additionalClassName={props.meHighlight?.x === row && props.meHighlight?.y === column ?
                                 styles.mySuspect
                                 : teamHighlight?.some(pos => pos.x === row && pos.y === column) ? styles.teamSuspect : undefined}
-                            highlightMarkers={supportHighlightMarkers?.get(new Position(row, column).toString())}
+                            highlight={supportHighlight?.some(pos => pos.x === row && pos.y === column)}
+                            highlightMarkers={supportHighlightMarkers?.find(posWithMarkers => posWithMarkers[0].x === row && posWithMarkers[0].y === column)?.[1]}
                             onSuspectClick={suspect => onSuspectClick(new Position(row, column), suspect)}
                             onMarkerClick={(suspect, marker) => onMarkerClick(new Position(row, column), suspect, marker)} />)}
 

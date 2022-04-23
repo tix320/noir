@@ -130,22 +130,22 @@ export default function GameComponent(props: Props) {
                                 supportHighlight: GameHelper.getThreatPlacePositions(arena, getMyPosition()),
                             });
                         } else {
+                            setPerformingAction(undefined);
                             setActionsEnabled(true);
                         }
                         break;
                     case Role.SUIT:
                         if (availableActions.has('placeProtection') || availableActions.has('removeProtection')) {
-                            const protectedPositions = arena.filter(suspect => suspect.hasMarker(Marker.PROTECTION));
-
-                            const actionSuitablePositions = protectedPositions.length === 6
-                                ? protectedPositions
-                                : arena.filter(() => true);
+                            const placePositions = GameHelper.getProtectionPlacePositions(arena);
+                            const removePositions = GameHelper.getProtectionRemovePositions(arena);
 
                             setPerformingAction({
                                 key: 'placeProtection',
-                                supportHighlight: actionSuitablePositions,
+                                supportHighlight: placePositions,
+                                supportHighlightMarkers: removePositions.map(pos => [pos, [Marker.PROTECTION]]),
                             });
-                        } else {
+                        } else if (!availableActions.has('decideProtect')) {
+                            setPerformingAction(undefined);
                             setActionsEnabled(true);
                         }
                         break;
@@ -201,13 +201,19 @@ export default function GameComponent(props: Props) {
         },
 
         Arrested(event: GameEvents.Arrested) {
-            const suspect = arenaRef.current.atPosition(event.arrested);
+            const arena = arenaRef.current;
+            const suspect = arena.atPosition(event.arrested);
             const player = suspect.role as Player;
 
             suspect.role = 'arrested';
 
-            const newSuspect = arenaRef.current.atPosition(event.newMafiosoIdentity);
+            const newSuspect = arena.atPosition(event.newMafiosoIdentity);
             newSuspect.role = player;
+
+            const removedMarker = player.role === Role.BOMBER ? Marker.BOMB : player.role === Role.PSYCHO ? Marker.THREAT : undefined;
+            if (removedMarker) {
+                arena.foreach((suspect) => suspect.removeMarker(removedMarker));
+            }
         },
 
         Disarmed(event: GameEvents.Disarmed) {
@@ -216,9 +222,6 @@ export default function GameComponent(props: Props) {
         },
 
         AutoSpyCanvased(event: GameEvents.AutoSpyCanvased<User>) {
-            const suspect = arenaRef.current.atPosition(event.target);
-            suspect.role = 'innocent';
-
             setPerformingEvent({
                 key: 'AllCanvased',
                 players: event.mafiosi
@@ -299,7 +302,6 @@ export default function GameComponent(props: Props) {
         ProtectionPlaced(event: GameEvents.ProtectionPlaced) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.addMarker(Marker.PROTECTION);
-
         },
 
         ProtectionRemoved(event: GameEvents.ProtectionRemoved) {
@@ -351,14 +353,19 @@ export default function GameComponent(props: Props) {
             assert(arenaRef.current);
 
             if (event.protect) {
-                arenaRef.current.atPosition(event.target).removeMarker(Marker.PROTECTION);
+                const suspect = arenaRef.current.atPosition(event.target);
+                suspect.removeMarker(Marker.PROTECTION);
+                if (event.triggerMarker) {
+                    suspect.removeMarker(event.triggerMarker);
+                }
             }
+
             //TODO: specific effect
         }
     };
 
     const processEvent = (event: GameEvents.Any<User>) => {
-        // console.log('Event', event);
+        console.log('Event', event);
         setTimeout(() => {
             visitEvent(event, eventVisitor);
             forceUpdate();
@@ -391,11 +398,9 @@ export default function GameComponent(props: Props) {
                 break;
             case 'disarm':
                 const disarmPositions = GameHelper.getDisarmPositions(arena, getMyPosition());
-                const disarmMarkers = new Map(disarmPositions.map(pos => [pos.toString(), [Marker.BOMB, Marker.THREAT]]));
                 setPerformingAction({
                     key: 'disarm',
-                    supportHighlight: disarmPositions,
-                    supportHighlightMarkers: disarmMarkers
+                    supportHighlightMarkers: disarmPositions
                 });
                 break
             case 'accuse':
@@ -444,11 +449,10 @@ export default function GameComponent(props: Props) {
                 break
             case 'setup':
                 const positions = GameHelper.getMovableMarkerPositions(arena);
-                const markers = new Map(positions.map(val => [val[0].toString(), val[1]]));
                 setPerformingAction({
                     key: 'setup',
                     supportHighlight: positions.map(val => val[0]),
-                    supportHighlightMarkers: markers
+                    supportHighlightMarkers: positions
                 });
                 break
             case 'autospy':
@@ -477,8 +481,6 @@ export default function GameComponent(props: Props) {
     }
 
     const onSuspectClick = (position: Position) => {
-        console.log('Suspect Click', position);
-
         const performingAction = performingActionRef.current;
         const arena = arenaRef.current;
         if (!performingAction || !performingAction.supportHighlight?.some(pos => pos.equals(position))) {
@@ -600,12 +602,10 @@ export default function GameComponent(props: Props) {
     }
 
     const onMarkerClick = (position: Position, suspect: Suspect, marker: Marker) => {
-        console.log('Marker Click', position, marker);
-
         const performingAction = performingActionRef.current;
         const arena = arenaRef.current;
 
-        if (!performingAction || !performingAction.supportHighlight?.some(pos => pos.equals(position)) || !performingAction.supportHighlightMarkers?.get(position.toString())?.includes(marker)) {
+        if (!performingAction || !performingAction.supportHighlightMarkers?.some(([pos, markers]) => pos.equals(position) && markers.includes(marker))) {
             return;
         }
 
@@ -622,7 +622,7 @@ export default function GameComponent(props: Props) {
                 performingAction.supportHighlight = GameHelper.getMarkerMoveDestPositions(arena, position, marker);
                 break;
             case 'placeProtection':
-                action = { type: 'placeProtection', target: position }
+                action = { type: 'removeProtection', target: position }
                 commitAction(action);
                 break
         }
@@ -691,9 +691,7 @@ export default function GameComponent(props: Props) {
 
     const myTeamPlayers = myPlayer && myPlayer.role.team === 'MAFIA' ? mafiosiPlayers : fbiPlayers;
     const myTeamPositions = myTeamPlayers.map(player => {
-        const res = arena.findFirst(sus => sus.role === player);
-        assert(res);
-        return res[1];
+        return GameHelper.locatePlayer(arena, player);
     });
     const myPosition = myTeamPositions.find(pos => arena.atPosition(pos).role === myPlayer);
 
@@ -750,6 +748,7 @@ export default function GameComponent(props: Props) {
                     meHighlight={myPosition}
                     teamHighlight={myTeamPositions}
                     supportHighlight={performingAction?.supportHighlight}
+                    supportHighlightMarkers={performingAction?.supportHighlightMarkers}
                     onShift={doShift}
                     onSuspectClick={onSuspectClick}
                     onMarkerClick={onMarkerClick} />
@@ -824,7 +823,7 @@ export default function GameComponent(props: Props) {
     );
 }
 
-function resolveAvailableActions(role: Role, availableActions: Set<GameActions.Key>): ActionAvailability[]  {
+function resolveAvailableActions(role: Role, availableActions: Set<GameActions.Key>): ActionAvailability[] {
     let actions: ActionAvailability[];
 
     if (role === Role.DETECTIVE) {
@@ -872,7 +871,7 @@ function resolveAvailableActions(role: Role, availableActions: Set<GameActions.K
 interface BaseActionContext {
     readonly key: GameActions.Key,
     supportHighlight?: Position[],
-    supportHighlightMarkers?: Map<string, Marker[]>,
+    supportHighlightMarkers?: [Position, Marker[]][],
 }
 
 interface ShiftActionContext extends BaseActionContext {

@@ -5,7 +5,7 @@
 .markerImg {
     width: 27px;
     border-radius: 12%;
-    border-width: 5px;
+    border-width: 3px;
 }
 
 .stateModifier {
@@ -25,5 +25,15 @@
 }
 
 .highlight {
-    border: 2px solid rgb(71, 172, 255);
+    border-color: rgb(192 255 0);
+    border-style: dashed;
+}
+
+.highlight:hover {
+    border-color: rgb(217, 235, 163);
+    border-style: dashed;
+}
+
+.highlight:active {
+    border-color: rgb(192 255 0);
 }

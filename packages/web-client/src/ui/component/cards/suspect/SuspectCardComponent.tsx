@@ -12,7 +12,7 @@ import styles from './SuspectCardComponent.module.css';
 type OmitFields = 'onClick' | 'character';
 
 type Props = Omit<Partial<CharacterCardProps>, OmitFields> & {
-    className?: string,
+    additionalMarkerHighLightClassName?: string,
     suspect: Suspect,
     highlightMarkers?: Marker[],
     onMouseEnter?: () => void,
