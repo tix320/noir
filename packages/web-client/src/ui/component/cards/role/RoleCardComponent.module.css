@@ -1,0 +1,10 @@
+.main{
+    position: relative;
+}
+
+.roleIcon {
+    position: absolute;
+    top: 3%;
+    right: 8%;
+    width: 30%;
+}

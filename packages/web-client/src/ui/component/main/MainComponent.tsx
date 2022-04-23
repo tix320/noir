@@ -8,46 +8,47 @@ import { RemoteGame } from "../../../game/RemoteGame";
 import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
 import GameComponent from "../game/GameComponent";
 import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { StoreState } from "../../../service/Store";
 
-type State = {
-    currentGame?: Dto.UserCurrentGame
-}
+export default function MainComponent() {
+    const [currentGame, setCurrentGame] = useState<Dto.UserCurrentGame | undefined>(undefined);
+    const user = useSelector((state: StoreState) => state.user);
 
-export default class MainComponent extends RxComponent<{}, State> {
-
-    state: State = {}
-
-    componentDidMount(): void {
-        Api.myCurrentGameStream().pipe(takeUntil(this.destroy$)).subscribe(game => {
-            this.setState({
-                currentGame: game
-            })
+    useEffect(() => {
+        const subscription = Api.myCurrentGameStream().subscribe(game => {
+            setCurrentGame(game);
         })
-    }
 
-    render() {
-        const currentGame = this.state.currentGame;
-
-        let content;
-        if (currentGame) {
-            if (currentGame.state === 'PREPARING') {
-                const game = new RemoteGame.Preparation(currentGame.id);
-                content = <GamePreparationComponent game={game} />;
-            } else if (currentGame.state === 'PLAYING') {
-                const game = new RemoteGame.Play(currentGame.id);
-                content = <GameComponent game={game} />;
-            } else {
-                throw new Error(`Illegal state ${currentGame.state}`);
-            }
-        } else {
-            content = <LobbyComponent />;
+        return () => {
+            subscription.unsubscribe();
         }
+    }, []);
 
-        return (
-            <div className={styles.main}>
-                <ProfileComponent className={styles.profile} />
-                {content}
-            </div>
-        );
+
+    let content;
+    if (currentGame) {
+        if (currentGame.state === 'PREPARING') {
+            const game = new RemoteGame.Preparation(currentGame.id);
+            content = <GamePreparationComponent game={game} />;
+        } else if (currentGame.state === 'PLAYING') {
+            console.log('playing');
+
+            const game = new RemoteGame.Play(currentGame.id);
+            content = <GameComponent game={game} identity={user!} />;
+        } else {
+            throw new Error(`Illegal state ${currentGame.state}`);
+        }
+    } else {
+        content = <LobbyComponent />;
     }
+
+    return (
+        <div className={styles.main}>
+            <ProfileComponent className={styles.profile} />
+            {content}
+        </div>
+    );
+
 }

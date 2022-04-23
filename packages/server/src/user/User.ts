@@ -1,6 +1,7 @@
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import Identifiable from '@tix320/noir-core/src/util/Identifiable';
+import { BehaviorSubject, Observable } from 'rxjs';
 
-export class User {
+export class User implements Identifiable {
     readonly id: string
     readonly name: string
     readonly #currentGameId = new BehaviorSubject<string | undefined>(undefined);
@@ -22,7 +23,11 @@ export class User {
         return this.#currentGameId.asObservable();
     }
 
-    equals(other: User) {
-        return this.id === other.id;
+    equals(other: this | undefined) {
+        return !!other && this.id === other.id;
+    }
+    
+    toString() {
+        return `[id=${this.id} , name=${this.name}]`;
     }
 }

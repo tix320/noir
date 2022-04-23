@@ -69,7 +69,7 @@ export default class Matrix<T> {
         return neighbors;
     }
 
-    getCross(position: Position, maxDistance: number): Position[] {
+    getOrthogonalPositions(position: Position, maxDistance: number): Position[] {
         this.assertPosition(position);
 
         if (maxDistance < 0) {
@@ -79,19 +79,21 @@ export default class Matrix<T> {
         const crossPositions: Position[] = [];
 
         let distance = 0;
-
         for (let i = position.x - 1; i >= 0 && distance < maxDistance; i--, distance++) {
             crossPositions.push(new Position(i, position.y));
         }
 
+        distance = 0;
         for (let j = position.y + 1; j < this.size && distance < maxDistance; j++, distance++) {
             crossPositions.push(new Position(position.x, j));
         }
 
+        distance = 0;
         for (let i = position.x + 1; i < this.size && distance < maxDistance; i++, distance++) {
             crossPositions.push(new Position(i, position.y));
         }
 
+        distance = 0;
         for (let j = position.y - 1; j >= 0 && distance < maxDistance; j--, distance++) {
             crossPositions.push(new Position(position.x, j));
         }
@@ -100,7 +102,7 @@ export default class Matrix<T> {
         return crossPositions;
     }
 
-    getDiagonals(position: Position, maxDistance: number): Position[] {
+    getDiagonalPositions(position: Position, maxDistance: number): Position[] {
         this.assertPosition(position);
 
         if (maxDistance < 0) {
@@ -110,40 +112,27 @@ export default class Matrix<T> {
         const diagonals: Position[] = [];
 
         let distance = 0;
-
         for (let i = position.x - 1, j = position.y - 1; i >= 0 && j >= 0 && distance < maxDistance; i--, j--, distance++) {
             diagonals.push(new Position(i, j));
         }
 
+        distance = 0
         for (let i = position.x - 1, j = position.y + 1; i >= 0 && j < this.size && distance < maxDistance; i--, j++, distance++) {
             diagonals.push(new Position(i, j));
         }
 
+        distance = 0
         for (let i = position.x + 1, j = position.y - 1; i < this.size && j >= 0 && distance < maxDistance; i++, j--, distance++) {
             diagonals.push(new Position(i, j));
         }
 
+        distance = 0
         for (let i = position.x + 1, j = position.y + 1; i < this.size && j < this.size && distance < maxDistance; i++, j++, distance++) {
             diagonals.push(new Position(i, j));
         }
 
 
         return diagonals;
-    }
-
-    count(predicate: (element: T) => boolean): number {
-        let count = 0;
-
-        for (let i = 0; i < this.size; i++) {
-            for (let j = 0; j < this.size; j++) {
-                const suspect = this.at(i, j);
-                if (predicate(suspect)) {
-                    count++;
-                }
-            }
-        }
-
-        return count;
     }
 
     shift(direction: Direction, index: number, count: number) {
@@ -168,7 +157,7 @@ export default class Matrix<T> {
                 break;
             case Direction.DOWN:
                 for (let i = 0; i < this.size; i++) {
-                    const target = i - count < this.size ? i - count : i + (this.size - count);
+                    const target = i - count >= 0 ? i - count : i + (this.size - count);
                     temp[i] = this.matrix[target][index];
                 }
                 for (let i = 0; i < this.size; i++) {
@@ -186,7 +175,7 @@ export default class Matrix<T> {
                 break;
             case Direction.RIGHT:
                 for (let i = 0; i < this.size; i++) {
-                    const target = i - count < this.size ? i - count : i + (this.size - count);
+                    const target = i - count >= 0 ? i - count : i + (this.size - count);
                     temp[i] = this.matrix[index][target];
                 }
                 for (let i = 0; i < this.size; i++) {
@@ -194,6 +183,45 @@ export default class Matrix<T> {
                 }
                 break;
         }
+    }
+
+    findFirst(predicate: (item: T) => boolean): [T, Position] | undefined {
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                const item = this.at(i, j);
+                if (predicate(item)) {
+                    return [item, new Position(i, j)];
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    foreach(handler: (element: T, position: Position) => void): void {
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                const item = this.at(i, j);
+                const position = new Position(i, j);
+                handler(item, position);
+            }
+        }
+    }
+
+    filter(predicate: (element: T, position: Position) => boolean): Position[] {
+        const result = [];
+
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                const item = this.at(i, j);
+                const position = new Position(i, j);
+                if (predicate(item, position)) {
+                    result.push(position);
+                }
+            }
+        }
+
+        return result;
     }
 
     map<N>(mapper: (item: T) => N): Matrix<N> {
@@ -207,6 +235,21 @@ export default class Matrix<T> {
         }
 
         return new Matrix(newMatrix);
+    }
+
+    count(predicate: (element: T) => boolean): number {
+        let count = 0;
+
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                const item = this.at(i, j);
+                if (predicate(item)) {
+                    count++;
+                }
+            }
+        }
+
+        return count;
     }
 
     clone(itemsCloning: (item: T) => T): Matrix<T> {

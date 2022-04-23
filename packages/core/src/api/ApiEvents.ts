@@ -5,7 +5,8 @@ export namespace ApiEvents {
     export const JOIN_GAME = 'joinGame';
     export const CHANGE_ROLE_IN_GAME = 'changeRoleInGame';
     export const LEAVE_GAME = 'leaveGame';
-    export const GET_GAME_INITIAL_STATE = 'getGamePlayers';
+    
+    export const DO_GAME_ACTION = 'doGameAction';
 
     export const SUBSCRIBE_ALL_PREPARING_GAMES = "subscribe_allPreparingGames";
     export const ROOM_ALL_PREPARING_GAMES = "room_allPreparingGames";

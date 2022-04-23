@@ -1,0 +1,29 @@
+.main {
+    position: relative;
+}
+
+.markerImg {
+    width: 27px;
+    border-radius: 12%;
+    border-width: 5px;
+}
+
+.stateModifier {
+    position: absolute;
+    width: 90%;
+    top: 3%;
+    left: 6%;
+    pointer-events: none;
+}
+
+.markers {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.highlight {
+    border: 2px solid rgb(71, 172, 255);
+}

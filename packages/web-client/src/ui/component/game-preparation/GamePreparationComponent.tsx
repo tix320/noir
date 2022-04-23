@@ -1,5 +1,5 @@
 import { Game, RoleSelection } from "@tix320/noir-core/src/game/Game";
-import { RoleType } from "@tix320/noir-core/src/game/RoleType";
+import { Role } from "@tix320/noir-core/src/game/Role";
 import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
 import { takeUntil } from 'rxjs/operators';
@@ -16,7 +16,7 @@ type Props = {
 }
 
 type State = {
-    availableRoles: RoleType[],
+    availableRoles: Role[],
     selectedRoles: JoinedUserInfo[]
 }
 
@@ -39,15 +39,17 @@ class GamePreparationComponent extends RxComponent<Props, State> {
             });
     }
 
-    selectRole = (selectedRole: RoleType) => {
-        Api.changeGameRole({
+    selectRole = (selectedRole: Role) => {
+        this.props.game.changeRole({
+            identity: this.props.user,
             role: selectedRole,
             ready: false
         })
     }
 
-    changeReadiness = (role: RoleType, ready: boolean) => {
-        Api.changeGameRole({
+    changeReadiness = (role: Role, ready: boolean) => {
+        this.props.game.changeRole({
+            identity: this.props.user,
             role: role,
             ready: ready
         })
@@ -65,7 +67,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
 
                     <div className={styles.availableRolesContainer}>
                         {this.state.availableRoles
-                            .map(role => <RoleCard className={styles.availableRoleCard} key={role} role={role} onClick={this.selectRole} ></RoleCard>)}
+                            .map(role => <RoleCard key={role.name} role={role} onClick={this.selectRole} />)}
                     </div>
 
 
@@ -79,7 +81,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
-                    <RoleCard className={styles.selectedRoleCard} key={role} role={role!}></RoleCard>
+                    <RoleCard key={role!.name} role={role!} />
                     <div>{user.name}</div>
                     <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== this.props.user.id} onClick={() => this.changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}
@@ -91,16 +93,16 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         </div>);
     }
 
-    private isMafiaRole(role: RoleType) {
-        return [RoleType.KILLER, RoleType.BOMBER, RoleType.PSYCHO, RoleType.SNIPER].includes(role);
+    private isMafiaRole(role: Role) {
+        return role.team === 'MAFIA';
     }
 
-    private isFBIRole(role: RoleType) {
-        return [RoleType.UNDERCOVER, RoleType.DETECTIVE, RoleType.SUIT, RoleType.PROFILER].includes(role);
+    private isFBIRole(role: Role) {
+        return role.team === 'FBI';
     }
 
     private adaptParticipants(participants: RoleSelection<User>[]): GamePreparationState {
-        let availableRoles = new Set(RoleType.for8());
+        let availableRoles = new Set(Role.FOR_8_GAME);
 
         const selectedRoles: JoinedUserInfo[] = [];
 
@@ -124,13 +126,13 @@ class GamePreparationComponent extends RxComponent<Props, State> {
 }
 
 interface GamePreparationState {
-    availableRoles: RoleType[],
+    availableRoles: Role[],
     selectedRoles: JoinedUserInfo[]
 }
 
 interface JoinedUserInfo {
     user: User,
-    role?: RoleType,
+    role?: Role,
     ready: boolean
 }
 

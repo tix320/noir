@@ -19,7 +19,11 @@ const slice = createSlice({
 })
 
 const store = configureStore({
-    reducer: slice.reducer
+    reducer: slice.reducer,
+    middleware: getDefaultMiddleware =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 })
 
 export default store;

@@ -1,7 +1,7 @@
 import Avatar from 'react-avatar';
 import { useSelector } from 'react-redux';
 import { StoreState } from '../../../../service/Store';
-import avatarImg from "../../../images/avatar.png";
+import avatarImg from "../../../images/logo.png";
 import styles from "./Profile.module.css";
 
 type Props = {

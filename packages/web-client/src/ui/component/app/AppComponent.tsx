@@ -1,31 +1,18 @@
-import { Component } from "react";
-import { connect } from "react-redux";
+import { useEffect } from "react";
+import { useSelector } from "react-redux";
 import User from '../../../entity/User';
-import API from "../../../service/Api";
-import store, { userChanged } from '../../../service/Store';
+import API from '../../../service/Api';
+import store, { StoreState, userChanged } from '../../../service/Store';
 import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
 import LoginComponent from "../login/LoginComponent";
-import MainComponent from '../main/MainComponent';
+import MainComponent from "../main/MainComponent";
 import styles from './AppComponent.module.css';
+
 type Props = {
-    user: User
 }
 
-type State = {
-}
-
-class AppComponent extends Component<Props, State> {
-
-    state: State = {};
-
-    componentDidMount() {
-        const token = retrieveToken();
-        if (token) {
-            this.login(token, false)
-        }
-    }
-
-    login = (token: string, saveToken: boolean) => {
+export default function AppComponent(props: Props) {
+    const login = (token: string, saveToken: boolean) => {
         API.connect(token).then(user => {
             storeToken(token, saveToken)
             store.dispatch(userChanged(new User(user.id, user.name)))
@@ -37,22 +24,22 @@ class AppComponent extends Component<Props, State> {
         })
     }
 
-    render() {
-        const user = this.props.user;
+    const user = useSelector((state: StoreState) => state.user);
 
-        return (
-            <div className={styles.mainScreen}>
-                {user ? <MainComponent /> : <LoginComponent onLogin={this.login} />}
-            </div>
-        );
-    }
+    useEffect(() => {
+        const token = retrieveToken();
+        if (token) {
+            login(token, false)
+        }
+    }, [])
+
+    return (
+        <div className={styles.mainScreen}>
+            {user ? <MainComponent /> : <LoginComponent onLogin={login} />}
+        </div>
+    );
 }
 
-function mapStateToProps(state: any) {
-    const user = state.user;
-    return {
-        user,
-    };
-}
 
-export default connect(mapStateToProps)(AppComponent);
+
+

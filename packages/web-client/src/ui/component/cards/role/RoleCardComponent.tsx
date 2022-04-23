@@ -1,41 +1,38 @@
-import { RoleType } from "@tix320/noir-core/src/game/RoleType";
-import { Component } from "react";
-import GameCard from "../GameCardComponent";
+import { Character } from "@tix320/noir-core/src/game/Character";
+import { Role } from "@tix320/noir-core/src/game/Role";
+import { useEffect, useState } from "react";
+import CharacterCard, { Props as CharacterCardProps } from "../character/CharacterCardComponent";
+import styles from './RoleCardComponent.module.css';
 
-type Props = {
-    className?: string,
-    role: RoleType,
-    onClick?: (role: RoleType) => void
+type OmitFields = 'onClick';
+
+type Props = Omit<Partial<CharacterCardProps>, OmitFields> & {
+    role: Role,
+    character?: Character,
+    onClick?: (role: Role) => void
 }
 
-type State = {
-    image?: string
-}
+export default function RoleCardComponent(props: Props) {
+    const { role, onClick } = props;
 
-export default class RoleCard extends Component<Props, State> {
 
-    state: State = {}
-
-    onClick = () => {
-        if (this.props.onClick) {
-            this.props.onClick(this.props.role);
+    const onRoleClick = () => {
+        if (onClick) {
+            onClick(role);
         }
     }
 
-    componentDidMount(): void {
-        import(`../../../images/cards/roles/${this.props.role.toLowerCase()}.png`).then(image => {
-            this.setState({
-                image: image.default
-            });
-        });
-    }
+    const character = props.character ??
+        (role.team === 'MAFIA'
+            ? new Character( Character.ALL.length + "", role.name)
+            : new Character(Character.ALL.length + 1 + "", role.name));
 
-    render() {
-        const image = this.state.image;
-        const role = this.props.role;
+    const roleImage = require(`../../../images/card/role/${role.name.toLowerCase()}.png`);
 
-        return (
-            <GameCard className={this.props.className} image={image!} description={RoleType.capitalize(role)} onClick={this.onClick} />
-        );
-    }
+    return (
+        <div className={styles.main}>
+            <CharacterCard {...props} character={character} onClick={onRoleClick} />
+            <img className={styles.roleIcon} src={roleImage}/>
+        </div>
+    );
 }

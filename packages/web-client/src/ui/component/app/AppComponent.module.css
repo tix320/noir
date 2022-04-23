@@ -1,5 +1,4 @@
 .mainScreen {
-  position: fixed;
   width: 100%;
   height: 100%;
   background-image: url("../../images/background.jpg");
@@ -7,6 +6,12 @@
 
 }
 
-.mainScreen > * {
+.mainScreen>* {
   color: #49a1e3;
+}
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }

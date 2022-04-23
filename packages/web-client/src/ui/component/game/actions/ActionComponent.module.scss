@@ -1,0 +1,64 @@
+.container {
+  height: 100%;
+  width: 100%;
+}
+
+.container:hover .tooltip {
+  visibility: visible;
+}
+
+$img-size : 80px;
+
+.icon {
+  position: relative;
+  width: $img-size;
+  height: $img-size;
+  border-radius: 5px;
+  border-width: 6px;
+  border-style: solid;
+}
+
+.icon:disabled {
+  border-color: rgb(221, 221, 221);
+}
+
+.icon:enabled {
+  // available
+  border-color: rgb(192 255 0);
+  border-style: dashed;
+}
+
+.icon:hover {
+  // hover
+  border-color: rgb(217, 235, 163);
+}
+
+.selectedIcon {
+  animation-name: borderBlink;
+  animation-duration: 0.4s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  position: absolute;
+  z-index: 1;
+}
+
+@keyframes borderBlink {
+  from {
+    border-color: rgb(255, 0, 0);
+  }
+
+  to {
+    border-color: rgb(182, 131, 114);
+  }
+}

@@ -1,7 +1,7 @@
 import { Component } from "react";
 import { Button, Form } from "react-bootstrap";
 import "./Login.scss";
-import loginImg from "../../images/spy-logo.png";
+import logoImg from "../../images/logo.png";
 import { withTranslation } from 'react-i18next';
 
 type Props = {
@@ -33,7 +33,7 @@ class LoginComponent extends Component<Props, State>  {
             <div className="base-container">
                 <div className="content">
                     <div className="image">
-                        <img alt="logo" src={loginImg} />
+                        <img alt="logo" src={logoImg} />
                     </div>
                     <div className="form">
                         <div className="form-group">

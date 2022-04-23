@@ -1,0 +1,16 @@
+.dialog {
+    position: fixed;
+    bottom: 2%;
+    right: 2%;
+}
+
+.dialogContent {
+    background-color: antiquewhite;
+    border-radius: 15px;
+}
+
+.contentRoot {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}

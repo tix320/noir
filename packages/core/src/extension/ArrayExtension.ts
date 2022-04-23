@@ -2,6 +2,10 @@ export { };
 
 declare global {
     interface Array<T> {
+        isEmpty(): boolean;
+
+        isNonEmpty(): boolean;
+
         has(item: T): boolean;
 
         removeFirstBy(predicate: (element: T) => boolean): T | undefined;
@@ -12,6 +16,14 @@ declare global {
 
         toMap<K>(keyExtractor: (element: T) => K): Map<K, T>;
     }
+}
+
+Array.prototype.isEmpty = function <T>(this: Array<T>): boolean {
+    return this.length === 0;
+}
+
+Array.prototype.isNonEmpty = function <T>(this: Array<T>): boolean {
+    return this.length !== 0;
 }
 
 Array.prototype.has = function <T>(this: Array<T>, item: T): boolean {

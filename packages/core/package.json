@@ -4,8 +4,7 @@
   "main": "index.js",
   
   "scripts": {
-    "start": "tsc -w",
-    "test": "concurrently --kill-others \"tsc -w\" \"nodemon src/test.js\""
+    "start": "tsc -w"
   },
   "dependencies": {
   },

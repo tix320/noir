@@ -1,18 +1,7 @@
+import Identifiable from "../util/Identifiable";
 import { shuffle } from "../util/RandUtils";
 
-export class Character {
-    readonly name: string;
-
-    constructor(name: string) {
-        this.name = name;
-    }
-
-    toString(): string {
-        return this.name;
-    }
-}
-
-const CHARACTERS = [
+const CHARACTER_NAMES: readonly string[] = [
     "Logan",
     "Poncho",
     "Blondie",
@@ -65,10 +54,24 @@ const CHARACTERS = [
     "Maggie-moo",
 ];
 
+export class Character implements Identifiable {
+
+    public static ALL: readonly Character[] = CHARACTER_NAMES.map((name, index) => new Character(index + "", name));
+
+    public constructor(public readonly id: string, public readonly name: string) {
+    }
+
+    toString(): string {
+        return this.name;
+    }
+}
+
+
 export namespace Character {
     export function generateSet(count: number): Character[] {
-        shuffle(CHARACTERS);
+        const characters = [...Character.ALL];
+        shuffle(characters);
 
-        return CHARACTERS.slice(0, count).sort().map(characterName => new Character(characterName));
+        return characters.slice(0, count);
     }
 }

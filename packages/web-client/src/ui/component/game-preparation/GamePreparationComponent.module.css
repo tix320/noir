@@ -1,31 +1,25 @@
-.main{
+.main {
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
     height: 90vh;
 }
 
-.selectedRolesContainer{
-width: 100%;
-justify-content: center;
-display: flex;
-flex-wrap: wrap;
-text-align: center;
-flex: 0 0 33%;
-
+.selectedRolesContainer {
+    width: 100%;
+    justify-content: center;
+    display: flex;
+    flex-wrap: wrap;
+    text-align: center;
+    flex: 0 0 33%;
+    gap: 15px;
 }
 
-.selectedRoleCard {
-    flex: 2 0 25%;
-}
-
-.availableRolesContainer{
+.availableRolesContainer {
     width: 100%;
     justify-content: center;
     display: flex;
     flex-wrap: wrap;
     text-align: center;
     flex: 2 0 33%;
-    }
-
-.availableRoleCard {
+    gap: 15px;
 }

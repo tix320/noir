@@ -1,32 +1,28 @@
-import { Component } from "react";
-import styles from './GameCardComponent.module.css';
+import styles from './GameCardComponent.module.scss';
 
-type Props = {
-    className?: string,
+export type Props = {
     image: string,
-    description?: string,
-    onClick?: () => void
+    additionalClassName?: string, 
+    highlight?: boolean,
+    additionalHighLightClassName?: string,
+    description: string,
+    onMouseEnter?: () => void,
+    onMouseLeave?: () => void,
+    onClick?: (...args: any[]) => any,
 }
 
-type State = {
-}
 
-export default class GameCardComponent extends Component<Props, State> {
+export default function GameCardComponent(props: Props) {
+    const highlightClassName = props.highlight ? `${styles.highlight} ${props.additionalHighLightClassName ?? ''}` : '';
 
-    state: State = {}
+    return (
+        <div className={`${styles.box} ${props.additionalClassName} ${highlightClassName}`}
+            onMouseEnter={props.onMouseEnter}
+            onMouseLeave={props.onMouseLeave}
+            onClick={props.onClick}>
+            <img className={styles.contentImage} src={props.image} />
+            <span className={styles.description}> {props.description} </span>
+        </div>
 
-    render() {
-        const image = this.props.image;
-        const description = this.props.description;
-
-        return (
-                <div className={this.props.className} >
-                    <div className={styles.frame} onClick={this.props.onClick}>
-                    <img className={styles.contentImage} src={image} />
-                    <div className={styles.description} > {description} </div>
-                    </div>
-                   
-                </div>
-        );
-    }
+    );
 }

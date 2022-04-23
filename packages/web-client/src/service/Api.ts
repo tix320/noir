@@ -6,6 +6,7 @@ import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import store from "./Store";
 import User from "../entity/User";
+import { GameActions } from "@tix320/noir-core/src/game/GameActions";
 
 const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://10.10.10.11:5000"
 
@@ -55,7 +56,7 @@ class API {
         });
     }
 
-    changeGameRole(roleSelection: Omit<RoleSelection<never>, 'identity'>): Promise<void> {
+    changeGameRole(roleSelection: Omit<Dto.GameRoleSelection, 'identity'>): Promise<void> {
         return new Promise<void>(resolve => {
             const socket = this.socket();
 
@@ -75,12 +76,12 @@ class API {
         });
     }
 
-    getGameInitialState(gameId: string): Promise<Dto.GameInitialState> {
-        return new Promise<Dto.GameInitialState>(resolve => {
+    doGameAction(action: Dto.Actions.Any): Promise<void> {
+        return new Promise<void>(resolve => {
             const socket = this.socket();
 
-            socket.emit(ApiEvents.GET_GAME_INITIAL_STATE, gameId, (players: Dto.GameInitialState) => {
-                resolve(players);
+            socket.emit(ApiEvents.DO_GAME_ACTION, action, () => {
+                resolve();
             });
         });
     }
@@ -101,7 +102,7 @@ class API {
         return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PREPARING_GAME, ApiEvents.ROOM_PREPARING_GAME(gameId), gameId);
     }
 
-    playingGameEventsStream(gameId: string): Observable<GameEvents.Base> {
+    playingGameEventsStream(gameId: string): Observable<Dto.Events.Any> {
         return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PLAYING_GAME, ApiEvents.ROOM_PLAYING_GAME(gameId), gameId);
     }
 
