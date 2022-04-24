@@ -8,10 +8,12 @@ import shieldImage from "../../../images/card/marker/shield.png";
 import threatImage from "../../../images/card/marker/threat.png";
 import CharacterCard, { Props as CharacterCardProps } from "../character/CharacterCardComponent";
 import styles from './SuspectCardComponent.module.css';
+import classNames from "classnames";
 
 type OmitFields = 'onClick' | 'character';
 
 type Props = Omit<Partial<CharacterCardProps>, OmitFields> & {
+    className?: string,
     additionalMarkerHighLightClassName?: string,
     suspect: Suspect,
     highlightMarkers?: Marker[],
@@ -35,9 +37,10 @@ export default function SuspectCardComponent(props: Props) {
     }
 
     return (
-        <div className={styles.main}>
+        <div className={classNames(styles.container, props.className)}>
 
             <CharacterCard {...props}
+                className={styles.card}
                 character={suspect.character}
                 highlight={props.highlight}
                 onMouseEnter={props.onMouseEnter}

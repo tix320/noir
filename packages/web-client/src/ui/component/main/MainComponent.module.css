@@ -1,5 +1,4 @@
-.main{
-    height: 100%;
+.container{
 }
 
 .profile {
@@ -8,4 +7,14 @@
     top: 20px;
     right: 40px;
     align-items: center;
+}
+
+.gamePreparation{
+    width: 100%;
+    height: 100%;
+}
+
+.game{
+    width: 100%;
+    height: 100%;
 }

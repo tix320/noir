@@ -1,24 +1,16 @@
-.main {
-    display: flex;
-    flex-direction: column;
-    gap: min(0.5%, 30px);
-    height: 100%;
-}
-
-.shiftRow {
-    display: flex;
-    justify-content: center;
-    gap: 8.9%;
-    height: 3.5%;
-}
-
-.suspectsRow {
-    display: flex;
+.container {
+    display: grid;
+    justify-items: center;
     align-items: center;
-    justify-content: center;
-    gap: min(3%, 40px);
-    height: 13.5%;
-    width: 100%;
+    gap: 5px;
+}
+
+.shiftCell {
+    height: 25px;
+}
+
+.suspectCell {
+    height: 100%;
 }
 
 .mySuspect {

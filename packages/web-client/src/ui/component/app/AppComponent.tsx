@@ -1,3 +1,4 @@
+import classNames from "classnames";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import User from '../../../entity/User';
@@ -9,6 +10,7 @@ import MainComponent from "../main/MainComponent";
 import styles from './AppComponent.module.css';
 
 type Props = {
+    className?: string;
 }
 
 export default function AppComponent(props: Props) {
@@ -34,8 +36,8 @@ export default function AppComponent(props: Props) {
     }, [])
 
     return (
-        <div className={styles.mainScreen}>
-            {user ? <MainComponent /> : <LoginComponent onLogin={login} />}
+        <div className={classNames(styles.container, props.className)}>
+            {user ? <MainComponent className={styles.main} /> : <LoginComponent className={styles.login} onLogin={login} />}
         </div>
     );
 }

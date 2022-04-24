@@ -12,6 +12,7 @@ import styles from './ShiftComponent.module.css';
 
 
 type Props = {
+    className?: string,
     direction: Direction,
     disabled: boolean,
     fast: boolean,
@@ -49,7 +50,7 @@ export default function ShiftComponent(props: Props) {
         }
     }, [props.fast]);
 
-    return (<div className={styles.container}>
+    return (<div className={`${props.className} ${styles.container}`}>
         <input className={styles.image} type="image" src={getImgByDirection(props.direction, enableFast)} onClick={onClick} disabled={props.disabled} />
     </div>
     );

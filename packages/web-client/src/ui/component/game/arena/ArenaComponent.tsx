@@ -2,6 +2,8 @@ import { Arena, Marker, ShiftAction, Suspect } from "@tix320/noir-core/src/game/
 import { GameHelper } from "@tix320/noir-core/src/game/GameHelper";
 import { Direction } from "@tix320/noir-core/src/util/Direction";
 import Position from "@tix320/noir-core/src/util/Position";
+import classNames from "classnames";
+import { Fragment } from "react";
 import SuspectCard from "../../cards/suspect/SuspectCardComponent";
 import styles from './ArenaComponent.module.css';
 import Shift from "./shift/ShiftComponent";
@@ -30,25 +32,33 @@ export default function ArenaComponent(props: Props) {
 
     const arenaSize = arena.size;
     const arr = [...Array(arenaSize)].map(a => a + 1);
+
+    const gridStyles = {
+        gridTemplateColumns: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 13}%)) 2%`,
+        gridTemplateRows: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 13}%)) 2%`
+    };
+
     return (
-        <div className={`${className} ${styles.main}`}>
-            <div className={styles.shiftRow}>
-                {arr.map((e, index) => <Shift key={`up${index}`}
-                    direction={Direction.UP}
-                    disabled={disableShift || isReverseShift(Direction.UP, index)}
-                    fast={props.fastShift}
-                    onAction={(fast) => onShift(Direction.UP, index, fast)} />)}
-            </div>
+        <div className={classNames(styles.container, props.className)} style={gridStyles}>
+            <div />
+
+            {arr.map((e, index) => <Shift className={styles.shiftCell} key={`up${index}`}
+                direction={Direction.UP}
+                disabled={disableShift || isReverseShift(Direction.UP, index)}
+                fast={props.fastShift}
+                onAction={(fast) => onShift(Direction.UP, index, fast)} />)}
+
+            <div />
             {
                 arr.map((e, row) =>
-                    <div className={styles.suspectsRow} key={row}>
-                        <Shift key={`left${row}`}
+                    <Fragment key={row}>
+                        <Shift className={styles.shiftCell} key={`left${row}`}
                             direction={Direction.LEFT}
                             disabled={disableShift || isReverseShift(Direction.LEFT, row)}
                             fast={props.fastShift}
                             onAction={(fast) => onShift(Direction.LEFT, row, fast)} />
 
-                        {arr.map((e, column) => <SuspectCard key={column}
+                        {arr.map((e, column) => <SuspectCard className={styles.suspectCell} key={column}
                             suspect={arena.at(row, column)}
                             additionalClassName={props.meHighlight?.x === row && props.meHighlight?.y === column ?
                                 styles.mySuspect
@@ -58,22 +68,23 @@ export default function ArenaComponent(props: Props) {
                             onSuspectClick={suspect => onSuspectClick(new Position(row, column), suspect)}
                             onMarkerClick={(suspect, marker) => onMarkerClick(new Position(row, column), suspect, marker)} />)}
 
-                        <Shift key={`right${row}`}
+                        <Shift className={styles.shiftCell} key={`right${row}`}
                             direction={Direction.RIGHT}
                             disabled={disableShift || isReverseShift(Direction.RIGHT, row)}
                             fast={props.fastShift}
                             onAction={(fast) => onShift(Direction.RIGHT, row, fast)} />
-                    </div>
+                    </Fragment>
                 )
             }
 
-            <div className={styles.shiftRow}>
-                {arr.map((e, index) => <Shift key={`down${index}`}
-                    direction={Direction.DOWN}
-                    disabled={disableShift || isReverseShift(Direction.DOWN, index)}
-                    fast={props.fastShift}
-                    onAction={(fast) => onShift(Direction.DOWN, index, fast)} />)}
-            </div>
+            <div />
+            {arr.map((e, index) => <Shift className={styles.shiftCell} key={`down${index}`}
+                direction={Direction.DOWN}
+                disabled={disableShift || isReverseShift(Direction.DOWN, index)}
+                fast={props.fastShift}
+                onAction={(fast) => onShift(Direction.DOWN, index, fast)} />)}
+            <div />
+
         </div>
     );
 }

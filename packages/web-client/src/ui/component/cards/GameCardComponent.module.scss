@@ -1,15 +1,5 @@
-$anime-time : 3s;
-$box-size : 120px;
-$clip-distance : .02;
-$clip-size : $box-size * (1 + $clip-distance * 2);
-$path-width : 1px;
-$working-animation-color: #8c9bf9;
-$border-color: #e8e9f3;
-
 .box {
   position: relative;
-  width: $box-size;
-  height: $box-size;
   border: 5px solid rgb(221, 221, 221);
   border-radius: 5px;
 }
@@ -28,10 +18,8 @@ $border-color: #e8e9f3;
 }
 
 .contentImage {
-  display: block;
-  margin: auto;
-  width: 100%;
-  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
   aspect-ratio: 1;
 }
 
@@ -41,7 +29,7 @@ $border-color: #e8e9f3;
   left: 0;
   font-family: Consolas;
   font-weight: 900;
-  font-size: 20px;
+  font-size: 0.95vw;
   background-color: rgb(189 189 189 / 50%);
   border-radius: 6px;
   color: honeydew;

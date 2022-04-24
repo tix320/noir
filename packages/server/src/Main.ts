@@ -280,8 +280,8 @@ io.on("connection", (socket) => {
             role: roleSelection.role ? Role.getByName(roleSelection.role) : undefined
         });
 
-        GameService.startGame(gameInfo.id);
-    });
+        GameService.startGame(gameInfo.id); 
+    }); 
 
     socket.on(ApiEvents.LEAVE_GAME, (cb) => {
         GAME_SERVICE.leaveGame(user);

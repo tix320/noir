@@ -10,6 +10,7 @@ import { Direction } from '@tix320/noir-core/src/util/Direction';
 import { equals } from '@tix320/noir-core/src/util/Identifiable';
 import Matrix from '@tix320/noir-core/src/util/Matrix';
 import Position from '@tix320/noir-core/src/util/Position';
+import classNames from 'classnames';
 import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,7 @@ import styles from './GameComponent.module.css';
 import TeamPlayersPanel, { PlayerInfo } from './TeamPlayersPanelComponent';
 
 type Props = {
+    className?: string,
     game: Game.Play<User>,
     identity: User
 }
@@ -729,9 +731,9 @@ export default function GameComponent(props: Props) {
     }));
 
     return (
-        <div className={styles.main}>
+        <div className={classNames(styles.container, props.className)}>
 
-            {myPlayer && <div className={styles.upper}>
+            {myPlayer &&
                 <TeamPlayersPanel
                     className={styles.leftPlayersPanel}
                     hidden={myPlayer.role.team === 'FBI'}
@@ -739,28 +741,28 @@ export default function GameComponent(props: Props) {
                     me={myPlayer.identity}
                     currentTurn={currentTurnPlayer?.identity}
                     alert={canvasAlertList} />
+            }
 
-                <ArenaComponent className={styles.arena}
-                    arena={arena}
-                    fastShift={!!currentTurnPlayer && GameHelper.canDoFastShift(currentTurnPlayer)}
-                    disableShift={performingAction?.key !== 'shift'}
-                    lastShift={lastShift}
-                    meHighlight={myPosition}
-                    teamHighlight={myTeamPositions}
-                    supportHighlight={performingAction?.supportHighlight}
-                    supportHighlightMarkers={performingAction?.supportHighlightMarkers}
-                    onShift={doShift}
-                    onSuspectClick={onSuspectClick}
-                    onMarkerClick={onMarkerClick} />
+            <ArenaComponent className={styles.arena}
+                arena={arena}
+                fastShift={!!currentTurnPlayer && GameHelper.canDoFastShift(currentTurnPlayer)}
+                disableShift={performingAction?.key !== 'shift'}
+                lastShift={lastShift}
+                meHighlight={myPosition}
+                teamHighlight={myTeamPositions}
+                supportHighlight={performingAction?.supportHighlight}
+                supportHighlightMarkers={performingAction?.supportHighlightMarkers}
+                onShift={doShift}
+                onSuspectClick={onSuspectClick}
+                onMarkerClick={onMarkerClick} />
 
-                <TeamPlayersPanel
-                    className={styles.rightPlayersPanel}
-                    hidden={myPlayer.role.team === 'MAFIA'}
-                    players={fbiPlayersInfo}
-                    me={myPlayer.identity}
-                    currentTurn={currentTurnPlayer?.identity}
-                    alert={canvasAlertList} />
-            </div>
+            {myPlayer && <TeamPlayersPanel
+                className={styles.rightPlayersPanel}
+                hidden={myPlayer.role.team === 'MAFIA'}
+                players={fbiPlayersInfo}
+                me={myPlayer.identity}
+                currentTurn={currentTurnPlayer?.identity}
+                alert={canvasAlertList} />
             }
 
             <ActionsPanel

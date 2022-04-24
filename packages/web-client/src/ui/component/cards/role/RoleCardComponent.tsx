@@ -1,5 +1,6 @@
 import { Character } from "@tix320/noir-core/src/game/Character";
 import { Role } from "@tix320/noir-core/src/game/Role";
+import classNames from "classnames";
 import { useEffect, useState } from "react";
 import CharacterCard, { Props as CharacterCardProps } from "../character/CharacterCardComponent";
 import styles from './RoleCardComponent.module.css';
@@ -30,8 +31,8 @@ export default function RoleCardComponent(props: Props) {
     const roleImage = require(`../../../images/card/role/${role.name.toLowerCase()}.png`);
 
     return (
-        <div className={styles.main}>
-            <CharacterCard {...props} character={character} onClick={onRoleClick} />
+        <div className={classNames(styles.container, props.className)}>
+            <CharacterCard className={styles.card} {...props} character={character} onClick={onRoleClick} />
             <img className={styles.roleIcon} src={roleImage}/>
         </div>
     );

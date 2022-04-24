@@ -2,6 +2,7 @@
     position: fixed;
     bottom: 2%;
     right: 2%;
+    width: 10vw;
 }
 
 .dialogContent {

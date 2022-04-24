@@ -1,21 +1,21 @@
-.container{
-    user-select: none;
+.container {
 }
 
-.image{
-    height: 24px;
+.image {
+    max-height: 100%;
+    max-width: 100%;
     border-radius: 15px;
-    background-color:#49a1e3;
+    background-color: #49a1e3;
 }
 
-.image:hover{
+.image:hover {
     background-color: aliceblue;
 }
 
-.image:active{
+.image:active {
     background-color: rgb(196, 228, 228);
 }
 
-.image:disabled{
+.image:disabled {
     background-color: rgb(154, 158, 158);
 }

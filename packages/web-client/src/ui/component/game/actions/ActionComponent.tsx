@@ -1,7 +1,9 @@
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
+import classNames from 'classnames';
 import styles from './ActionComponent.module.scss';
 
 type Props<K extends GameActions.Any> = {
+    className?: string,
     action: GameActions.Key<K>,
     description: string,
     available: boolean,
@@ -15,7 +17,7 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
     const image = require(`../../../images/action/${props.action}.png`);
 
     return (
-        <div className={styles.container} >
+        <div className={classNames(styles.container, props.className)} >
             <input type='image'
                 className={`${styles.icon} ${props.selected ? styles.selectedIcon : ''}`}
                 src={image}

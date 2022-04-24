@@ -3,8 +3,10 @@ import { Button, Form } from "react-bootstrap";
 import "./Login.scss";
 import logoImg from "../../images/logo.png";
 import { withTranslation } from 'react-i18next';
+import classNames from "classnames";
 
 type Props = {
+    className?:string,
     t: any,
     onLogin(token: string, permanent: boolean): void
 }
@@ -29,8 +31,10 @@ class LoginComponent extends Component<Props, State>  {
     render() {
         const locale = this.props.t;
 
+        const classnames = classNames("base-container", this.props.className);
+
         return (
-            <div className="base-container">
+            <div className={classnames}>
                 <div className="content">
                     <div className="image">
                         <img alt="logo" src={logoImg} />

@@ -1,8 +1,10 @@
+import classNames from 'classnames';
 import styles from './GameCardComponent.module.scss';
 
 export type Props = {
+    className?: string,
     image: string,
-    additionalClassName?: string, 
+    additionalClassName?: string,
     highlight?: boolean,
     additionalHighLightClassName?: string,
     description: string,
@@ -15,8 +17,10 @@ export type Props = {
 export default function GameCardComponent(props: Props) {
     const highlightClassName = props.highlight ? `${styles.highlight} ${props.additionalHighLightClassName ?? ''}` : '';
 
+    const classnames = classNames(styles.box, props.className, props.additionalClassName, highlightClassName);
+
     return (
-        <div className={`${styles.box} ${props.additionalClassName} ${highlightClassName}`}
+        <div className={classnames}
             onMouseEnter={props.onMouseEnter}
             onMouseLeave={props.onMouseLeave}
             onClick={props.onClick}>

@@ -6,14 +6,15 @@ type Props = ModalProps & {}
 export default function ActionDialogComponent(props: Props) {
     return (
         <Modal
+            className=""
             size="lg"
             animation={true}
             dialogClassName={styles.dialog}
             contentClassName={styles.dialogContent} {...props} >
 
             <Modal.Body>
-            <div className={styles.contentRoot}> 
-                {props.children}
+                <div className={styles.contentRoot}>
+                    {props.children}
                 </div>
             </Modal.Body>
         </Modal>

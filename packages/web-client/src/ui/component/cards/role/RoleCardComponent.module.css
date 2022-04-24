@@ -1,4 +1,4 @@
-.main{
+.container {
     position: relative;
 }
 
@@ -7,4 +7,9 @@
     top: 3%;
     right: 8%;
     width: 30%;
+}
+
+.card {
+    height: 100%;
+    width: 100%;
 }

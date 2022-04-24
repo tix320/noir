@@ -1,6 +1,7 @@
 import { Game, RoleSelection } from "@tix320/noir-core/src/game/Game";
 import { Role } from "@tix320/noir-core/src/game/Role";
 import { equals } from "@tix320/noir-core/src/util/Identifiable";
+import classNames from "classnames";
 import { Button } from "react-bootstrap";
 import { connect } from "react-redux";
 import { takeUntil } from 'rxjs/operators';
@@ -12,6 +13,7 @@ import RxComponent from "../common/RxComponent";
 import styles from './GamePreparationComponent.module.css';
 
 type Props = {
+    className?: string,
     user: User,
     game: Game.Preparation<User>,
 }
@@ -57,18 +59,15 @@ class GamePreparationComponent extends RxComponent<Props, State> {
     }
 
     render() {
-        const game = this.props.game;
-
         return (
             <div>
-                <h1>Game prepare</h1>
-                <div className={styles.main}>
+                <div className={classNames(styles.container, this.props.className)}>
                     {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
 
 
                     <div className={styles.availableRolesContainer}>
                         {this.state.availableRoles
-                            .map(role => <RoleCard key={role.name} role={role} onClick={this.selectRole} />)}
+                            .map(role => <RoleCard className={styles.card} key={role.name} role={role} onClick={this.selectRole} />)}
                     </div>
 
 
@@ -82,7 +81,7 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
-                    <RoleCard key={role!.name} role={role!} highlight={equals(user,this.props.user)} />
+                    <RoleCard className={styles.card} key={role!.name} role={role!} highlight={equals(user, this.props.user)} />
                     <div>{user.name}</div>
                     <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== this.props.user.id} onClick={() => this.changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}

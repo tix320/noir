@@ -1,30 +1,24 @@
-.main {
-    height: 100%;
-}
-
-.upper {
-    display: flex;
+.container {
+    padding: 1vh;
+    display: grid;
+    grid-template-columns: 7% 65% 7%;
+    grid-template-rows: 100% 40%;
     justify-content: space-between;
-    height: 100%;
 }
 
 .leftPlayersPanel{
-    margin-top: 1vh;
-    margin-left: 1vh;
 }
 
 .rightPlayersPanel {
-    margin-top: 1vh;
-    margin-right: 1vh;
 }
 
 .arena {
-    width: 80%;
-    height: 100%;
 }
 
 .actionsPanel {
     position:absolute;
     left: 1vw;
-    bottom: 1vh;
+    bottom: 3vh;
+    max-width: 10%;
+    max-height: 40%;
 }
