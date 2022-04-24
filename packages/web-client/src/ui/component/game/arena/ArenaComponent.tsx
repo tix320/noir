@@ -19,6 +19,7 @@ type Props = {
     supportHighlight?: Position[],
     supportHighlightMarkers?: [Position, Marker[]][],
     onShift(direction: Direction, index: number, fast: boolean): void,
+    onContextMenu(): void,
     onSuspectClick(position: Position, suspect: Suspect): void,
     onMarkerClick(position: Position, suspect: Suspect, marker: Marker): void,
 }
@@ -39,7 +40,9 @@ export default function ArenaComponent(props: Props) {
     };
 
     return (
-        <div className={classNames(styles.container, props.className)} style={gridStyles}>
+        <div className={classNames(styles.container, props.className)}
+            style={gridStyles}
+            onContextMenu={(event) => { props.onContextMenu(); event.preventDefault(); return false; }} >
             <div />
 
             {arr.map((e, index) => <Shift className={styles.shiftCell} key={`up${index}`}

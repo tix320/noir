@@ -15,7 +15,8 @@
 }
 
 .icon:disabled {
-  border-color: rgb(221, 221, 221);
+  border-color: rgb(221 221 221 / 36%);
+  opacity: 0.8;
 }
 
 .icon:enabled {

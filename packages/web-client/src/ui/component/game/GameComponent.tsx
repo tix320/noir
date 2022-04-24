@@ -756,6 +756,34 @@ export default function GameComponent(props: Props) {
         }
     }
 
+    const onArenaRightClick = () => {
+        const performingAction = performingActionRef.current;
+        if (!performingAction) {
+            return;
+        }
+
+        switch (performingAction.key) {
+            case 'placeThreat':
+                if (performingAction.targets.length > 0) {
+                    const action: GameActions.Psycho.PlaceThreat = {
+                        type: 'placeThreat',
+                        targets: performingAction.targets
+                    }
+
+                    commitAction(action);
+                }
+                break;
+            case 'detonateBomb':
+            case 'selfDestruct':
+                if (performingAction.chain.length > 0) {
+                    const action: GameActions.Bomber.DetonateBomb | GameActions.Bomber.SelfDestruct =
+                        { type: performingAction.key, chain: performingAction.chain }
+                    commitAction(action);
+                }
+                break;
+        }
+    }
+
     const doShift = (direction: Direction, index: number, fast: boolean) => {
         const action: GameActions.Common.Shift = {
             type: 'shift',
@@ -893,7 +921,9 @@ export default function GameComponent(props: Props) {
                 supportHighlightMarkers={performingAction?.supportHighlightMarkers}
                 onShift={doShift}
                 onSuspectClick={onSuspectClick}
-                onMarkerClick={onMarkerClick} />
+                onMarkerClick={onMarkerClick}
+                onContextMenu={() => onArenaRightClick()}
+            />
 
             {myPlayer && <TeamPlayersPanel
                 className={styles.rightPlayersPanel}
