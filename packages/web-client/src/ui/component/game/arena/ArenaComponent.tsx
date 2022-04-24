@@ -34,7 +34,7 @@ export default function ArenaComponent(props: Props) {
     const arr = [...Array(arenaSize)].map(a => a + 1);
 
     const gridStyles = {
-        gridTemplateColumns: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 13}%)) 2%`,
+        gridTemplateColumns: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 14}%)) 2%`,
         gridTemplateRows: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 13}%)) 2%`
     };
 

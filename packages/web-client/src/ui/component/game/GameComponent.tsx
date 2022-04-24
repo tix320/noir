@@ -1,4 +1,5 @@
-import { Game, Marker, Player, ShiftAction, Suspect } from '@tix320/noir-core/src/game/Game';
+import { onFirst } from '@tix320/noir-core/src/extension/RxJSExtension';
+import { Game, Marker, Player, Score, ShiftAction, Suspect } from '@tix320/noir-core/src/game/Game';
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
 import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
 import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor";
@@ -11,20 +12,18 @@ import { equals } from '@tix320/noir-core/src/util/Identifiable';
 import Matrix from '@tix320/noir-core/src/util/Matrix';
 import Position from '@tix320/noir-core/src/util/Position';
 import classNames from 'classnames';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { concatMap, delay, of } from 'rxjs';
 import User from '../../../entity/User';
-import CharacterCard from '../cards/character/CharacterCardComponent';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
-import { useForceUpdate, useRefState } from '../common/Hooks';
+import { useForceUpdate } from '../common/Hooks';
 import ActionDialog from './action-dialog/ActionDialogComponent';
 import ActionsPanel, { ActionAvailability } from './actions/ActionsPanelComponent';
 import ArenaComponent from './arena/ArenaComponent';
 import styles from './GameComponent.module.css';
-import TeamPlayersPanel, { PlayerInfo } from './TeamPlayersPanelComponent';
+import TeamPlayersPanel from './TeamPlayersPanelComponent';
 
 type Props = {
     className?: string,
@@ -32,8 +31,24 @@ type Props = {
     identity: User
 }
 
+function useRefState<S>(defaultValue: S) {
+    const ref = useRef<S>(defaultValue);
+
+    if (ref.current === undefined) {
+        ref.current = defaultValue;
+    }
+
+    const setValue = (value: S) => {
+        ref.current = value;
+    }
+
+    return [ref, setValue] as const;
+}
+
 export default function GameComponent(props: Props) {
     const { game } = props;
+
+    const [eventUIChangeSkipCount, setEventUIChangeSkipCount] = useRefState<number>(0);
 
     const [playersRef, setPlayers] = useRefState<Player<User>[]>([]);
     const [myPlayerRef, setMyPlayer] = useRefState<Player<User> | undefined>(undefined);
@@ -45,12 +60,30 @@ export default function GameComponent(props: Props) {
     const [profilerHandRef, setProfilerHand] = useRefState<StandardSuspect[]>([]);
     const [lastShiftRef, setLastShift] = useRefState<ShiftAction | undefined>(undefined);
 
-    const [actionsEnabled, setActionsEnabled] = useState<boolean>(false);
-    const [actionsAvailability, setActionsAvailability] = useState<ActionAvailability[]>([]);
+    const [actionsEnabledRef, setActionsEnabled] = useRefState<boolean>(false);
+    const [actionsAvailabilityRef, setActionsAvailability] = useRefState<ActionAvailability[]>([]);
 
     const [teamPlayersRef, setTeamPlayers] = useRefState<[Player<User>[], Player<User>[]]>([[], []]);
 
-    const getMyPosition = () => {
+    const [score, setScore] = useRefState<Score>([0, 0]);
+
+    function resetState() {
+        eventUIChangeSkipCount.current = 0;
+        playersRef.current = [];
+        myPlayerRef.current = undefined;
+        currentTurnPlayerRef.current = undefined;
+        performingActionRef.current = undefined;
+        performingEventRef.current = undefined;
+        arenaRef.current = new Matrix([]);
+        profilerHandRef.current = [];
+        lastShiftRef.current = undefined;
+        actionsEnabledRef.current = false;
+        actionsAvailabilityRef.current = [];
+        teamPlayersRef.current = [[], []];
+        score.current = [0, 0];
+    };
+
+    function getMyPosition() {
         assert(myPlayerRef.current);
         const res = arenaRef.current.findFirst((sus => sus.role === myPlayerRef.current));
         assert(res);
@@ -61,12 +94,54 @@ export default function GameComponent(props: Props) {
     const [t] = useTranslation();
 
     useEffect(() => {
-        const subscription = game.events().subscribe(event => processEvent(event));
+        const eventsQueue: GameEvents.Any<User>[] = [];
+
+        let stopListener = false;
+
+        const scheduleEventProcessor = (delaySeconds: number) => {
+            if (stopListener) {
+                return;
+            }
+            return setTimeout(() => {
+                const event = eventsQueue.shift();
+                if (event) {
+                    const nextEventDelay = processEvent(event);
+                    forceUpdate();
+
+                    scheduleEventProcessor(nextEventDelay);
+                } else {
+                    scheduleEventProcessor(1);
+                }
+            }, delaySeconds * 1000);
+        }
+
+        const subscription = game.events().pipe(
+            onFirst((event: GameEvents.Hello) => {
+                if (event.readyEventsCount !== 0) {
+                    setEventUIChangeSkipCount(event.readyEventsCount);
+                }
+            })).subscribe(event => {
+                console.log('ReceivedEvent', event);
+                if (eventUIChangeSkipCount.current === 0) {
+                    eventsQueue.push(event);
+                } else {
+                    eventUIChangeSkipCount.current--;
+                    processEvent(event);
+                    if (eventUIChangeSkipCount.current === 0) {
+                        setPerformingEvent(undefined);
+                        forceUpdate();
+                    }
+                }
+            });
+
+        scheduleEventProcessor(1);
 
         return () => {
+            stopListener = true;
             subscription.unsubscribe();
+            resetState();
         }
-    }, [game])
+    }, [game]);
 
     const _process_kill_event = (event: GameEvents.AbstractKill): StandardSuspect => {
         const suspect = arenaRef.current.atPosition(event.killed);
@@ -94,10 +169,14 @@ export default function GameComponent(props: Props) {
 
             const myPlayer = GameHelper.findPlayerByIdentityOrThrow(event.players, props.identity);
             setMyPlayer(myPlayer);
+
+            return 1;
         },
 
         GameCompleted(event: GameEvents.Completed) {
             console.log('Game completed');
+
+            return 0;
         },
 
         TurnChanged(event: GameEvents.TurnChanged<User>) {
@@ -107,6 +186,10 @@ export default function GameComponent(props: Props) {
             //setMyPlayer(player); //TODO: remove after test
 
             setLastShift(event.lastShift);
+
+            setScore(event.score);
+
+            return 0;
         },
 
         AvailableActionsChanged(event: GameEvents.AvailableActionsChanged) {
@@ -161,44 +244,52 @@ export default function GameComponent(props: Props) {
                 setActionsEnabled(false);
                 setActionsAvailability(resolveAvailableActions(myPlayer.role, new Set()));
             }
+
+            return 0;
         },
 
         Shifted(event: GameEvents.Shifted) {
             arenaRef.current.shift(event.direction, event.index, event.fast ? 2 : 1);
+
+            return 5; //TODO: Shift animation
         },
 
         Collapsed(event: GameEvents.Collapsed) {
-            //TODO:
+            return 5; //TODO: Collapse animation
         },
 
         KillTry(event: GameEvents.KillTry) {
-            //TODO:
+            return 3; //TODO: KillTry animation
         },
 
         KilledByKnife(event: GameEvents.KilledByKnife) {
-            _process_kill_event(event); //TODO: specific effect
+            _process_kill_event(event);
+
+            return 5; //TODO: Kill animation
         },
 
         KilledByThreat(event: GameEvents.KilledByThreat) {
-            _process_kill_event(event); //TODO: specific effect
+            _process_kill_event(event);
+            return 5; //TODO: Kill animation
         },
 
         KilledByBomb(event: GameEvents.KilledByBomb) {
-            const suspect = _process_kill_event(event); //TODO: specific effect
+            const suspect = _process_kill_event(event);
             suspect.removeMarker(Marker.BOMB);
+            return 5; //TODO: Kill animation
         },
 
         KilledBySniper(event: GameEvents.KilledBySniper) {
-            _process_kill_event(event); //TODO: specific effect
+            _process_kill_event(event);
+            return 5; //TODO: Kill animation
         },
 
         Accused(event: GameEvents.Accused) {
-            //TODO: specific effect
-
+            return 5; //TODO: Accuse animation
         },
 
         UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused) {
-            //TODO: specific effect
+            return 3; //TODO: UnsuccessfulAccused animation
 
         },
 
@@ -216,11 +307,15 @@ export default function GameComponent(props: Props) {
             if (removedMarker) {
                 arena.foreach((suspect) => suspect.removeMarker(removedMarker));
             }
+
+            return 5; //TODO: Arrested animation
         },
 
         Disarmed(event: GameEvents.Disarmed) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.removeMarker(event.marker);
+
+            return 5; //TODO: Disarm animation
         },
 
         AutoSpyCanvased(event: GameEvents.AutoSpyCanvased<User>) {
@@ -232,6 +327,8 @@ export default function GameComponent(props: Props) {
             setTimeout(() => {
                 setPerformingEvent(undefined);
             }, 10000);
+
+            return 10;
         },
 
         AllCanvased(event: GameEvents.AllCanvased<User>) {
@@ -243,9 +340,15 @@ export default function GameComponent(props: Props) {
                 players: event.players
             })
 
-            setTimeout(() => {
-                setPerformingEvent(undefined);
-            }, 10000);
+            if (event.players.isEmpty()) {
+                return 1;
+            } else {
+                setTimeout(() => {
+                    setPerformingEvent(undefined);
+                }, 10000);
+
+                return 10;
+            }
         },
 
         Profiled(event: GameEvents.Profiled<User>) {
@@ -260,6 +363,8 @@ export default function GameComponent(props: Props) {
             setTimeout(() => {
                 setPerformingEvent(undefined);
             }, 10000);
+
+            return 10;
         },
 
         Disguised(event: GameEvents.Disguised) {
@@ -269,6 +374,8 @@ export default function GameComponent(props: Props) {
                 newSuspect.role = suspect.role;
                 suspect.role = 'innocent';
             }
+
+            return 5; // TODO: Disguise animation
         },
 
         MarkerMoved(event: GameEvents.MarkerMoved) {
@@ -277,6 +384,8 @@ export default function GameComponent(props: Props) {
 
             from.removeMarker(event.marker);
             to.addMarker(event.marker);
+
+            return 5; // TODO: MarkerMoved animation
         },
 
         InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked) {
@@ -289,31 +398,42 @@ export default function GameComponent(props: Props) {
                     innocents: event.suspects
                 });
             }
+
+            return 5; // TODO: waiting  animation
         },
 
         ThreatPlaced(event: GameEvents.ThreatPlaced) {
             event.targets.forEach(target => arenaRef.current.atPosition(target).addMarker(Marker.THREAT));
+
+            return 3; // TODO: placing  animation
         },
 
         BombPlaced(event: GameEvents.BombPlaced) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.addMarker(Marker.BOMB);
 
+            return 3; // TODO: placing  animation
         },
 
         ProtectionPlaced(event: GameEvents.ProtectionPlaced) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.addMarker(Marker.PROTECTION);
+
+            return 3; // TODO: placing  animation
         },
 
         ProtectionRemoved(event: GameEvents.ProtectionRemoved) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.removeMarker(Marker.PROTECTION);
+
+            return 3; // TODO: removing  animation
         },
 
 
         SuspectsSwapped(event: GameEvents.SuspectsSwapped) {
             arenaRef.current.swap(event.position1, event.position2);
+
+            return 5; // TODO: swap  animation
         },
 
         SelfDestructionActivated(event: GameEvents.SelfDestructionActivated) {
@@ -331,6 +451,8 @@ export default function GameComponent(props: Props) {
                     supportHighlight: [event.target],
                 });
             }
+
+            return 5; // TODO: self destruction activated  animation
         },
 
         ProtectionActivated(event: GameEvents.ProtectionActivated) {
@@ -349,6 +471,8 @@ export default function GameComponent(props: Props) {
                     supportHighlight: [event.target],
                 });
             }
+
+            return 5; // TODO: protection activated  animation
         },
 
         ProtectDecided(event: GameEvents.ProtectDecided) {
@@ -362,16 +486,16 @@ export default function GameComponent(props: Props) {
                 }
             }
 
-            //TODO: specific effect
+            return 5; // TODO: protect decided  animation
         }
     };
 
-    const processEvent = (event: GameEvents.Any<User>) => {
-        console.log('Event', event);
-        setTimeout(() => {
-            visitEvent(event, eventVisitor);
-            forceUpdate();
-        })
+    const processEvent = (event: GameEvents.Any<User>): number => {
+        console.log('ProcessingEvent', event);
+        const result = visitEvent(event, eventVisitor);
+
+        assert(typeof result === 'number', `Illegal return value ${result} from event function ${event}`);
+        return result;
     }
 
     const prepareAction = (key: GameActions.Key) => {
@@ -480,6 +604,8 @@ export default function GameComponent(props: Props) {
                 });
                 break
         }
+
+        forceUpdate();
     }
 
     const onSuspectClick = (position: Position) => {
@@ -675,6 +801,7 @@ export default function GameComponent(props: Props) {
 
         setPerformingAction(undefined);
         setActionsEnabled(false);
+        forceUpdate();
     }
 
     const arena = arenaRef.current;
@@ -730,8 +857,20 @@ export default function GameComponent(props: Props) {
         character: arena.atPosition(GameHelper.locatePlayer(arena, player)).character
     }));
 
+
+    function changeHighLight(positions: Position[]) {
+        assert(performingAction);
+        performingAction.supportHighlight = positions;
+        forceUpdate();
+    }
+
     return (
         <div className={classNames(styles.container, props.className)}>
+            <div className={styles.score}>
+                <span style={{ color: '#ff7070' }}>{score.current[0]}</span>
+                :
+                <span style={{ color: '#7575f3' }}>{score.current[1]}</span>
+            </div>
 
             {myPlayer &&
                 <TeamPlayersPanel
@@ -767,8 +906,8 @@ export default function GameComponent(props: Props) {
 
             <ActionsPanel
                 className={styles.actionsPanel}
-                actions={actionsAvailability}
-                enabled={actionsEnabled}
+                actions={actionsAvailabilityRef.current}
+                enabled={actionsEnabledRef.current}
                 selectedAction={performingAction?.key}
                 onActionSelect={onActionSelect}
             />
@@ -786,8 +925,8 @@ export default function GameComponent(props: Props) {
                         performingAction.innocents!.map((pos, index: 0 | 1) => <SuspectCard key={index}
                             suspect={arena.atPosition(pos)}
                             highlight={arena.atPosition(pos).isAlive()}
-                            onMouseEnter={() => performingAction.supportHighlight = [pos]}
-                            onMouseLeave={() => performingAction.supportHighlight = []}
+                            onMouseEnter={() => changeHighLight([pos])}
+                            onMouseLeave={() => changeHighLight([])}
                             onSuspectClick={() => onSuspectClick(pos)} />))
                     ||
                     (decideProtectDialogOpenPredicate &&
@@ -811,8 +950,8 @@ export default function GameComponent(props: Props) {
                                 return <SuspectCard key={index}
                                     suspect={suspect}
                                     highlight={performingAction?.key === 'profile' && suspect.isPlayerOrSuspect()}
-                                    onMouseEnter={() => performingAction?.key === 'profile' && (performingAction.supportHighlight = [position])}
-                                    onMouseLeave={() => performingAction?.key === 'profile' && (performingAction.supportHighlight = [])}
+                                    onMouseEnter={() => performingAction?.key === 'profile' && changeHighLight([position])}
+                                    onMouseLeave={() => performingAction?.key === 'profile' && changeHighLight([])}
                                     onSuspectClick={() => suspect.isPlayerOrSuspect() && onSuspectClick(position)}
                                 />
                             })

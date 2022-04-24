@@ -1,17 +1,15 @@
-import Api from "../../../service/Api";
-import RxComponent from "../common/RxComponent";
-import { takeUntil } from "rxjs/operators";
-import LobbyComponent from "../lobby/LobbyComponent";
-import ProfileComponent from "./profile/ProfileComponent";
-import styles from "./MainComponent.module.css";
-import { RemoteGame } from "../../../game/RemoteGame";
-import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
-import GameComponent from "../game/GameComponent";
 import { Dto } from "@tix320/noir-core/src/api/Dto";
+import classNames from "classnames";
 import { Fragment, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { RemoteGame } from "../../../game/RemoteGame";
+import Api from "../../../service/Api";
 import { StoreState } from "../../../service/Store";
-import classNames from "classnames";
+import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
+import GameComponent from "../game/GameComponent";
+import LobbyComponent from "../lobby/LobbyComponent";
+import styles from "./MainComponent.module.css";
+import ProfileComponent from "./profile/ProfileComponent";
 
 type Props = {
     className?: string

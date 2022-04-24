@@ -46,7 +46,7 @@ class GameService {
 
     getGamePlay(gameId?: string): GamePlayInfo {
         const game = this.getGame(gameId);
-        assert(game[0].state === 'PLAYING', 'Not in preparing state'); 
+        assert(game[0].state === 'PLAYING', 'Not in preparing state');
 
         return game as GamePlayInfo;
     }
@@ -135,13 +135,10 @@ class GameService {
 
         const [gameInfo, game] = this.getGamePlay(gameId);
 
-        game.events().pipe(first()).subscribe((startedEvent: GameEvents.Started<User>) => {
-            const player = startedEvent.players.find(player => player.identity === user);
+        const player = game.players.find(player => player.identity === user);
+        assert(player);
 
-            assert(player);
-
-            player.doAction(action);
-        });
+        player.doAction(action);
     }
 
     startGame(gameId: string): Game.Play<User> | undefined {
@@ -159,17 +156,13 @@ class GameService {
     gameEvents(gameId: string, user: User): Observable<GameEvents.Any> {
         const [gameInfo, game] = this.getGamePlay(gameId);
 
-        return game.events().pipe(first(), switchMap(
-            (startedEvent: GameEvents.Started<User>) => {
-                const player = startedEvent.players.find(player => player.identity === user);
+        const player = game.players.find(player => player.identity === user);
 
-                if (!player) {
-                    throw new Error('You are not in this game');
-                }
+        if (!player) {
+            throw new Error('You are not in this game');
+        }
 
-                return player.gameEvents();
-            }
-        ));
+        return player.gameEvents();
     }
 }
 

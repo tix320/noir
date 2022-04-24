@@ -3,6 +3,8 @@ import { GameEvents } from "./GameEvents";
 
 export interface GameEventVisitor<I extends Identifiable> {
 
+    Hello?(event: GameEvents.Hello): any;
+
     GameStarted?(event: GameEvents.Started<I>): any;
 
     GameCompleted?(event: GameEvents.Completed): any;

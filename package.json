@@ -12,9 +12,9 @@
     "packages/*"
   ],
   "dependencies": {
-    "rxjs": "^7.5.2"
+    "rxjs": "^7.5.5"
   },
   "devDependencies": {
-    "concurrently": "^7.0.0"
+    "concurrently": "^7.1.0"
   }
 }

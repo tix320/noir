@@ -63,6 +63,10 @@ export namespace RemoteGame {
 
         }
 
+        public get players(): Player[] {
+            throw new Error('Unsupported. Instead get players from `GameStarted` event');
+        }
+
         events(): Observable<GameEvents.Any<User>> {
             const visitor = new EventVisitor();
             return Api.playingGameEventsStream(this.id).pipe(map(event => visitEvent(event, visitor)));
@@ -329,7 +333,7 @@ class EventVisitor extends GameEventDtoVisitor<User> {
             type: 'ProtectDecided',
             target: convertPosition(event.target),
             protect: event.protect,
-            triggerMarker : event.triggerMarker
+            triggerMarker: event.triggerMarker
         }
     }
 }

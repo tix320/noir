@@ -1,4 +1,4 @@
-import { Observable, Subject, of, concat } from "rxjs";
+import { concat, Observable, of, Subject } from "rxjs";
 
 export function onFirst<T, F>(callback: (item: F) => void): (source$: Observable<T>) => Observable<T> {
     return source$ => new Observable(observer => {

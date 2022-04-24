@@ -2,21 +2,29 @@
     padding: 1vh;
     display: grid;
     grid-template-columns: 7% 65% 7%;
-    grid-template-rows: 100% 40%;
+    grid-template-rows: 4% 96%;
     justify-content: space-between;
 }
 
-.leftPlayersPanel{
+.score {
+    grid-column: 1 / span 3;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 1.5vw;
+    font-family: Consolas;
+    color: aliceblue;
+    position: relative;
+    top: -0.6vh;
 }
 
-.rightPlayersPanel {
-}
+.leftPlayersPanel {}
 
-.arena {
-}
+.rightPlayersPanel {}
+
+.arena {}
 
 .actionsPanel {
-    position:absolute;
+    position: absolute;
     left: 1vw;
     bottom: 3vh;
     max-width: 10%;

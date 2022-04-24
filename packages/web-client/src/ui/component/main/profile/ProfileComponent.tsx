@@ -1,4 +1,3 @@
-import Avatar from 'react-avatar';
 import { useSelector } from 'react-redux';
 import { StoreState } from '../../../../service/Store';
 import avatarImg from "../../../images/logo.png";
@@ -14,7 +13,7 @@ export default function ProfileComponent(props: Props) {
     return (
         <div className={props.className}>
             <h4><label className={styles.label}>{user.name}</label></h4>
-            <Avatar className={styles.avatar} size="50" src={avatarImg} />
+            {/* <Avatar className={styles.avatar} size="50" src={avatarImg} /> */}
         </div>
     );
 }

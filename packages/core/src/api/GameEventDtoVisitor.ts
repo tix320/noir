@@ -4,6 +4,10 @@ import { Dto } from "./Dto";
 
 export abstract class GameEventDtoVisitor<I extends Identifiable> {
 
+    Hello(event: GameEvents.Hello): GameEvents.Hello {
+        return event;
+    }
+
     abstract GameStarted(event: Dto.Events.Started): GameEvents.Started<I>;
 
     GameCompleted(event: GameEvents.Completed): GameEvents.Completed {

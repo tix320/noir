@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, concat, Observable, of, ReplaySubject } from 'rxjs';
 import { swap } from '../util/ArrayUtils';
 import { assert, AssertionError } from '../util/Assertions';
 import { Direction } from '../util/Direction';
@@ -236,8 +236,9 @@ export namespace StandardGame {
         completed = false;
 
         #events = new ReplaySubject<GameEvents.Any<I>>();
+        #eventsCount = 0;
 
-        constructor(context: GameContext<I>, private winningScores: Score) {
+        constructor(private context: GameContext<I>, private winningScores: Score) {
             context.game = this;
 
             const gameStartedEvent: GameEvents.Started<I> = {
@@ -247,16 +248,25 @@ export namespace StandardGame {
                 evidenceDeck: context.evidenceDeck.map(suspect => suspect.character),
                 profilerHand: context.profiler.evidenceHand.map(suspect => suspect.character)
             }
-            this.#events.next(gameStartedEvent);
+            this.fireEvent(gameStartedEvent);
 
             Helper.fireTurnChangedEvent(context.currentTurnPlayer, context);
             context.currentTurnPlayer.initTurn();
         }
 
+        public get players() {
+            return [...this.context.players];
+        }
+
         public events(): Observable<GameEvents.Any<I>> {
             assert(!this.completed, 'Game is already completed');
 
-            return this.#events.asObservable();
+            const hello: GameEvents.Hello = {
+                type: 'Hello',
+                readyEventsCount: this.#eventsCount
+            }
+
+            return concat(of(hello), this.#events.asObservable());
         }
 
         checkWin(score: Score): Winner | undefined {
@@ -275,6 +285,7 @@ export namespace StandardGame {
 
         fireEvent(event: GameEvents.Any<I>) {
             this.#events.next(event);
+            this.#eventsCount++;
         }
     }
 }
@@ -899,7 +910,7 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
         const arena = this.context.arena;
 
         const canAccuse = GameHelper.getAccusePositions(arena, this.locate());
-        const canAutoSpy = GameHelper.getAutoSpyPositions(arena, this.locate());
+        const canAutoSpy = GameHelper.getAutoSpyPositions(arena, this.locate()).isNonEmpty();
 
         if (canAccuse) {
             actions.push('accuse');

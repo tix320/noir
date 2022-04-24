@@ -1,11 +1,11 @@
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
 import classNames from 'classnames';
+import { useTranslation } from 'react-i18next';
 import styles from './ActionComponent.module.scss';
 
 type Props<K extends GameActions.Any> = {
     className?: string,
     action: GameActions.Key<K>,
-    description: string,
     available: boolean,
     selected: boolean,
     onPerform: (action: GameActions.Key<K>) => void
@@ -16,6 +16,8 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
 
     const image = require(`../../../images/action/${props.action}.png`);
 
+    const { t } = useTranslation();
+
     return (
         <div className={classNames(styles.container, props.className)} >
             <input type='image'
@@ -25,8 +27,12 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
                 onClick={onPerform}
             />
             <span className={styles.tooltip}>
-                {props.action.capitalize()}
+                {actionDetails(props.action, t)}
             </span>
         </div>
     );
+}
+
+function actionDetails(action: GameActions.Key, locale: any) {
+    return action.capitalize();
 }

@@ -82,6 +82,8 @@ export namespace Game {
     }
 
     export interface Play<I extends Identifiable> {
+        players: Player<I>[]; 
+
         events(): Observable<GameEvents.Any<I>>;
     }
 }

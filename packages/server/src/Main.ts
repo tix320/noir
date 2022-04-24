@@ -91,6 +91,10 @@ function suspectResponse(suspect: Suspect<User>): Dto.Suspect {
 
 class GameEventConverter implements GameEventVisitor<User> {
 
+    Hello(event: GameEvents.Hello) {
+        return event;
+    }
+
     GameStarted(event: GameEvents.Started<User>) {
         const eventDto: Dto.Events.Started = {
             type: 'GameStarted',
@@ -274,14 +278,14 @@ io.on("connection", (socket) => {
         GAME_SERVICE.joinGame(user, gameId);
     });
 
-    socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: Dto.GameRoleSelection, cb) => { 
+    socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: Dto.GameRoleSelection, cb) => {
         const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, {
             ready: roleSelection.ready,
             role: roleSelection.role ? Role.getByName(roleSelection.role) : undefined
         });
 
-        GameService.startGame(gameInfo.id); 
-    }); 
+        GameService.startGame(gameInfo.id);
+    });
 
     socket.on(ApiEvents.LEAVE_GAME, (cb) => {
         GAME_SERVICE.leaveGame(user);
@@ -296,6 +300,7 @@ io.on("connection", (socket) => {
     socket.on(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, (cb) => {
         GameService.gameChanges()
             .onFirst((currentGames: Map<string, GameData>) => {
+                
                 const response = [...currentGames.values()]
                     .filter(info => info[0].state === 'PREPARING')
                     .map(info => gamePreparationResponse(info as GamePreparationInfo));
@@ -305,7 +310,9 @@ io.on("connection", (socket) => {
                 filter(([gameInfo, _]) => gameInfo.state === 'PREPARING'),
                 takeWhile(() => socket.connected)
             )
-            .subscribe((info) => socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo)));
+            .subscribe((info) => {
+                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo))
+            });
     })
 
     socket.on(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, (cb) => {
@@ -337,7 +344,7 @@ io.on("connection", (socket) => {
         GAME_SERVICE.gameEvents(gameId, user).pipe(
             map(event => visitEvent(event, GAME_EVENT_CONVERTER)),
             takeWhile(() => socket.connected)
-        ).subscribe((event) => socket.emit(ApiEvents.ROOM_PLAYING_GAME(gameId), event)); 
+        ).subscribe((event) => socket.emit(ApiEvents.ROOM_PLAYING_GAME(gameId), event));
     });
 });
 
