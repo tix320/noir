@@ -9,9 +9,12 @@ export const USERS = [
     new User("faebb422-ff1e-4a96-9f73-8e08f448ee91", "test6"),
     new User("1f09de5f-a90b-4fc0-919a-ee285683534d", "test7"),
     new User("ed915650-b10f-4080-8b6f-9ad72da4b8ce", "tix320"),
-    new User("e14b8127-b69c-4642-bcc4-e4416cd5b7aa", "Reserved"),
-    new User("c601adfd-70f1-4e6e-b9a6-49120cbde7c5", "Reserved"),
-    new User("ac64dc8f-2e56-4856-8719-9ee63b2e5a63", "Reserved"),
+    new User("test1", "test1"),
+    new User("test2", "test2"),
+    new User("test3", "test3"),
+    new User("test4", "test4"),
+    new User("test5", "test5"),
+    new User("test6", "test6"),
 ]
 
 export const USERS_BY_TOKEN: Map<string, User> = USERS.reduce((map, user) => {

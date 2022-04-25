@@ -31,12 +31,14 @@ export default function ArenaComponent(props: Props) {
         return !!lastShift && GameHelper.isReverseShifts({ direction: direction, index: index }, lastShift);
     }
 
-    const arenaSize = arena.size;
-    const arr = [...Array(arenaSize)].map(a => a + 1);
+    const arenaRowSize = arena.rows;
+    const arenaColumnSize = arena.columns; 
+    const arrRow = [...Array(arenaRowSize)].map(a => a + 1);
+    const arrCol = [...Array(arenaColumnSize)].map(a => a + 1);
 
     const gridStyles = {
-        gridTemplateColumns: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 14}%)) 2%`,
-        gridTemplateRows: `2% repeat(${arenaSize}, minmax(auto, ${arenaSize == 6 ? 15 : 13}%)) 2%`
+        gridTemplateRows: `2% repeat(${arenaRowSize}, minmax(auto, ${arenaRowSize == 7 ? 13 : 15}%)) 2%`,
+        gridTemplateColumns: `2% repeat(${arenaColumnSize}, minmax(auto, ${arenaColumnSize == 7 ? 14 : 15}%)) 2%`,
     };
 
     return (
@@ -45,7 +47,7 @@ export default function ArenaComponent(props: Props) {
             onContextMenu={(event) => { props.onContextMenu(); event.preventDefault(); return false; }} >
             <div />
 
-            {arr.map((e, index) => <Shift className={styles.shiftCell} key={`up${index}`}
+            {arrCol.map((e, index) => <Shift className={styles.shiftCell} key={`up${index}`}
                 direction={Direction.UP}
                 disabled={disableShift || isReverseShift(Direction.UP, index)}
                 fast={props.fastShift}
@@ -53,7 +55,7 @@ export default function ArenaComponent(props: Props) {
 
             <div />
             {
-                arr.map((e, row) =>
+                arrRow.map((e, row) =>
                     <Fragment key={row}>
                         <Shift className={styles.shiftCell} key={`left${row}`}
                             direction={Direction.LEFT}
@@ -61,7 +63,7 @@ export default function ArenaComponent(props: Props) {
                             fast={props.fastShift}
                             onAction={(fast) => onShift(Direction.LEFT, row, fast)} />
 
-                        {arr.map((e, column) => <SuspectCard className={styles.suspectCell} key={column}
+                        {arrCol.map((e, column) => <SuspectCard className={styles.suspectCell} key={column}
                             suspect={arena.at(row, column)}
                             additionalClassName={props.meHighlight?.x === row && props.meHighlight?.y === column ?
                                 styles.mySuspect
@@ -81,7 +83,7 @@ export default function ArenaComponent(props: Props) {
             }
 
             <div />
-            {arr.map((e, index) => <Shift className={styles.shiftCell} key={`down${index}`}
+            {arrCol.map((e, index) => <Shift className={styles.shiftCell} key={`down${index}`}
                 direction={Direction.DOWN}
                 disabled={disableShift || isReverseShift(Direction.DOWN, index)}
                 fast={props.fastShift}

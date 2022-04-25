@@ -309,11 +309,9 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
 
             assert(actionFunc, `Action ${action.type} is invalid`);
 
+            this.context.actionInProcess = action.type;
             actionFunc.call(this, action);
-
-            if (action.type !== 'shift' && this.getCurrentPhase() === 'ACTION') {
-                this.context.lastShift = undefined;
-            }
+            this.context.actionInProcess = undefined;
 
             return Promise.resolve();
         } catch (e) {
@@ -339,7 +337,7 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
             if (inActionPhase) {
                 set.add('shift');
             }
-            if (inActionPhase && Helper.isCollapseAvailable()) {
+            if (inActionPhase && GameHelper.getAvailableCollapseDirections(this.context.arena).isNonEmpty()) {
                 set.add('collapse');
             }
 
@@ -353,6 +351,10 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
         if (phase === 'END') {
             if (this.tryCompleteGame()) {
                 return;
+            }
+
+            if (this.context.actionInProcess !== 'shift') {
+                this.context.lastShift = undefined;
             }
 
             const nextPlayer = this.getNextPlayer();
@@ -615,7 +617,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
             assert(!targets[0].equals(targets[2]), 'Non unique positions');
         }
 
-        const suitablePositionsForPlace = this.context.psycho.suitablePositionsForPlace;
+        const suitablePositionsForPlace = GameHelper.getThreatPlacePositions(this.context.arena, this.locate());
         assert(suitablePositionsForPlace);
 
         assert(targets.every(position => suitablePositionsForPlace.some(pos => pos.equals(position))), "You can mark within 3 orthogonal spaces");
@@ -630,26 +632,20 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
         };
         this.context.game.fireEvent(event);
 
-        this.context.psycho.suitablePositionsForPlace = undefined;
         this.changePhase('END');
     }
 
     private changeToPlacePhaseOrEnd() {
         const arena = this.context.arena;
 
-        const suitablePositionsForPlace = GameHelper.getThreatPlacePositions(arena, this.locate());
+        const canPlaceThreats = GameHelper.getThreatPlacePositions(arena, this.locate()).isNonEmpty();
 
-        if (suitablePositionsForPlace.length === 0) {
-            this.changePhase('END');
-        } else {
-            this.context.psycho.suitablePositionsForPlace = suitablePositionsForPlace;
+        if (canPlaceThreats) {
             this.changePhase('PLACE');
+        } else {
+            this.changePhase('END');
         }
     }
-}
-
-interface PsychoContext {
-    suitablePositionsForPlace?: Position[];
 }
 
 class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
@@ -758,6 +754,10 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
     }
 
     private _detonate(chain: Position[], onComplete: () => void): void {
+        const positionsSet = new Set();
+        chain.forEach(pos => positionsSet.add(pos.toString()));
+        assert(positionsSet.size === chain.length, 'Non unique targets');
+
         const arena = this.context.arena;
 
         for (let i = 1; i < chain.length; i++) {
@@ -781,14 +781,19 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
                 onComplete();
             } else {
                 const target = item.value;
-                arena.atPosition(target).removeMarker(Marker.BOMB);
-                Helper.tryKillSuspect(target, this.context, 'KilledByBomb', Marker.BOMB, (isProtect) => {
-                    if (isProtect) {
-                        onComplete();
-                    } else {
-                        handler();
-                    }
-                });
+                const suspect = arena.atPosition(target);
+                suspect.removeMarker(Marker.BOMB);
+                if (suspect.isAlive()) {
+                    Helper.tryKillSuspect(target, this.context, 'KilledByBomb', Marker.BOMB, (isProtect) => {
+                        if (isProtect) {
+                            onComplete();
+                        } else {
+                            handler();
+                        }
+                    });
+                } else {
+                    handler();
+                }
             }
         }
 
@@ -1334,13 +1339,14 @@ class GameContext<I extends Identifiable = Identifiable> {
     players: Player<I>[];
     currentTurnPlayer: Player<I>;
 
+    actionInProcess?: GameActions.Key;
+
     reactions: Player<I>[];
 
     evidenceDeck: StandardSuspect<I>[];
 
     lastShift?: GameActions.Common.Shift;
 
-    psycho: PsychoContext;
     bomber: BomberContext;
     detective: DetectiveContext;
     suit: SuitContext;
@@ -1356,7 +1362,6 @@ class GameContext<I extends Identifiable = Identifiable> {
         this.currentTurnPlayer = undefined as any;
         this.reactions = [];
         this.evidenceDeck = evidenceDeck;
-        this.psycho = {};
         this.bomber = {};
         this.detective = {};
         this.suit = {};
@@ -1411,14 +1416,12 @@ namespace Helper {
         context.game.fireEvent(event);
     }
 
-    export function isCollapseAvailable(): boolean {
-        return false; // TODO:
-    }
-
     export function collapse(direction: Direction, context: GameContext) {
-        throw new Error("Not implemented"); // TODO:
+        const newArena = GameHelper.collapse(context.arena, direction);
+        context.arena = newArena as Matrix<StandardSuspect>;
 
-        // const event: ActionEvent<GameEvents.Collapse> = { type: 'Collapse', direction: direction };
+        const event: GameEvents.Collapsed = { type: 'Collapsed', direction: direction };
+        context.game.fireEvent(event);
     }
 
 

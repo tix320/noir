@@ -19,6 +19,7 @@ import User from '../../../entity/User';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
 import { useForceUpdate } from '../common/Hooks';
+import DirectionButton from '../util/DirectionButtonComponent';
 import ActionDialog from './action-dialog/ActionDialogComponent';
 import ActionsPanel, { ActionAvailability } from './actions/ActionsPanelComponent';
 import ArenaComponent from './arena/ArenaComponent';
@@ -108,7 +109,7 @@ export default function GameComponent(props: Props) {
                     const nextEventDelay = processEvent(event);
                     forceUpdate();
 
-                    scheduleEventProcessor(nextEventDelay);
+                    scheduleEventProcessor(0); //TODO: Change to nextEventDelay after events animation will be ready
                 } else {
                     scheduleEventProcessor(1);
                 }
@@ -183,10 +184,7 @@ export default function GameComponent(props: Props) {
             const player = GameHelper.findPlayerByIdentity(playersRef.current, event.player);
             assert(player, `Player with identity ${event.player} not found`);
             setCurrentTurnPlayer(player);
-            //setMyPlayer(player); //TODO: remove after test
-
             setLastShift(event.lastShift);
-
             setScore(event.score);
 
             return 0;
@@ -214,6 +212,7 @@ export default function GameComponent(props: Props) {
                                 targets: [],
                                 supportHighlight: GameHelper.getThreatPlacePositions(arena, getMyPosition()),
                             });
+                            setActionsEnabled(false);
                         } else {
                             setPerformingAction(undefined);
                             setActionsEnabled(true);
@@ -229,7 +228,10 @@ export default function GameComponent(props: Props) {
                                 supportHighlight: placePositions,
                                 supportHighlightMarkers: removePositions.map(pos => [pos, [Marker.PROTECTION]]),
                             });
-                        } else if (!availableActions.has('decideProtect')) {
+                            setActionsEnabled(false);
+                        } else if (availableActions.has('decideProtect')) {
+                            setActionsEnabled(false);
+                        } else {
                             setPerformingAction(undefined);
                             setActionsEnabled(true);
                         }
@@ -248,17 +250,18 @@ export default function GameComponent(props: Props) {
             return 0;
         },
 
-        Shifted(event: GameEvents.Shifted) {
+        Shifted(event: GameEvents.Shifted) { 
             arenaRef.current.shift(event.direction, event.index, event.fast ? 2 : 1);
 
             return 5; //TODO: Shift animation
         },
 
-        Collapsed(event: GameEvents.Collapsed) {
+        Collapsed(event: GameEvents.Collapsed) { 
+            arenaRef.current = GameHelper.collapse(arenaRef.current, event.direction) as Matrix<StandardSuspect>;
             return 5; //TODO: Collapse animation
         },
 
-        KillTry(event: GameEvents.KillTry) {
+        KillTry(event: GameEvents.KillTry) {   
             return 3; //TODO: KillTry animation
         },
 
@@ -442,8 +445,6 @@ export default function GameComponent(props: Props) {
 
             const bomber = playersRef.current.find(player => player.role === Role.BOMBER);
             setCurrentTurnPlayer(bomber);
-            // setMyPlayer(bomber); //TODO: remove after test
-
             if (myPlayerRef.current === bomber) {
                 setPerformingAction({
                     key: 'selfDestruct',
@@ -461,8 +462,6 @@ export default function GameComponent(props: Props) {
 
             const suit = playersRef.current.find(player => player.role === Role.SUIT);
             setCurrentTurnPlayer(suit);
-            //  setMyPlayer(suit); //TODO: remove after test
-
             if (myPlayerRef.current === suit) {
                 setPerformingAction({
                     key: 'decideProtect',
@@ -508,9 +507,10 @@ export default function GameComponent(props: Props) {
                     key: 'shift',
                 });
                 break;
-            case 'collapse': //TODO:
+            case 'collapse':
                 setPerformingAction({
                     key: 'collapse',
+                    availableDirections: GameHelper.getAvailableCollapseDirections(arena)
                 });
                 break;
             case 'disguise':
@@ -598,7 +598,6 @@ export default function GameComponent(props: Props) {
                 commitAction(peekAction);
                 break
             case 'profile':
-                const set = new Set<number>()
                 setPerformingAction({
                     key: 'profile',
                 });
@@ -674,7 +673,7 @@ export default function GameComponent(props: Props) {
             case 'detonateBomb':
             case 'selfDestruct':
                 performingAction.chain.push(position);
-                performingAction.supportHighlight = GameHelper.getBombChainPositions(arena, position);
+                performingAction.supportHighlight = GameHelper.getBombChainPositions(arena, position).filter(pos => !performingAction.chain.some(ch => pos.equals(ch)));
                 if (arena.atPosition(position).hasMarker(Marker.BOMB) && performingAction.supportHighlight.isNonEmpty()) {
                     forceUpdate();
                 } else {
@@ -795,6 +794,15 @@ export default function GameComponent(props: Props) {
         commitAction(action);
     };
 
+    const doCollapse = (direction: Direction) => {
+        const action: GameActions.Common.Collapse = {
+            type: 'collapse',
+            direction: direction,
+        }
+
+        commitAction(action);
+    }
+
     const doAccuse = (role: Role) => {
         assert(performingActionRef.current);
         const key = performingActionRef.current.key;
@@ -854,19 +862,25 @@ export default function GameComponent(props: Props) {
 
     const canvasAlertList = (performingEvent?.key === 'AllCanvased' && performingEvent.players) || [];
 
-    const profilerDialogOpenPredicate = myPlayer?.role === Role.PROFILER && performingAction?.key === 'profile';
     const canvasDialogOpenPredicate = performingAction?.key === 'canvas' && Boolean(performingAction?.innocents);
     const accuseDialogOpenPredicate = (performingAction?.key === 'accuse' || performingAction?.key === 'farAccuse')
         && Boolean(performingAction?.target);
     const decideProtectDialogOpenPredicate = performingAction?.key === 'decideProtect';
+    const collapseDialogOpenPredicate = performingAction?.key === 'collapse';
+    const profilerDialogOpenPredicate = myPlayer?.role === Role.PROFILER && performingAction?.key === 'profile';
 
-    const dialogOpenPredicate = profilerDialogOpenPredicate || canvasDialogOpenPredicate
+
+    const dialogOpenPredicate =
+        collapseDialogOpenPredicate
+        || profilerDialogOpenPredicate
+        || canvasDialogOpenPredicate
         || accuseDialogOpenPredicate
         || decideProtectDialogOpenPredicate;
 
     const onActionSelect = (action: GameActions.Key) => {
         if (performingActionRef.current && performingActionRef.current.key === action) {
             setPerformingAction(undefined);
+            forceUpdate();
         } else {
             prepareAction(action);
         }
@@ -948,7 +962,8 @@ export default function GameComponent(props: Props) {
                         mafiosiPlayers.map((player, index) => <RoleCardComponent key={index}
                             role={player.role}
                             highlight={true}
-                            onClick={() => doAccuse(player.role)} />))
+                            onClick={() => doAccuse(player.role)} />)
+                    )
                     ||
 
                     (canvasDialogOpenPredicate &&
@@ -957,7 +972,8 @@ export default function GameComponent(props: Props) {
                             highlight={arena.atPosition(pos).isAlive()}
                             onMouseEnter={() => changeHighLight([pos])}
                             onMouseLeave={() => changeHighLight([])}
-                            onSuspectClick={() => onSuspectClick(pos)} />))
+                            onSuspectClick={() => onSuspectClick(pos)} />)
+                    )
                     ||
                     (decideProtectDialogOpenPredicate &&
                         (<div>
@@ -970,7 +986,19 @@ export default function GameComponent(props: Props) {
                                 {t('let-die')}
                             </Button>
                         </div>
-                        ))
+                        )
+                    )
+                    ||
+                    (collapseDialogOpenPredicate &&
+                        (
+                            Direction.ALL.map(direction => <DirectionButton
+                                className={styles.collapseDirectionButton}
+                                key={direction}
+                                direction={direction}
+                                disabled={!performingAction.availableDirections.includes(direction)}
+                                onClick={() => doCollapse(direction)} />)
+                        )
+                    )
                     ||
                     (profilerDialogOpenPredicate &&
                         (
@@ -985,7 +1013,8 @@ export default function GameComponent(props: Props) {
                                     onSuspectClick={() => suspect.isPlayerOrSuspect() && onSuspectClick(position)}
                                 />
                             })
-                        ))
+                        )
+                    )
                 }
             </ActionDialog>
 
@@ -1049,6 +1078,11 @@ interface ShiftActionContext extends BaseActionContext {
     readonly key: GameActions.Key<GameActions.Common.Shift>,
 }
 
+interface CollapseActionContext extends BaseActionContext {
+    readonly key: GameActions.Key<GameActions.Common.Collapse>,
+    readonly availableDirections: Direction[]
+}
+
 interface CanvasActionContext extends BaseActionContext {
     readonly key: GameActions.Key<GameActions.Detective.Canvas>,
     innocents?: Position[],
@@ -1087,7 +1121,6 @@ interface ProtectDecisionContext extends BaseActionContext {
 }
 
 type ActionKeysWithoutContext =
-    | GameActions.Key<GameActions.Common.Collapse>
     | GameActions.Key<GameActions.Common.Disguise>
     | GameActions.Key<GameActions.Common.Disarm>
     | GameActions.Key<GameActions.Killer.Kill>
@@ -1103,6 +1136,7 @@ interface ActionsWithoutContext extends BaseActionContext {
 
 type PerformingAction =
     | ActionsWithoutContext
+    | CollapseActionContext
     | ShiftActionContext
     | CanvasActionContext
     | AccuseActionContext

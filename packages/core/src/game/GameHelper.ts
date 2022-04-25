@@ -45,6 +45,14 @@ export namespace GameHelper {
         return Role.CAN_DO_FAST_SHIFT.includes(player.role);
     }
 
+    export function getAvailableCollapseDirections(arena: Arena): Direction[] {
+        return arena.getAvailableCollapseDirections(suspect => suspect.role === 'killed');
+    }
+
+    export function collapse<I extends Identifiable>(arena: Arena<I>, direction: Direction): Arena<I> {
+        return arena.collapse(direction, suspect => suspect.role === 'killed');
+    }
+
     export function getAccusePositions(arena: Arena, source: Position): Position[] {
         return [source, ...arena.getAdjacentPositions(source).filter(pos => arena.atPosition(pos).isPlayerOrSuspect())];
     }

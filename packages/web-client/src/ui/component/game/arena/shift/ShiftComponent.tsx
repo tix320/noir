@@ -1,20 +1,8 @@
-import { Direction } from "@tix320/noir-core/src/util/Direction";
 import { MouseEvent, useEffect, useState } from "react";
-import downArrowImg from "../../../../images/arena/down-arrow.png";
-import downDoubleArrowImg from "../../../../images/arena/down-double-arrow.png";
-import leftArrowImg from "../../../../images/arena/left-arrow.png";
-import leftDoubleArrowImg from "../../../../images/arena/left-double-arrow.png";
-import rightArrowImg from "../../../../images/arena/right-arrow.png";
-import rightDoubleArrowImg from "../../../../images/arena/right-double-arrow.png";
-import upArrowImg from "../../../../images/arena/up-arrow.png";
-import upDoubleArrowImg from "../../../../images/arena/up-double-arrow.png";
-import styles from './ShiftComponent.module.css';
+import DirectionButton, { Props as DirectionButtonProps } from "../../../util/DirectionButtonComponent";
 
 
-type Props = {
-    className?: string,
-    direction: Direction,
-    disabled: boolean,
+type Props = Omit<DirectionButtonProps, 'double' | 'onClick'> & {
     fast: boolean,
     onAction: (fast: boolean) => void
 }
@@ -50,17 +38,5 @@ export default function ShiftComponent(props: Props) {
         }
     }, [props.fast]);
 
-    return (<div className={`${props.className} ${styles.container}`}>
-        <input className={styles.image} type="image" src={getImgByDirection(props.direction, enableFast)} onClick={onClick} disabled={props.disabled} />
-    </div>
-    );
-}
-
-function getImgByDirection(direction: Direction, fast: boolean) {
-    switch (direction) {
-        case Direction.UP: return fast ? upDoubleArrowImg : upArrowImg;
-        case Direction.RIGHT: return fast ? rightDoubleArrowImg : rightArrowImg;
-        case Direction.DOWN: return fast ? downDoubleArrowImg : downArrowImg;
-        case Direction.LEFT: return fast ? leftDoubleArrowImg : leftArrowImg;
-    }
+    return (<DirectionButton {...props} double={enableFast} onClick={onClick} />)
 }

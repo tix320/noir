@@ -6,6 +6,8 @@ export enum Direction {
 }
 
 export namespace Direction {
+    export const ALL: readonly Direction[] = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT] as const;
+
     export function getReverse(direction: Direction): Direction {
         switch (direction) {
             case Direction.UP:

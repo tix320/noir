@@ -2,7 +2,7 @@
     position: fixed;
     bottom: 2%;
     right: 2%;
-    width: 10vw;
+    max-width: 10vw;
 }
 
 .dialogContent {
@@ -13,5 +13,6 @@
 .contentRoot {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 10px;
 }

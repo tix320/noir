@@ -14,12 +14,20 @@ import USER_SERVICE from "./user/UserService";
 import { USERS_BY_TOKEN } from "./user/UserTokens";
 import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
 import { Game, Player, Suspect } from "@tix320/noir-core/src/game/Game";
+import express from "express";
+import { createServer } from "http";
+import path from "path";
 
 process.on('uncaughtException', function (err) {
     console.error(err);
 });
 
-const io = new Server({
+const app = express();
+const httpServer = createServer(app);
+
+app.use(express.static(path.join(__dirname, 'build')));
+
+const io = new Server(httpServer, {
     cors: {
         origin: '*',
     },
@@ -300,7 +308,7 @@ io.on("connection", (socket) => {
     socket.on(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, (cb) => {
         GameService.gameChanges()
             .onFirst((currentGames: Map<string, GameData>) => {
-                
+
                 const response = [...currentGames.values()]
                     .filter(info => info[0].state === 'PREPARING')
                     .map(info => gamePreparationResponse(info as GamePreparationInfo));
@@ -349,4 +357,4 @@ io.on("connection", (socket) => {
 });
 
 
-io.listen(5000);
+httpServer.listen(5000);
