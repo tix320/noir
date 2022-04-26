@@ -18,7 +18,7 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', function (err) { 
     console.error(err);
 });
 

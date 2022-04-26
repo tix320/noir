@@ -329,6 +329,7 @@ export default function GameComponent(props: Props) {
 
             setTimeout(() => {
                 setPerformingEvent(undefined);
+                forceUpdate();
             }, 10000);
 
             return 10;
@@ -348,6 +349,7 @@ export default function GameComponent(props: Props) {
             } else {
                 setTimeout(() => {
                     setPerformingEvent(undefined);
+                    forceUpdate();
                 }, 10000);
 
                 return 10;
@@ -355,8 +357,11 @@ export default function GameComponent(props: Props) {
         },
 
         Profiled(event: GameEvents.Profiled<User>) {
-            const suspect = arenaRef.current.atPosition(event.target);
+            const arena = arenaRef.current;
+            const suspect = arena.atPosition(event.target);
             suspect.role = 'innocent';
+
+            setProfilerHand(event.newHand.map(character => arena.findFirst(suspect => equals(suspect.character, character))![0]));
 
             setPerformingEvent({
                 key: 'AllCanvased',
@@ -365,6 +370,7 @@ export default function GameComponent(props: Props) {
 
             setTimeout(() => {
                 setPerformingEvent(undefined);
+                forceUpdate();
             }, 10000);
 
             return 10;
@@ -483,6 +489,11 @@ export default function GameComponent(props: Props) {
                 if (event.triggerMarker) {
                     suspect.removeMarker(event.triggerMarker);
                 }
+            }
+
+            if (event.triggerMarker === Marker.THREAT) { // workaround
+                const psycho = playersRef.current.find(player => player.role === Role.PSYCHO);
+                setCurrentTurnPlayer(psycho);
             }
 
             return 5; // TODO: protect decided  animation
@@ -997,13 +1008,16 @@ export default function GameComponent(props: Props) {
                                 key={direction}
                                 direction={direction}
                                 disabled={!performingAction.availableDirections.includes(direction)}
-                                onClick={() => doCollapse(direction)} />)
+                                onClick={() => doCollapse(direction)}
+                                onMouseEnter={() => changeHighLight(GameHelper.getCollapseCandidatePositions(arenaRef.current, direction))}
+                                onMouseLeave={() => changeHighLight([])}
+                            />)
                         )
                     )
                     ||
                     (profilerDialogOpenPredicate &&
                         (
-                            profilerHand.map((suspect, index) => {
+                            profilerHandRef.current.map((suspect, index) => {
                                 const position = arena.findFirst((sus) => sus.character.name === suspect.character.name)![1];
 
                                 return <SuspectCard key={index}

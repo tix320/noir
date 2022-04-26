@@ -1,5 +1,4 @@
-.container {
-}
+.container {}
 
 .container:hover .tooltip {
   visibility: visible;
@@ -14,20 +13,20 @@
   border-style: solid;
 }
 
-.icon:disabled {
-  border-color: rgb(221 221 221 / 36%);
-  opacity: 0.8;
+.icon:hover {
+  // hover
+  border-color: rgb(217, 235, 163);
 }
 
-.icon:enabled {
-  // available
+.actionAvailable {
   border-color: rgb(192 255 0);
   border-style: dashed;
 }
 
-.icon:hover {
-  // hover
-  border-color: rgb(217, 235, 163);
+.actionNotAvailable {
+  border-color: rgb(221 221 221 / 36%);
+  opacity: 0.8;
+  cursor: default;
 }
 
 .selectedIcon {

@@ -49,6 +49,10 @@ export namespace GameHelper {
         return arena.getAvailableCollapseDirections(suspect => suspect.role === 'killed');
     }
 
+    export function getCollapseCandidatePositions(arena: Arena, direction: Direction): Position[] {
+        return arena.getCollapseCandidatePositions(direction, suspect => suspect.role === 'killed');
+    }
+
     export function collapse<I extends Identifiable>(arena: Arena<I>, direction: Direction): Arena<I> {
         return arena.collapse(direction, suspect => suspect.role === 'killed');
     }

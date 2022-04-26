@@ -16,12 +16,22 @@ export type Props = {
     direction: Direction,
     double?: boolean,
     disabled: boolean,
+    onMouseEnter?: MouseEventHandler | undefined,
+    onMouseLeave?: MouseEventHandler | undefined,
     onClick: MouseEventHandler | undefined
 }
 
 export default function DirectionButtonComponent(props: Props) {
     return (<div className={`${props.className} ${styles.container}`}>
-        <input className={styles.image} type="image" src={getImgByDirection(props.direction, props.double)} onClick={props.onClick} disabled={props.disabled} />
+        <input
+            className={styles.image}
+            type="image"
+            src={getImgByDirection(props.direction, props.double)}
+            disabled={props.disabled}
+            onClick={props.onClick}
+            onMouseEnter={props.onMouseEnter}
+            onMouseLeave={props.onMouseLeave}
+        />
     </div>
     );
 }

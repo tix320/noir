@@ -1310,7 +1310,7 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
         const newHand = hand.filter(suspect => suspect.role !== 'killed');
         newHand.removeFirst(suspect);
 
-        const newHandCount = 4 - hand.length;
+        const newHandCount = 4 - newHand.length;
         const newSuspects = this.context.evidenceDeck.splice(-newHandCount, newHandCount);
         newHand.push(...newSuspects);
 

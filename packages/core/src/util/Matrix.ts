@@ -224,6 +224,41 @@ export default class Matrix<T> {
         return directions;
     }
 
+    getCollapseCandidatePositions(direction: Direction, predicate: (item: T) => boolean): Position[] {
+        let positions: Position[] = [];
+        switch (direction) {
+            case Direction.UP:
+            case Direction.DOWN:
+                for (let j = 0; j < this.rows; j++) {
+                    let index;
+                    if (direction === Direction.UP) {
+                        index = [...this.columnItems(j)].findIndex(predicate);
+                    } else {
+                        index = this.rows - 1 - [...this.reverseColumnItems(j)].findIndex(predicate);
+                    }
+                    assert(index !== -1, `Collapse with direction ${direction} not available`);
+
+                    positions.push(new Position(index, j));
+                }
+                break;
+            case Direction.LEFT:
+            case Direction.RIGHT:
+                for (let i = 0; i < this.rows; i++) {
+                    let index;
+                    if (direction === Direction.LEFT) {
+                        index = this.matrix[i].findIndex(predicate);
+                    } else {
+                        index = this.columns - 1 - this.matrix[i].slice().reverse().findIndex(predicate);
+                    }
+                    assert(index !== -1, `Collapse with direction ${direction} not available`);
+
+                    positions.push(new Position(i, index));
+                }
+        }
+
+        return positions;
+    }
+
     collapse(direction: Direction, predicate: (item: T) => boolean): Matrix<T> {
         let newMatrix;
         switch (direction) {

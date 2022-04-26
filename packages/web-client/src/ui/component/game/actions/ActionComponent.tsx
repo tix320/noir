@@ -19,11 +19,11 @@ type Props<K extends GameActions.Any> = {
 
 const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
     <Tooltip {...props} classes={{ popper: className }} />
-  ))({
+))({
     [`& .${tooltipClasses.tooltip}`]: {
-      maxWidth: "30vw",
+        maxWidth: "30vw",
     },
-  });
+});
 
 export default function ActionComponent<K extends GameActions.Any>(props: Props<K>) {
     const onPerform = () => props.onPerform(props.action);
@@ -73,7 +73,12 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
         >
             <div className={classNames(styles.container, props.className)}>
                 <input type='image'
-                    className={`${styles.icon} ${props.selected ? styles.selectedIcon : ''}`}
+                    className={classNames(styles.icon,
+                        {
+                            [styles.selectedIcon]: props.selected,
+                            [styles.actionAvailable]: props.available,
+                            [styles.actionNotAvailable]: !props.available
+                        })}
                     src={image}
                     onClick={onPerform}
                 />
