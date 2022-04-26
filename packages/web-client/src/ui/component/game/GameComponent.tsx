@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import User from '../../../entity/User';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
-import { useForceUpdate } from '../common/Hooks';
+import { useForceUpdate, useServerConnectedEffect } from '../common/Hooks';
 import DirectionButton from '../util/DirectionButtonComponent';
 import ActionDialog from './action-dialog/ActionDialogComponent';
 import ActionsPanel, { ActionAvailability } from './actions/ActionsPanelComponent';
@@ -94,7 +94,7 @@ export default function GameComponent(props: Props) {
     const forceUpdate = useForceUpdate();
     const [t] = useTranslation();
 
-    useEffect(() => {
+    useServerConnectedEffect(() => {
         const eventsQueue: GameEvents.Any<User>[] = [];
 
         let stopListener = false;
@@ -122,7 +122,6 @@ export default function GameComponent(props: Props) {
                     setEventUIChangeSkipCount(event.readyEventsCount);
                 }
             })).subscribe(event => {
-                console.log('ReceivedEvent', event);
                 if (eventUIChangeSkipCount.current === 0) {
                     eventsQueue.push(event);
                 } else {

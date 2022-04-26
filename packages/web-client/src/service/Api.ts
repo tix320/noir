@@ -7,12 +7,46 @@ import { io, Socket } from "socket.io-client";
 import store from "./Store";
 import User from "../entity/User";
 import { GameActions } from "@tix320/noir-core/src/game/GameActions";
+import { assert } from "@tix320/noir-core/src/util/Assertions";
 
 const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://10.10.10.11:5000"
+
+export type ConnectionState = 'CONNECTED' | 'DISCONNECTED'
 
 class API {
 
     #socket?: Socket
+
+    connectionState(): Observable<ConnectionState> {
+        return new Observable((observer) => {
+            const socket = this.#socket;
+            assert(socket, 'Socket not initialized');
+
+            const connectListener = () => {
+                observer.next('CONNECTED');
+            };
+
+            const disconnectedListener = () => {
+                observer.next('DISCONNECTED');
+            }
+
+            socket.on('connect', connectListener);
+
+            socket.on('disconnect', disconnectedListener);
+
+            if (socket.connected) {
+                observer.next('CONNECTED');
+            } else {
+                observer.next('DISCONNECTED');
+            }
+
+            return () => {
+                socket.off('connect', connectListener);
+                socket.off('connect', disconnectedListener);
+            };
+
+        });
+    }
 
     connect(token: string): Promise<Dto.User> {
         this.#socket = io(SERVER_ADDRESS, {
@@ -118,7 +152,6 @@ class API {
                 socket.on(subscribeName, listener);
 
                 return () => {
-                    observer.complete();
                     socket.off(subscribeName, listener);
                 };
             }
@@ -139,7 +172,6 @@ class API {
                 socket.emit(requestName, ...args);
 
                 return () => {
-                    observer.complete();
                     socket.off(subscribeName, listener);
                 };
             }

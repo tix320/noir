@@ -1,71 +1,59 @@
 import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { onFirst } from "@tix320/noir-core/src/extension/RxJSExtension";
+import { useState } from "react";
 import { Button } from "react-bootstrap";
-import { takeUntil } from "rxjs/operators";
 import API from "../../../service/Api";
-import RxComponent from "../common/RxComponent";
+import { useServerConnectedEffect } from "../common/Hooks";
 import GameCreationComponent from "./GameCreationComponent";
 import GameSelectionComponent from "./GameSelectionComponent";
 
 type Props = {
 }
 
-type State = {
-    games: Array<Dto.GamePreparation>,
-    creatingGame: boolean
-}
+export default function LobbyComponent(props: Props) {
 
-export default class LobbyComponent extends RxComponent<Props, State> {
+    const [games, setGames] = useState<Dto.GamePreparation[]>([]);
+    const [creatingGame, setCreatingGame] = useState<boolean>(false);
 
-    state: State = {
-        games: [],
-        creatingGame: false,
-    }
-
-    componentDidMount(): void {
-        API.allPreparingGamesStream()
+    useServerConnectedEffect(() => {
+        const subscription = API.allPreparingGamesStream()
             .pipe(
                 onFirst((games: Dto.GamePreparation[]) => {
-                    this.setState({
-                        games: games
-                    })
-                }),
-                takeUntil(this.destroy$))
+                    setGames(games);
+                }))
             .subscribe((game) => {
-                this.setState(prevState => {
-                    prevState.games.removeFirstBy(g => g.id === game.id);
-                    const games = [...prevState.games, game];
-                    return { games: games };
+                setGames(prevGames => {
+                    prevGames.removeFirstBy(g => g.id === game.id);
+                    const games = [...prevGames, game];
+                    return games;
                 })
             });
-    }
 
-    joinGame = (game: Dto.GamePreparation) => {
+        return () => {
+            subscription.unsubscribe();
+        }
+    }, []);
+
+    const joinGame = (game: Dto.GamePreparation) => {
         API.joinGame(game.id);
     }
 
-    switchToGameCreation = () => {
-        this.setState({
-            creatingGame: true
-        })
+    const switchToGameCreation = () => {
+        setCreatingGame(true);
     }
 
-    render() {
-        const creatingGame = this.state.creatingGame;
-
-        if (creatingGame) {
-            return (
-                <GameCreationComponent />
-            );
-        } else {
-            return (
-                <div>
-                    <GameSelectionComponent games={this.state.games} onGameSelect={this.joinGame} />
-                    <Button onClick={this.switchToGameCreation}> Create new game</Button>
-                </div>
-            );
-        }
-
-
+    if (creatingGame) {
+        return (
+            <GameCreationComponent />
+        );
+    } else {
+        return (
+            <div>
+                <GameSelectionComponent games={games} onGameSelect={joinGame} />
+                <Button onClick={switchToGameCreation}> Create new game</Button>
+            </div>
+        );
     }
+
+
 }

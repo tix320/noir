@@ -1,10 +1,11 @@
 import { Dto } from "@tix320/noir-core/src/api/Dto";
 import classNames from "classnames";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { useSelector } from "react-redux";
 import { RemoteGame } from "../../../game/RemoteGame";
 import Api from "../../../service/Api";
 import { StoreState } from "../../../service/Store";
+import { useServerConnectedEffect } from "../common/Hooks";
 import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
 import GameComponent from "../game/GameComponent";
 import LobbyComponent from "../lobby/LobbyComponent";
@@ -19,7 +20,7 @@ export default function MainComponent({ className }: Props) {
     const [currentGame, setCurrentGame] = useState<Dto.UserCurrentGame | undefined>(undefined);
     const user = useSelector((state: StoreState) => state.user);
 
-    useEffect(() => {
+    useServerConnectedEffect(() => {
         const subscription = Api.myCurrentGameStream().subscribe(game => {
             setCurrentGame(game);
         })

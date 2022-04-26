@@ -18,7 +18,7 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 
-process.on('uncaughtException', function (err) { 
+process.on('uncaughtException', function (err) {
     console.error(err);
 });
 
@@ -40,7 +40,7 @@ io.use((socket, next) => {
     const user = USERS_BY_TOKEN.get(token);
     if (user) {
         USER_SERVICE.addConnectedUser(user)
-        console.info(`Connected ${user.name}`) 
+        console.info(`Connected ${user.name}`)
 
         socket.on('disconnect', reason => {
             console.error(`Disconnected ${user.name} Reason: ${reason}`);
@@ -319,7 +319,7 @@ io.on("connection", (socket) => {
                 takeWhile(() => socket.connected)
             )
             .subscribe((info) => {
-                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo))
+                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo)) 
             });
     })
 

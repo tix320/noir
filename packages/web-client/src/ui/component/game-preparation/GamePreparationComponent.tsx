@@ -1,89 +1,71 @@
 import { Game, RoleSelection } from "@tix320/noir-core/src/game/Game";
 import { Role } from "@tix320/noir-core/src/game/Role";
+import { assert } from "@tix320/noir-core/src/util/Assertions";
 import { equals } from "@tix320/noir-core/src/util/Identifiable";
 import classNames from "classnames";
+import { useState } from "react";
 import { Button } from "react-bootstrap";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 import { takeUntil } from 'rxjs/operators';
 import User from "../../../entity/User";
 import Api from "../../../service/Api";
+import { StoreState } from "../../../service/Store";
 import RoleCard from "../cards/role/RoleCardComponent";
+import { useServerConnectedEffect } from "../common/Hooks";
 import RxComponent from "../common/RxComponent";
 
 import styles from './GamePreparationComponent.module.css';
 
 type Props = {
     className?: string,
-    user: User,
     game: Game.Preparation<User>,
 }
 
-type State = {
-    availableRoles: Role[],
-    selectedRoles: JoinedUserInfo[]
-}
 
-class GamePreparationComponent extends RxComponent<Props, State> {
+export default function GamePreparationComponent(props: Props) {
 
-    state: State = {
-        availableRoles: [],
-        selectedRoles: [],
-    }
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+    const [selectedRoles, setSelectedRoles] = useState<JoinedUserInfo[]>([]);
 
-    componentDidMount(): void {
-        const game = this.props.game;
-        game.participantChanges()
-            .pipe(takeUntil(this.destroy$))
+    const currentUser = useSelector((state: StoreState) => state.user);
+    assert(currentUser);
+
+    useServerConnectedEffect(() => {
+        const subscription = props.game.participantChanges()
             .subscribe((state) => {
-                const adaptedState = this.adaptParticipants(state);
-                this.setState({
-                    ...adaptedState,
-                })
+                const adaptedState = adaptParticipants(state);
+                setAvailableRoles(adaptedState.availableRoles);
+                setSelectedRoles(adaptedState.selectedRoles);
             });
-    }
 
-    selectRole = (selectedRole: Role) => {
-        this.props.game.changeRole({
-            identity: this.props.user,
+        return () => {
+            subscription.unsubscribe();
+        }
+    }, [props.game]);
+
+    const selectRole = (selectedRole: Role) => {
+        props.game.changeRole({
+            identity: currentUser,
             role: selectedRole,
             ready: false
         })
     }
 
-    changeReadiness = (role: Role, ready: boolean) => {
-        this.props.game.changeRole({
-            identity: this.props.user,
+    const changeReadiness = (role: Role, ready: boolean) => {
+        props.game.changeRole({
+            identity: currentUser,
             role: role,
             ready: ready
         })
     }
 
-    render() {
-        return (
-            <div>
-                <div className={classNames(styles.container, this.props.className)}>
-                    {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isMafiaRole(role)))}
-
-
-                    <div className={styles.availableRolesContainer}>
-                        {this.state.availableRoles
-                            .map(role => <RoleCard className={styles.card} key={role.name} role={role} onClick={this.selectRole} />)}
-                    </div>
-
-
-                    {this.renderSelectedRoles(this.state.selectedRoles.filter(({ role }) => role && this.isFBIRole(role)))}
-                </div>
-            </div>
-        );
-    }
-
-    private renderSelectedRoles(roles: JoinedUserInfo[]) {
+    function renderSelectedRoles(roles: JoinedUserInfo[]) {
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
-                    <RoleCard className={styles.card} key={role!.name} role={role!} highlight={equals(user, this.props.user)} />
+                    <RoleCard className={styles.card} key={role!.name} role={role!} highlight={equals(user, currentUser)} />
                     <div>{user.name}</div>
-                    <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== this.props.user.id} onClick={() => this.changeReadiness(role!, !ready)}>
+                    <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== user.id} onClick={() => changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}
                     </Button>
 
@@ -93,36 +75,22 @@ class GamePreparationComponent extends RxComponent<Props, State> {
         </div>);
     }
 
-    private isMafiaRole(role: Role) {
-        return role.team === 'MAFIA';
-    }
+    return (
+        <div>
+            <div className={classNames(styles.container, props.className)}>
+                {renderSelectedRoles(selectedRoles.filter(({ role }) => role && isMafiaRole(role)))}
 
-    private isFBIRole(role: Role) {
-        return role.team === 'FBI';
-    }
 
-    private adaptParticipants(participants: RoleSelection<User>[]): GamePreparationState {
-        let availableRoles = new Set(Role.FOR_8_GAME);
+                <div className={styles.availableRolesContainer}>
+                    {availableRoles
+                        .map(role => <RoleCard className={styles.card} key={role.name} role={role} onClick={selectRole} />)}
+                </div>
 
-        const selectedRoles: JoinedUserInfo[] = [];
 
-        participants.forEach((participant => {
-            selectedRoles.push({
-                user: participant.identity,
-                role: participant.role,
-                ready: participant.ready
-            });
-
-            if (participant.role) {
-                availableRoles.delete(participant.role);
-            }
-        }));
-
-        return {
-            availableRoles: Array.from(availableRoles),
-            selectedRoles: selectedRoles
-        };
-    }
+                {renderSelectedRoles(selectedRoles.filter(({ role }) => role && isFBIRole(role)))}
+            </div>
+        </div>
+    );
 }
 
 interface GamePreparationState {
@@ -136,11 +104,33 @@ interface JoinedUserInfo {
     ready: boolean
 }
 
-function mapStateToProps(state: any) {
-    const user = state.user;
-    return {
-        user,
-    };
+function isMafiaRole(role: Role) {
+    return role.team === 'MAFIA';
 }
 
-export default connect(mapStateToProps)(GamePreparationComponent);
+function isFBIRole(role: Role) {
+    return role.team === 'FBI';
+}
+
+function adaptParticipants(participants: RoleSelection<User>[]): GamePreparationState {
+    let availableRoles = new Set(Role.FOR_8_GAME);
+
+    const selectedRoles: JoinedUserInfo[] = [];
+
+    participants.forEach((participant => {
+        selectedRoles.push({
+            user: participant.identity,
+            role: participant.role,
+            ready: participant.ready
+        });
+
+        if (participant.role) {
+            availableRoles.delete(participant.role);
+        }
+    }));
+
+    return {
+        availableRoles: Array.from(availableRoles),
+        selectedRoles: selectedRoles
+    };
+}
