@@ -3,8 +3,8 @@
 .profile {
     display: flex;
     position: absolute;
-    top: 20px;
-    right: 40px;
+    top: 2vh;
+    right: 2vh;
     align-items: center;
 }
 

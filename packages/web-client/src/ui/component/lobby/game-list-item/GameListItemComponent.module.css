@@ -1,0 +1,13 @@
+.body{
+    height: 30%;
+}
+
+.body * {
+    font-size: min(1.4vw, 20px);
+}
+
+.joinButton {
+    position: absolute;
+    right: 5%;
+    bottom: 10%;
+}

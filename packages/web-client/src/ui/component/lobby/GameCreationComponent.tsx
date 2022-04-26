@@ -1,6 +1,7 @@
 import { Component } from "react";
 import { Button, Form } from "react-bootstrap";
 import API from "../../../service/Api";
+import styles from "./GameCreationComponent.module.css";
 
 type Props = {
 }
@@ -27,7 +28,7 @@ export default class GameCreationComponent extends Component<Props, State> {
     render() {
 
         return (
-            <div>
+            <div className={styles.container}>
                 <Form.Control placeholder="Enter name" onChange={this.changeName} />
                 <Button disabled={!this.state.name} onClick={this.createGame}> Create</Button>
             </div>

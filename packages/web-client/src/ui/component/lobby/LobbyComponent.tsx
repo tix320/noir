@@ -6,6 +6,7 @@ import API from "../../../service/Api";
 import { useServerConnectedEffect } from "../common/Hooks";
 import GameCreationComponent from "./GameCreationComponent";
 import GameSelectionComponent from "./GameSelectionComponent";
+import styles from "./LobbyComponent.module.css";
 
 type Props = {
 }
@@ -49,8 +50,8 @@ export default function LobbyComponent(props: Props) {
     } else {
         return (
             <div>
-                <GameSelectionComponent games={games} onGameSelect={joinGame} />
-                <Button onClick={switchToGameCreation}> Create new game</Button>
+                <GameSelectionComponent className={styles.gameSelectionPanel} games={games} onGameSelect={joinGame} />
+                <Button className={styles.createGameButton} onClick={switchToGameCreation}> Create new game</Button>
             </div>
         );
     }

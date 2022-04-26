@@ -1,7 +1,8 @@
 import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { Component } from "react";
 import { Button, Card } from "react-bootstrap";
-import teamVSteamImg from "../../../images/teamVSteam.png";
+import cardImg from "../../../images/battle.png";
+import styles from "./GameListItemComponent.module.css";
 
 type Props = {
     game: Dto.GamePreparation,
@@ -24,14 +25,14 @@ export default class GameListItemComponent extends Component<Props,State> {
         const maxPlayersCount = game.maxPlayersCount;
 
         return (
-            <Card style={{ width: '18rem' }}>
-                <Card.Img variant="top" src={teamVSteamImg} />
-                <Card.Body>
+            <Card style={{ width: 'min(20%,250px)', backgroundColor: 'rgb(68 72 78)', borderRadius: '5%' }}>
+                <Card.Img variant="top" src={cardImg} />
+                <Card.Body className={styles.body} >
                     <Card.Title>{game.name}</Card.Title>
                     <Card.Text>
                         {`Players: ${currentPlayersCount}/${maxPlayersCount}`}
                     </Card.Text>
-                    <Button variant="primary" onClick={this.join}>Join</Button>
+                    <Button className={styles.joinButton} variant="primary" onClick={this.join}>Join</Button>
                 </Card.Body>
             </Card>
         );

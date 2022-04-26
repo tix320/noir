@@ -1,0 +1,9 @@
+.container {
+    top: 20%;
+    left: 42%;
+    right: 42%;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}

@@ -1,8 +1,9 @@
 import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { Component } from "react";
-import GameListItem from "./game-card/GameListItemComponent";
+import GameListItem from "./game-list-item/GameListItemComponent";
 
 type Props = {
+    className?:string,
     games: Array<Dto.GamePreparation>,
     onGameSelect(game: Dto.GamePreparation): void
 }
@@ -24,8 +25,7 @@ export default class GameSelectionComponent extends Component<Props, State> {
         }
 
         return (
-            <div>
-                <h1>Games</h1>
+            <div className={this.props.className}>
                 {
                     games.map(game => {
                         return <GameListItem key={game.id} game={game} onJoin={() => this.selectGame(game)} />

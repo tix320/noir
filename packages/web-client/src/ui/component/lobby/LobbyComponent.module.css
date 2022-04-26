@@ -1,0 +1,16 @@
+.gameSelectionPanel {
+    position: absolute;
+    top: 10vh;
+    margin: auto;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.createGameButton {
+    position: absolute;
+    top: 2vh;
+    left: 2vh;
+}
