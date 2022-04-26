@@ -15,6 +15,8 @@ export const USERS = [
     new User("test4", "test4"),
     new User("test5", "test5"),
     new User("test6", "test6"),
+    new User("test7", "test7"),
+    new User("test8", "test8"),
 ]
 
 export const USERS_BY_TOKEN: Map<string, User> = USERS.reduce((map, user) => {

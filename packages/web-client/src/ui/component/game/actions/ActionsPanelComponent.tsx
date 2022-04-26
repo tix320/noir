@@ -1,4 +1,5 @@
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
+import { Role } from '@tix320/noir-core/src/game/Role';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
 import Action from './ActionComponent';
@@ -6,6 +7,7 @@ import styles from './ActionsPanelComponent.module.css';
 
 type Props = {
     className?: string,
+    role: Role,
     actions: ActionAvailability<GameActions.Any>[],
     selectedAction: GameActions.Key | undefined,
     enabled: boolean,
@@ -24,6 +26,7 @@ export default function ActionsPanelComponent(props: Props) {
                 <Action
                     className={styles.action}
                     key={action.key}
+                    role={props.role}
                     action={action.key}
                     available={(!props.selectedAction || props.selectedAction === action.key) && action.available && props.enabled}
                     selected={action.key === props.selectedAction}

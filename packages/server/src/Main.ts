@@ -40,7 +40,7 @@ io.use((socket, next) => {
     const user = USERS_BY_TOKEN.get(token);
     if (user) {
         USER_SERVICE.addConnectedUser(user)
-        console.info(`Connected ${user.name}`)
+        console.info(`Connected ${user.name}`) 
 
         socket.on('disconnect', reason => {
             console.error(`Disconnected ${user.name} Reason: ${reason}`);

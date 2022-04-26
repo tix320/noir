@@ -1,5 +1,44 @@
 {
     "token": "Token",
     "save-token": "Save Token",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "action.description.details.enableHint": "Press <span style='color:#ffc135;'>ctrl</span> for details",
+    "action.description.header[shift]": "Shift",
+    "action.description.header[collapse]": "Collapse",
+    "action.description.header[disguise]": "Disguise",
+    "action.description.header[disarm]": "Disarm",
+    "action.description.header[accuse]": "Accuse",
+    "action.description.header[farAccuse]": "Far Accuse",
+    "action.description.header[knifeKill]": "Kill",
+    "action.description.header[swapSuspects]": "Swap",
+    "action.description.header[placeThreat]": "Threat",
+    "action.description.header[placeBomb]": "Bomb",
+    "action.description.header[detonateBomb]": "Detonate",
+    "action.description.header[snipeKill]": "Kill",
+    "action.description.header[setup]": "Setup",
+    "action.description.header[autospy]": "Autospy",
+    "action.description.header[canvas]": "Canvas",
+    "action.description.header[profile]": "Profile",
+    "action.description.header[placeProtection]": "Protection",
+    "action.description.details[shift]": "Circular Shift any <span style='color:#e5d819;'>row</span> or <span style='color:#e5d819;'>column</span> by <span style='color:#e5d819;'>{{shiftCount}}</span> cell. </br> You cannot ‘undo’ the previous player’s shift.",
+    "action.description.details[collapse]": "If there is at least <span style='color:#e5d819;'>one</span> <span style='color:#f53636;'>dead</span> suspect in each <span style='color:#e5d819;'>column</span> or in each <span style='color:#e5d819;'>row</span>, you can remove all of them and collapse the board. ",
+    "action.description.details[disguise]": "Pick card from <span style='color:#ff66ec;'>evidence deck</span>. If this card is <span style='color:#07ff03;'>alive</span>, that will be your new <span style='color:#eefd0d;'>identity</span>, and your current identity will be marked as <span style='color:#40bafd;'>innocent</span>, otherwise nothing happens.",
+    "action.description.details[disarm]": "Remove one <span style='color:#ff2020;'>bomb</span> or <span style='color:#994cb5;'>threat</span> marker on an <span style='color:#e5d819;'>adjacent</span> suspect.",
+    "action.description.details[accuse]": "Accuse any <span style='color:#e5d819;'>adjacent</span> <span style='color:#07ff03;'>alive</span> suspect of being some of <span style='color:#ff3636;'>mafiosi</span>. If the accusation is confirmed, then he will be <span style='color:#9139f1;'>arrested</span>. </br> You can accuse <span style='color:#e5d819;'>yourself</span> to throw off suspicion.",
+    "action.description.details[farAccuse]": "Accuse any <span style='color:#07ff03;'>alive</span> suspect within <span style='color:#e5d819;'>3 orthogonal spaces</span> of being some of <span style='color:#ff3636;'>mafiosi</span>. If the accusation is confirmed, then he will be <span style='color:#9139f1;'>arrested</span>. </br> You can accuse <span style='color:#e5d819;'>yourself</span> to throw off suspicion.",
+    "action.description.details[knifeKill]": "<span style='color:#fd4040;'>Kill</span> any <span style='color:#9139f1;'>non arrested</span> <span style='color:#e5d819;'>adjacent</span> suspect.",
+    "action.description.details[swapSuspects]": " Switch any two <span style='color:#e5d819;'>adjacent(each other)</span> suspects.",
+    "action.description.details[placeThreat]": "<span style='color:#91a9c1;'>Passive(At start of your turn):</span></br> Any <span style='color:#e5d819;'>adjacent</span> suspects with <span style='color:#994cb5;'>threat</span> marker will be <span style='color:#fd4040;'>killed</span>. </br></br> <span style='color:#91a9c1;'>Active(At end of your turn):</span></br> Mark <span style='color:#58cf72;'>1, 2, or 3</span> <span style='color:#07ff03;'>alive</span> and <span style='color:#9139f1;'>non arrested</span> suspects within <span style='color:#e5d819;'>3 orthogonal spaces</span> of you with <span style='color:#994cb5;'>threat</span> markers.",
+    "action.description.details[placeBomb]": "Place a <span style='color:#ff2020;'>bomb</span> marker on <span style='color:#e5d819;'>yourself</span> or any <span style='color:#e5d819;'>adjacent</span> suspect. </br></br> <span style='color:#91a9c1;'>Reaction:</span></br> When a mafioso is <span style='color:#9139f1;'>accused</span> while he has a <span style='color:#ff2020;'>bomb</span> marker, you may perform a <span style='color:#f32c2c;'>Detonate</span> action on him before he will be <span style='color:#9139f1;'>arrested</span>.",
+    "action.description.details[detonateBomb]": "Detonate one of suspects with <span style='color:#ff2020;'>bomb</span> marker. Then detonate another suspect <span style='color:#e5d819;'>adjacent</span> to it. If the second suspect also had a <span style='color:#ff2020;'>bomb</span> marker, you can detonate one more another <span style='color:#e5d819;'>adjacent</span> suspect and so on. By this method, it is possible to create long detonation chains. <span style='color:#9139f1;'>Non arrested</span> suspects will be <span style='color:#fd4040;'>killed</span>.",
+    "action.description.details[snipeKill]": "<span style='color:#fd4040;'>Kill</span> any <span style='color:#9139f1;'>non arrested</span> suspect within  <span style='color:#e5d819;'>3 spaces diagonally</span>.",
+    "action.description.details[setup]": "Move a <span style='color:#ff2020;'>bomb</span>, <span style='color:#994cb5;'>threat</span>, or <span style='color:#2e67e5;'>protection</span> marker off of a suspect and onto any <span style='color:#e5d819;'>adjacent</span> suspect without a marker of the same type.",
+    "action.description.details[autospy]": "Choose an <span style='color:#e5d819;'>adjacent</span> <span style='color:#fd4040;'>deceased</span> suspect. Every <span style='color:#ff3636;'>mafioso</span> player <span style='color:#e5d819;'>adjacent</span> to that suspect will become known.",
+    "action.description.details[canvas]": "Pick <span style='color:#e5d819;'>2</span> cards from <span style='color:#ff66ec;'>evidence deck</span>. Choose one of them. Each <span style='color:#ff3636;'>mafioso</span> or <span style='color:#4db300;'>agent</span> player <span style='color:#e5d819;'>adjacent</span> to that suspect will become known. Chosen suspect will be marked as <span style='color:#40bafd;'>innocent</span>.",
+    "action.description.details[profile]": "<span style='color:#91a9c1;'>Passive(At start of a game):</span></br> You have a 4 cards from <span style='color:#ff66ec;'>evidence deck</span>. It forms your <span style='color:#ff66ec;'>evidence hand</span>. </br></br> <span style='color:#91a9c1;'>Active:</span></br>  Choose one <span style='color:#07ff03;'>alive</span> card from <span style='color:#ff66ec;'>evidence hand</span>. Every mafioso player <span style='color:#e5d819;'>adjacent</span> to that suspect will become known. Chosen suspect will be marked as <span style='color:#40bafd;'>innocent</span>. </br></br> <span style='color:#91a9c1;'>Passive(At end of your turn):</span></br> <span style='color:#ff66ec;'>Evidence hand</span> will be filled up to 4 cards, removing <span style='color:#fd4040;'>killed</span> suspect cards.",
+    "action.description.details[placeProtection]": "<span style='color:#91a9c1;'>Passive(At start of your turn):</span></br> Place or remove <span style='color:#2e67e5;'>protection</span> marker from any suspect. You may not have more than <span style='color:#e5d819;'>6</span> in play at a time.</br></br> <span style='color:#91a9c1;'>Reaction:</span></br> When a suspect with a <span style='color:#2e67e5;'>protection</span> marker would be <span style='color:#fd4040;'>killed</span>, if you are in the same <span style='color:#e5d819;'>row</span> or <span style='color:#e5d819;'>column</span> as that suspect, you may <span style='color:#2e67e5;'>protect</span> him, and he do not die. Any effects of the kill action will be <span style='color:#bced5c;'>stopped</span>(such as bomb detonation chain).  You cannot protect <span style='color:#e5d819;'>yourself</span>."
+
+
+
+
 }

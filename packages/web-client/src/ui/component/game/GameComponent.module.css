@@ -17,9 +17,13 @@
     top: -0.6vh;
 }
 
-.leftPlayersPanel {}
+.leftPlayersPanel {
+    max-width: 90%;
+}
 
-.rightPlayersPanel {}
+.rightPlayersPanel {
+    max-width: 90%;
+}
 
 .arena {}
 

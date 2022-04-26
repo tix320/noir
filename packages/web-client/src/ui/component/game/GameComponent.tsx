@@ -250,18 +250,18 @@ export default function GameComponent(props: Props) {
             return 0;
         },
 
-        Shifted(event: GameEvents.Shifted) { 
+        Shifted(event: GameEvents.Shifted) {
             arenaRef.current.shift(event.direction, event.index, event.fast ? 2 : 1);
 
             return 5; //TODO: Shift animation
         },
 
-        Collapsed(event: GameEvents.Collapsed) { 
+        Collapsed(event: GameEvents.Collapsed) {
             arenaRef.current = GameHelper.collapse(arenaRef.current, event.direction) as Matrix<StandardSuspect>;
             return 5; //TODO: Collapse animation
         },
 
-        KillTry(event: GameEvents.KillTry) {   
+        KillTry(event: GameEvents.KillTry) {
             return 3; //TODO: KillTry animation
         },
 
@@ -948,13 +948,14 @@ export default function GameComponent(props: Props) {
                 alert={canvasAlertList} />
             }
 
-            <ActionsPanel
+            {myPlayer && <ActionsPanel
                 className={styles.actionsPanel}
+                role={myPlayer.role}
                 actions={actionsAvailabilityRef.current}
                 enabled={actionsEnabledRef.current}
                 selectedAction={performingAction?.key}
                 onActionSelect={onActionSelect}
-            />
+            />}
 
             <ActionDialog show={dialogOpenPredicate}>
                 {
