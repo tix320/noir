@@ -319,7 +319,7 @@ io.on("connection", (socket) => {
                 takeWhile(() => socket.connected)
             )
             .subscribe((info) => {
-                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo)) 
+                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo))
             });
     })
 

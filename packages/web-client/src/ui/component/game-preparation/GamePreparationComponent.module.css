@@ -26,7 +26,11 @@
     align-items: center;
 }
 
-.card{
-    height: 130px;
-    width: 130px;
+.card {
+    width: 9vw;
+    margin: 5px 0px;
+}
+
+.myCard{
+    border-color: rgb(15, 144, 250);
 }

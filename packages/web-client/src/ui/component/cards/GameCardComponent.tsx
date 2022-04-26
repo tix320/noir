@@ -7,7 +7,7 @@ export type Props = {
     additionalClassName?: string,
     highlight?: boolean,
     additionalHighLightClassName?: string,
-    description: string,
+    description?: string,
     onMouseEnter?: () => void,
     onMouseLeave?: () => void,
     onClick?: (...args: any[]) => any,

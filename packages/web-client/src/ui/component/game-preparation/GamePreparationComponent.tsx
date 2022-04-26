@@ -10,9 +10,10 @@ import { takeUntil } from 'rxjs/operators';
 import User from "../../../entity/User";
 import Api from "../../../service/Api";
 import { StoreState } from "../../../service/Store";
+import GameCard from "../cards/GameCardComponent";
 import RoleCard from "../cards/role/RoleCardComponent";
 import { useServerConnectedEffect } from "../common/Hooks";
-import RxComponent from "../common/RxComponent";
+import randomImg from '../../images/random.png';
 
 import styles from './GamePreparationComponent.module.css';
 
@@ -51,6 +52,23 @@ export default function GamePreparationComponent(props: Props) {
         })
     }
 
+    const selectRandom = () => {
+        const randomRole = availableRoles[Math.floor(Math.random() * availableRoles.length)];
+
+        props.game.changeRole({
+            identity: currentUser,
+            role: randomRole,
+            ready: false
+        })
+    }
+
+    const deselectRole = () => {
+        props.game.changeRole({
+            identity: currentUser,
+            ready: false
+        })
+    }
+
     const changeReadiness = (role: Role, ready: boolean) => {
         props.game.changeRole({
             identity: currentUser,
@@ -59,13 +77,24 @@ export default function GamePreparationComponent(props: Props) {
         })
     }
 
-    function renderSelectedRoles(roles: JoinedUserInfo[]) {
+    function renderSelectedRoles(roles: Required<JoinedUserInfo>[]) {
+        roles.sort(roleSelectionCompare);
+
+        console.log(roles);
+
+
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
-                    <RoleCard className={styles.card} key={role!.name} role={role!} highlight={equals(user, currentUser)} />
                     <div>{user.name}</div>
-                    <Button variant={ready ? 'success' : 'danger'} disabled={user.id !== user.id} onClick={() => changeReadiness(role!, !ready)}>
+                    <RoleCard
+                        className={styles.card}
+                        additionalClassName={classNames({ [styles.myCard]: equals(user, currentUser!) })}
+                        key={role!.name}
+                        role={role!}
+                        onClick={() => equals(user, currentUser) && deselectRole()}
+                    />
+                    <Button variant={ready ? 'success' : 'danger'} disabled={!equals(user, currentUser!)} onClick={() => changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}
                     </Button>
 
@@ -75,19 +104,47 @@ export default function GamePreparationComponent(props: Props) {
         </div>);
     }
 
+    function renderAvailableRoles(roles: Role[], myRole: Role | undefined) {
+        return (roles
+            .map(role => <RoleCard
+                className={styles.card}
+                key={role.name}
+                role={role}
+                highlight={myRole === undefined}
+                onClick={selectRole} />)
+        );
+    }
+
+    const mafiaSelectedRoles = selectedRoles.filter(({ role }) => role && isMafiaRole(role)) as Required<JoinedUserInfo>[];
+    const fbiSelectedRoles = selectedRoles.filter(({ role }) => role && isFBIRole(role)) as Required<JoinedUserInfo>[];
+
+    const mafiaAvailableRoles = availableRoles.filter((role) => isMafiaRole(role));
+    const fbiAvailableRoles = availableRoles.filter((role) => isFBIRole(role));
+
+    const mySelectedRole: Role | undefined = selectedRoles.find(role => equals(role.user, currentUser))?.role;
+
     return (
         <div>
             <div className={classNames(styles.container, props.className)}>
-                {renderSelectedRoles(selectedRoles.filter(({ role }) => role && isMafiaRole(role)))}
-
+                {renderSelectedRoles(mafiaSelectedRoles)}
 
                 <div className={styles.availableRolesContainer}>
-                    {availableRoles
-                        .map(role => <RoleCard className={styles.card} key={role.name} role={role} onClick={selectRole} />)}
+                    {
+                        renderAvailableRoles(mafiaAvailableRoles, mySelectedRole)
+                    }
+                    {!mySelectedRole && <GameCard
+                        className={styles.card}
+                        image={randomImg}
+                        highlight={true}
+                        onClick={selectRandom}
+                    />
+                    }
+                    {
+                        renderAvailableRoles(fbiAvailableRoles, mySelectedRole)
+                    }
                 </div>
 
-
-                {renderSelectedRoles(selectedRoles.filter(({ role }) => role && isFBIRole(role)))}
+                {renderSelectedRoles(fbiSelectedRoles)}
             </div>
         </div>
     );
@@ -133,4 +190,8 @@ function adaptParticipants(participants: RoleSelection<User>[]): GamePreparation
         availableRoles: Array.from(availableRoles),
         selectedRoles: selectedRoles
     };
+}
+
+function roleSelectionCompare(info1: { role: Role }, info2: { role: Role }): number {
+    return info1.role!.name.localeCompare(info2.role!.name);
 }
