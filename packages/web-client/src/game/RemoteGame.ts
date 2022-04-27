@@ -1,5 +1,5 @@
 import { Dto } from '@tix320/noir-core/src/api/Dto';
-import { Arena, Game, Player as IPlayer, RoleSelection, Suspect } from '@tix320/noir-core/src/game/Game';
+import { Arena, Game, GameInitialState, Player as IPlayer, RoleSelection, Suspect } from '@tix320/noir-core/src/game/Game';
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
 import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
 import { Role } from '@tix320/noir-core/src/game/Role';
@@ -61,6 +61,10 @@ export namespace RemoteGame {
 
         constructor(public readonly id: string) {
 
+        }
+
+        public get initialState(): GameInitialState<User> {
+            throw new Error('Unsupported. Instead get players from `GameStarted` event');
         }
 
         public get players(): Player[] {

@@ -62,6 +62,17 @@ export interface PlayerRoleReadySelection {
     ready: true
 }
 
+export interface PlayerInfo<I extends Identifiable = Identifiable> {
+    identity: I;
+    role: Role;
+}
+
+export interface GameInitialState<I extends Identifiable> {
+    players: PlayerInfo<I>[];
+    arena: Matrix<Character>;
+    evidenceDeck: Character[];
+}
+
 export namespace Game {
 
     export interface Preparation<I extends Identifiable> {
@@ -82,7 +93,9 @@ export namespace Game {
     }
 
     export interface Play<I extends Identifiable> {
-        players: Player<I>[]; 
+        readonly initialState: GameInitialState<I>;
+        
+        readonly players: Player<I>[];
 
         events(): Observable<GameEvents.Any<I>>;
     }

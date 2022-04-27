@@ -1,4 +1,4 @@
-import { BehaviorSubject, concat, Observable, of, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, concat, identity, Observable, of, ReplaySubject } from 'rxjs';
 import { swap } from '../util/ArrayUtils';
 import { assert, AssertionError } from '../util/Assertions';
 import { Direction } from '../util/Direction';
@@ -8,7 +8,7 @@ import Position from '../util/Position';
 import { shuffle } from '../util/RandUtils';
 import { Character } from './Character';
 import {
-    Game, Marker, Player as IPlayer, RoleSelection, Score, Suspect, Winner
+    Game, GameInitialState, Marker, Player as IPlayer, PlayerInfo, RoleSelection, Score, Suspect, Winner
 } from './Game';
 import { GameActions } from './GameActions';
 import { GameEvents } from './GameEvents';
@@ -138,54 +138,148 @@ export namespace StandardGame {
 
             const for6: boolean = this.#participants.length === 6;
 
-            const winningScores: Score = for6 ? [18, 5] : [25, 6];
-
             const arenaSize = for6 ? 6 : 7;
 
-            const suspects = StandardSuspect.generateSet<I>(arenaSize * arenaSize);
-            shuffle(suspects);
+            const characters = Character.generateSet(arenaSize * arenaSize);
+            shuffle(characters);
 
-            let matrix: StandardSuspect<I>[][];
+            let matrix: Character[][];
 
             if (for6) {
                 matrix = [
-                    suspects.slice(0, 6),
-                    suspects.slice(6, 12),
-                    suspects.slice(12, 18),
-                    suspects.slice(18, 24),
-                    suspects.slice(24, 30),
-                    suspects.slice(30, 36),
+                    characters.slice(0, 6),
+                    characters.slice(6, 12),
+                    characters.slice(12, 18),
+                    characters.slice(18, 24),
+                    characters.slice(24, 30),
+                    characters.slice(30, 36),
                 ]
             } else {
                 matrix = [
-                    suspects.slice(0, 7),
-                    suspects.slice(7, 14),
-                    suspects.slice(14, 21),
-                    suspects.slice(21, 28),
-                    suspects.slice(28, 35),
-                    suspects.slice(35, 42),
-                    suspects.slice(42, 49),
+                    characters.slice(0, 7),
+                    characters.slice(7, 14),
+                    characters.slice(14, 21),
+                    characters.slice(21, 28),
+                    characters.slice(28, 35),
+                    characters.slice(35, 42),
+                    characters.slice(42, 49),
                 ]
             }
 
-            shuffle(suspects);
+            shuffle(characters);
 
-            const arena = new Matrix<StandardSuspect<I>>(matrix);
+            const arena = new Matrix<Character>(matrix);
 
-            const profilerEvidenceHand = for6 ? [] : suspects.splice(-4, 4);
-
-            const context = new GameContext<I>(arena, suspects, profilerEvidenceHand);
-
-            const players: Player<I>[] = this.#participants.map(participant => this.createPlayerForRole(participant.identity, participant.role!, context));
-
+            const players: PlayerInfo<I>[] = this.#participants.map(participant => ({ identity: participant.identity, role: participant.role! }));
             this.resolvePlayersOrder(players);
 
-            players.forEach(player => suspects.pop()!.role = player);
+            const initialState: GameInitialState<I> = {
+                players: players,
+                arena: arena,
+                evidenceDeck: characters
+            }
 
+            return new StandardGame.Play(initialState);
+        }
+
+        private resolvePlayersOrder(players: PlayerInfo[]): void {
+            const mafia: PlayerInfo[] = players.filter(p => p.role.team === 'MAFIA');
+            const fbi: PlayerInfo[] = players.filter(p => p.role.team === 'FBI');
+
+            shuffle(mafia);
+            shuffle(fbi);
+
+            const killerIndex = mafia.findIndex(player => player.role === Role.KILLER);
+            swap(mafia, 0, killerIndex);
+
+            let maf = true;
+            const mafiaIter = mafia[Symbol.iterator]();
+            const fbiIter = fbi[Symbol.iterator]();
+            for (let i = 0; i < players.length; i++) {
+                players[i] = maf ? mafiaIter.next().value : fbiIter.next().value;
+                maf = !maf;
+            }
+        }
+    }
+
+    export class Play<I extends Identifiable> implements Game.Play<I>{
+
+        completed = false;
+
+        #context: GameContext<I>;
+
+        #events = new ReplaySubject<GameEvents.Any<I>>();
+        #eventsCount = 0;
+
+        #winningScores: Score;
+
+        constructor(public readonly initialState: GameInitialState<I>) {
+            const for6 = initialState.players.length === 6;
+
+            this.#winningScores = for6 ? [18, 5] : [25, 6];
+
+            const evidenceDeck = initialState.evidenceDeck.map(character => new StandardSuspect<I>(character));
+
+            const arena = initialState.arena.map(character => evidenceDeck.find(suspect => equals(suspect.character, character))!);
+            const context = new GameContext<I>(this, arena);
+            this.#context = context;
+
+            const players: Player<I>[] = this.initialState.players.map(playerInfo => this.createPlayerForRole(playerInfo.identity, playerInfo.role!, context));
             context.players = players;
+
             context.currentTurnPlayer = players[0];
 
-            return new StandardGame.Play(context, winningScores);
+            players.forEach(player => evidenceDeck.pop()!.role = player);
+            const profilerEvidenceHand = for6 ? [] : evidenceDeck.splice(-4, 4);
+
+            context.evidenceDeck = evidenceDeck;
+            context.profiler.evidenceHand = profilerEvidenceHand;
+
+            const gameStartedEvent: GameEvents.Started<I> = {
+                type: 'GameStarted',
+                players: [...context.players],
+                arena: context.arena.clone(suspect => suspect.clone()),
+                evidenceDeck: context.evidenceDeck.map(suspect => suspect.character),
+                profilerHand: context.profiler.evidenceHand.map(suspect => suspect.character)
+            }
+            this.fireEvent(gameStartedEvent);
+
+            Helper.fireTurnChangedEvent(context.currentTurnPlayer, context);
+            context.currentTurnPlayer.initTurn();
+        }
+
+        public get players() {
+            return [...this.#context.players];
+        }
+
+        public events(): Observable<GameEvents.Any<I>> {
+            assert(!this.completed, 'Game is already completed');
+
+            const hello: GameEvents.Hello = {
+                type: 'Hello',
+                readyEventsCount: this.#eventsCount
+            }
+
+            return concat(of(hello), this.#events.asObservable());
+        }
+
+        checkWin(score: Score): Winner | undefined {
+            if (score[0] >= this.#winningScores[0] && score[1] >= this.#winningScores[1]) {
+                return 'DRAW';
+            }
+
+            if (score[0] >= this.#winningScores[0]) {
+                return 'MAFIA';
+            } else if (score[1] >= this.#winningScores[1]) {
+                return 'FBI';
+            } else {
+                return undefined;
+            }
+        }
+
+        fireEvent(event: GameEvents.Any<I>) {
+            this.#events.next(event);
+            this.#eventsCount++;
         }
 
         private createPlayerForRole(identity: I, role: Role, context: GameContext<I>): Player<I> {
@@ -209,83 +303,6 @@ export namespace StandardGame {
                 default:
                     throw new AssertionError(`Unknown role ${role}`);
             }
-        }
-
-        private resolvePlayersOrder(players: Player[]): void {
-            const mafia: Player[] = players.filter(p => p instanceof Mafioso);
-            const fbi: Player[] = players.filter(p => p instanceof Agent);
-
-            shuffle(mafia);
-            shuffle(fbi);
-
-            const killerIndex = mafia.findIndex(player => player instanceof Killer);
-            swap(mafia, 0, killerIndex);
-
-            let maf = true;
-            const mafiaIter = mafia[Symbol.iterator]();
-            const fbiIter = fbi[Symbol.iterator]();
-            for (let i = 0; i < players.length; i++) {
-                players[i] = maf ? mafiaIter.next().value : fbiIter.next().value;
-                maf = !maf;
-            }
-        }
-    }
-
-    export class Play<I extends Identifiable> implements Game.Play<I>{
-
-        completed = false;
-
-        #events = new ReplaySubject<GameEvents.Any<I>>();
-        #eventsCount = 0;
-
-        constructor(private context: GameContext<I>, private winningScores: Score) {
-            context.game = this;
-
-            const gameStartedEvent: GameEvents.Started<I> = {
-                type: 'GameStarted',
-                players: [...context.players],
-                arena: context.arena.clone(suspect => suspect.clone()),
-                evidenceDeck: context.evidenceDeck.map(suspect => suspect.character),
-                profilerHand: context.profiler.evidenceHand.map(suspect => suspect.character)
-            }
-            this.fireEvent(gameStartedEvent);
-
-            Helper.fireTurnChangedEvent(context.currentTurnPlayer, context);
-            context.currentTurnPlayer.initTurn();
-        }
-
-        public get players() {
-            return [...this.context.players];
-        }
-
-        public events(): Observable<GameEvents.Any<I>> {
-            assert(!this.completed, 'Game is already completed');
-
-            const hello: GameEvents.Hello = {
-                type: 'Hello',
-                readyEventsCount: this.#eventsCount
-            }
-
-            return concat(of(hello), this.#events.asObservable());
-        }
-
-        checkWin(score: Score): Winner | undefined {
-            if (score[0] >= this.winningScores[0] && score[1] >= this.winningScores[1]) {
-                return 'DRAW';
-            }
-
-            if (score[0] >= this.winningScores[0]) {
-                return 'MAFIA';
-            } else if (score[1] >= this.winningScores[1]) {
-                return 'FBI';
-            } else {
-                return undefined;
-            }
-        }
-
-        fireEvent(event: GameEvents.Any<I>) {
-            this.#events.next(event);
-            this.#eventsCount++;
         }
     }
 }
@@ -1334,6 +1351,8 @@ interface ProfilerContext<I extends Identifiable> {
 }
 
 class GameContext<I extends Identifiable = Identifiable> {
+    game: StandardGame.Play<I>;
+
     arena: Matrix<StandardSuspect<I>>;
 
     players: Player<I>[];
@@ -1354,20 +1373,18 @@ class GameContext<I extends Identifiable = Identifiable> {
 
     score: Score;
 
-    game: StandardGame.Play<I>;
-
-    constructor(arena: Matrix<StandardSuspect<I>>, evidenceDeck: StandardSuspect<I>[], profilerEvidenceHand: StandardSuspect<I>[]) {
+    constructor(game: StandardGame.Play<I>, arena: Matrix<StandardSuspect<I>>) {
+        this.game = game;
         this.arena = arena;
         this.players = undefined as any;
         this.currentTurnPlayer = undefined as any;
         this.reactions = [];
-        this.evidenceDeck = evidenceDeck;
+        this.evidenceDeck = undefined as any;
         this.bomber = {};
         this.detective = {};
         this.suit = {};
-        this.profiler = { evidenceHand: profilerEvidenceHand };
+        this.profiler = { evidenceHand: undefined as any };
         this.score = [0, 0];
-        this.game = undefined as any;
     }
 }
 

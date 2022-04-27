@@ -1,4 +1,5 @@
 import "@tix320/noir-core";
+import './db/Datastore';
 import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
 import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { GameActions } from "@tix320/noir-core/src/game/GameActions";
@@ -8,17 +9,16 @@ import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEve
 import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor";
 import { filter, map, takeWhile } from 'rxjs/operators';
 import { Server } from "socket.io";
-import { default as GameService, default as GAME_SERVICE, GameData, GamePreparationInfo } from "./game/GameService";
+import { GameService, GameData, GamePreparationInfo } from "./game/GameService";
 import { User } from "./user/User";
-import USER_SERVICE from "./user/UserService";
-import { USERS_BY_TOKEN } from "./user/UserTokens";
 import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
 import { Game, Player, Suspect } from "@tix320/noir-core/src/game/Game";
 import express from "express";
 import { createServer } from "http";
 import path from "path";
+import { UserService } from "./user/UserService";
 
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', function (err) { 
     console.error(err);
 });
 
@@ -33,27 +33,6 @@ const io = new Server(httpServer, {
     },
 
 });
-
-io.use((socket, next) => {
-    const token = socket.handshake.auth.token || socket.handshake.auth.password;
-
-    const user = USERS_BY_TOKEN.get(token);
-    if (user) {
-        USER_SERVICE.addConnectedUser(user)
-        console.info(`Connected ${user.name}`)
-
-        socket.on('disconnect', reason => {
-            console.error(`Disconnected ${user.name} Reason: ${reason}`);
-            USER_SERVICE.removeConnectedUser(user);
-        });
-
-        next()
-    } else {
-        console.info(`Invalid token ${token}`)
-        next(new Error("Invalid token"))
-    }
-});
-
 
 function gamePreparationResponse(data: GamePreparationInfo): Dto.GamePreparation {
     const [gameInfo, game] = data;
@@ -268,10 +247,30 @@ class GameEventConverter implements GameEventVisitor<User> {
 const GAME_ACTION_DTO_CONVERTER = new GameActionDtoVisitor();
 const GAME_EVENT_CONVERTER = new GameEventConverter();
 
-io.on("connection", (socket) => {
+io.use(async (socket, next) => {
     const token = socket.handshake.auth.token || socket.handshake.auth.password;
 
-    const user: User = USERS_BY_TOKEN.get(token)!;
+    const user = await UserService.login(token);
+    if (user) {
+        UserService.addConnectedUser(user)
+        console.info(`Connected ${user.name}`)
+
+        socket.on('disconnect', reason => {
+            console.error(`Disconnected ${user.name} Reason: ${reason}`);
+            UserService.removeConnectedUser(user);
+        });
+
+        socket.data = user;
+
+        next()
+    } else {
+        console.info(`Invalid token ${token}`)
+        next(new Error("Invalid token"))
+    }
+});
+
+io.on("connection", (socket) => {
+    const user: User = socket.data as User;
 
     socket.on(ApiEvents.GET_MY_USER, (cb) => {
         const response = userResponse(user);
@@ -279,15 +278,15 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.CREATE_GAME, (info, cb) => {
-        GAME_SERVICE.createGame(user, info);
+        GameService.createGame(user, info);
     });
 
     socket.on(ApiEvents.JOIN_GAME, (gameId: string, cb) => {
-        GAME_SERVICE.joinGame(user, gameId);
+        GameService.joinGame(user, gameId);
     });
 
     socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: Dto.GameRoleSelection, cb) => {
-        const [gameInfo, game] = GAME_SERVICE.changeGameRole(user, {
+        const [gameInfo, game] = GameService.changeGameRole(user, {
             ready: roleSelection.ready,
             role: roleSelection.role ? Role.getByName(roleSelection.role) : undefined
         });
@@ -296,13 +295,13 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.LEAVE_GAME, (cb) => {
-        GAME_SERVICE.leaveGame(user);
+        GameService.leaveGame(user);
     });
 
     socket.on(ApiEvents.DO_GAME_ACTION, (dtoAction: Dto.Actions.Any, cb) => {
         let action: GameActions.Any = visitAction(dtoAction, GAME_ACTION_DTO_CONVERTER);
 
-        GAME_SERVICE.doGameAction(user, action);
+        GameService.doGameAction(user, action);
     });
 
     socket.on(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, (cb) => {
@@ -349,7 +348,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.SUBSCRIBE_PLAYING_GAME, (gameId: string, cb) => {
-        GAME_SERVICE.gameEvents(gameId, user).pipe(
+        GameService.gameEvents(gameId, user).pipe(
             map(event => visitEvent(event, GAME_EVENT_CONVERTER)),
             takeWhile(() => socket.connected)
         ).subscribe((event) => socket.emit(ApiEvents.ROOM_PLAYING_GAME(gameId), event));

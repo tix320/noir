@@ -80,9 +80,6 @@ export default function GamePreparationComponent(props: Props) {
     function renderSelectedRoles(roles: Required<JoinedUserInfo>[]) {
         roles.sort(roleSelectionCompare);
 
-        console.log(roles);
-
-
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
