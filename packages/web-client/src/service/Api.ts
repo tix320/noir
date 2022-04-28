@@ -7,6 +7,8 @@ import store from "./Store";
 
 const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://localhost:5000"
 
+console.info(`SERVER_ADDRESS=${SERVER_ADDRESS}`);
+
 export type ConnectionState = 'CONNECTED' | 'DISCONNECTED'
 
 class Api {
