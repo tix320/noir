@@ -14,10 +14,10 @@ import ActionComponent from "./ui/component/game/actions/ActionComponent";
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 root.render(
-  // <React.StrictMode>
-  <Provider store={store}>
-    <AppComponent className={styles.app} />
-    <ToastContainer newestOnTop={true} limit={3} />
-  </Provider>,
-  // </React.StrictMode>,
+  <React.StrictMode>
+    <Provider store={store}>
+      <AppComponent className={styles.app} />
+      <ToastContainer newestOnTop={true} limit={3} />
+    </Provider>,
+  </React.StrictMode>,
 )

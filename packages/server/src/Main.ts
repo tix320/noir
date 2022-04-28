@@ -1,21 +1,21 @@
 import "@tix320/noir-core";
-import './db/Datastore';
 import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
 import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor";
+import { Player, Suspect } from "@tix320/noir-core/src/game/Game";
 import { GameActions } from "@tix320/noir-core/src/game/GameActions";
+import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
+import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor";
 import { Role } from "@tix320/noir-core/src/game/Role";
 import { StandardGame } from "@tix320/noir-core/src/game/StandardGame";
-import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor";
-import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor";
-import { filter, map, takeWhile, tap } from 'rxjs/operators';
-import { Server } from "socket.io";
-import { GameService, GameData, GamePreparationInfo } from "./game/GameService";
-import { User } from "./user/User";
-import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
-import { Game, Player, Suspect } from "@tix320/noir-core/src/game/Game";
 import express from "express";
 import { createServer } from "http";
 import path from "path";
+import { filter, map, takeWhile, tap } from 'rxjs/operators';
+import { Server } from "socket.io";
+import './db/Datastore';
+import { GameData, GamePreparationInfo, GameService } from "./game/GameService";
+import { User } from "./user/User";
 import { UserService } from "./user/UserService";
 
 process.on('uncaughtException', function (err) {
@@ -174,7 +174,7 @@ class GameEventConverter implements GameEventVisitor<User, any> {
         return event;
     }
 
-    AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>) { 
+    AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>) {
         const eventDto: Dto.Events.AutopsyCanvased = {
             type: 'AutopsyCanvased',
             target: event.target,
@@ -342,7 +342,7 @@ io.on("connection", (socket) => {
             const gameInfo = currentGameId ? GameService.getGame(currentGameId)[0] : undefined;
 
             const dto: Dto.UserCurrentGame | undefined = gameInfo && {
-                id: gameInfo.id, 
+                id: gameInfo.id,
                 state: gameInfo.state
             }
 

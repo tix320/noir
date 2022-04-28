@@ -98,7 +98,7 @@ function createMarkup(role: Role, action: GameActions.Key, showDetails: boolean,
     const header = `<span style='font-size:1.3em;'>${t(`action.description.header[${action}]`)}</span> </br>`;
     const details = showDetails
         ? t(`action.description.details[${action}]`, {
-            shiftCount: Role.CAN_DO_FAST_SHIFT.includes(role) ? 2 : 1
+            shiftCount: Role.CAN_DO_FAST_SHIFT.includes(role) ? '1 or 2' : '1'
         })
         : t("action.description.details.enableHint");
 
