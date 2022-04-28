@@ -932,13 +932,13 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
         const arena = this.context.arena;
 
         const canAccuse = GameHelper.getAccusePositions(arena, this.locate());
-        const canAutoSpy = GameHelper.getAutoSpyPositions(arena, this.locate()).isNonEmpty();
+        const canAutopsy = GameHelper.getAutopsyPositions(arena, this.locate()).isNonEmpty();
 
         if (canAccuse) {
             actions.push('accuse');
         }
-        if (canAutoSpy) {
-            actions.push('autospy');
+        if (canAutopsy) {
+            actions.push('autopsy');
         }
 
         return actions;
@@ -963,7 +963,7 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
         this.changePhase('END');
     }
 
-    protected autospy(action: GameActions.Undercover.AutoSpy) {
+    protected autopsy(action: GameActions.Undercover.Autopsy) {
         const { target } = action;
 
         assert(Helper.isAdjacentTo(this, target), 'Not adjacent target');
@@ -974,8 +974,8 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
 
         const mafiosi = Helper.getAdjacentMafiosi(target, this.context);
 
-        const event: GameEvents.AutoSpyCanvased<Identifiable> = {
-            type: 'AutoSpyCanvased',
+        const event: GameEvents.AutopsyCanvased<Identifiable> = {
+            type: 'AutopsyCanvased',
             target: target,
             mafiosi: mafiosi.map(m => m.identity)
         }
@@ -1512,7 +1512,7 @@ namespace Helper {
 
 
         if (suspect.role === 'suspect' || suspect.role !== mafioso) {
-            const event: GameEvents.UnsuccessfulAccused = { type: 'UnsuccessfulAccused', target: target };
+            const event: GameEvents.UnsuccessfulAccused = { type: 'UnsuccessfulAccused', target: target, mafioso: mafioso!.role };
             context.game.fireEvent(event);
             onEnd?.();
         }

@@ -91,7 +91,7 @@ export default function GamePreparationComponent(props: Props) {
                         role={role!}
                         onClick={() => equals(user, currentUser) && deselectRole()}
                     />
-                    <Button variant={ready ? 'success' : 'danger'} disabled={!equals(user, currentUser!)} onClick={() => changeReadiness(role!, !ready)}>
+                    <Button className={styles.readyButton} variant={ready ? 'success' : 'danger'} disabled={!equals(user, currentUser!)} onClick={() => changeReadiness(role!, !ready)}>
                         {ready ? 'Ready' : 'Not ready'}
                     </Button>
 

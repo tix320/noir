@@ -15,6 +15,7 @@ import classNames from 'classnames';
 import { useEffect, useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
+import { toast, ToastContent, ToastOptions, Zoom } from 'react-toastify';
 import User from '../../../entity/User';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
@@ -106,10 +107,19 @@ export default function GameComponent(props: Props) {
             return setTimeout(() => {
                 const event = eventsQueue.shift();
                 if (event) {
-                    const nextEventDelay = processEvent(event);
-                    forceUpdate();
+                    const toastData = processEvent(event);
+                    if (toastData) {
+                        toast(toastData[0], {
+                            ...toastData[1],
+                            position: 'bottom-right',
+                            theme: 'dark',
+                            transition: Zoom,
+                            pauseOnFocusLoss: false,
 
-                    scheduleEventProcessor(0); //TODO: Change to nextEventDelay after events animation will be ready
+                        });
+                    }
+                    forceUpdate();
+                    scheduleEventProcessor(2);
                 } else {
                     scheduleEventProcessor(1);
                 }
@@ -143,21 +153,29 @@ export default function GameComponent(props: Props) {
         }
     }, [game]);
 
-    const _process_kill_event = (event: GameEvents.AbstractKill): StandardSuspect => {
+    const _process_kill_event = (event: GameEvents.AbstractKill, killedByText: string): [ToastContent, ToastOptions] => {
         const suspect = arenaRef.current.atPosition(event.killed);
 
+        let text;
         if (event.newFbiIdentity) {
             const player = suspect.role as Player;
             const newSuspect = arenaRef.current.atPosition(event.newFbiIdentity);
             newSuspect.role = player;
+            text = `${suspect.character.name} (${player.role.name.capitalize()}) killed by ${killedByText}`;
+        } else {
+            text = `${suspect.character.name} killed by ${killedByText}`;
         }
 
         suspect.role = 'killed';
 
-        return suspect;
+
+        const options: ToastOptions = {
+            type: 'error',
+        }
+        return [text, options];
     }
 
-    const eventVisitor: GameEventVisitor<User> = {
+    const eventVisitor: GameEventVisitor<User, [ToastContent, ToastOptions] | void> = {
 
         GameStarted(event: GameEvents.Started<User>) {
             const arena = event.arena.map(suspect => new StandardSuspect(suspect.character, suspect.role, suspect.markersSnapshot()));
@@ -169,14 +187,10 @@ export default function GameComponent(props: Props) {
 
             const myPlayer = GameHelper.findPlayerByIdentityOrThrow(event.players, props.identity);
             setMyPlayer(myPlayer);
-
-            return 1;
         },
 
         GameCompleted(event: GameEvents.Completed) {
             console.log('Game completed');
-
-            return 0;
         },
 
         TurnChanged(event: GameEvents.TurnChanged<User>) {
@@ -185,8 +199,6 @@ export default function GameComponent(props: Props) {
             setCurrentTurnPlayer(player);
             setLastShift(event.lastShift);
             setScore(event.score);
-
-            return 0;
         },
 
         AvailableActionsChanged(event: GameEvents.AvailableActionsChanged) {
@@ -202,6 +214,7 @@ export default function GameComponent(props: Props) {
 
             if (currentTurnPlayer === myPlayer) {
                 let actions: ActionAvailability[] = resolveAvailableActions(role, availableActions);
+                setActionsAvailability(actions);
 
                 switch (role) {
                     case Role.PSYCHO:
@@ -212,9 +225,11 @@ export default function GameComponent(props: Props) {
                                 supportHighlight: GameHelper.getThreatPlacePositions(arena, getMyPosition()),
                             });
                             setActionsEnabled(false);
+                            return ['Now place threats', { type: 'success' }];
                         } else {
                             setPerformingAction(undefined);
                             setActionsEnabled(true);
+                            return ['Your turn', { type: 'success' }];
                         }
                         break;
                     case Role.SUIT:
@@ -228,71 +243,112 @@ export default function GameComponent(props: Props) {
                                 supportHighlightMarkers: removePositions.map(pos => [pos, [Marker.PROTECTION]]),
                             });
                             setActionsEnabled(false);
+                            return ['Your turn: at the beginning place or remove protection', { type: 'success' }];
                         } else if (availableActions.has('decideProtect')) {
                             setActionsEnabled(false);
                         } else {
                             setPerformingAction(undefined);
                             setActionsEnabled(true);
+                            return ['Now do action', { type: 'success' }];
+                        }
+                        break;
+                    case Role.DETECTIVE:
+                        if (!availableActions.has('canvas')) {
+                            setActionsEnabled(true);
+                            return ['Your turn', { type: 'success' }];
                         }
                         break;
                     default:
                         setActionsEnabled(true);
+                        return ['Your turn', { type: 'success' }];
                 }
 
-                setActionsAvailability(actions);
+
             } else {
                 setPerformingAction(undefined);
                 setActionsEnabled(false);
                 setActionsAvailability(resolveAvailableActions(myPlayer.role, new Set()));
             }
-
-            return 0;
         },
 
         Shifted(event: GameEvents.Shifted) {
             arenaRef.current.shift(event.direction, event.index, event.fast ? 2 : 1);
 
-            return 5; //TODO: Shift animation
+            const indexText = `${event.direction === Direction.UP || event.direction === Direction.DOWN ? 'column' : 'row'} ${event.index + 1}`;
+            const text = `${currentTurnPlayerRef.current!.role.name.capitalize()}: ${event.direction.capitalize()} ${event.fast ? 'fast' : ''} shift at ${indexText}`;
+            const options: ToastOptions = {
+                type: 'info',
+
+            }
+
+            return [text, options];
         },
 
         Collapsed(event: GameEvents.Collapsed) {
             arenaRef.current = GameHelper.collapse(arenaRef.current, event.direction) as Matrix<StandardSuspect>;
-            return 5; //TODO: Collapse animation
+
+            const text = `${currentTurnPlayerRef.current!.role.name.capitalize()}: Collapsed to ${event.direction.capitalize()}`;
+            const options: ToastOptions = {
+                type: 'info',
+            }
+
+            return [text, options];
         },
 
         KillTry(event: GameEvents.KillTry) {
-            return 3; //TODO: KillTry animation
+            const suspect = arenaRef.current.atPosition(event.target);
+            const text = `${suspect.character.name} under the danger`;
+            const options: ToastOptions = {
+                type: 'warning',
+            }
+
+            return [text, options];
         },
 
         KilledByKnife(event: GameEvents.KilledByKnife) {
-            _process_kill_event(event);
-
-            return 5; //TODO: Kill animation
+            return _process_kill_event(event, 'Killer');
         },
 
         KilledByThreat(event: GameEvents.KilledByThreat) {
-            _process_kill_event(event);
-            return 5; //TODO: Kill animation
+            return _process_kill_event(event, 'Psycho');
         },
 
         KilledByBomb(event: GameEvents.KilledByBomb) {
-            const suspect = _process_kill_event(event);
+            const res = _process_kill_event(event, 'bomb detonation');
+
+            const suspect = arenaRef.current.atPosition(event.killed);
             suspect.removeMarker(Marker.BOMB);
-            return 5; //TODO: Kill animation
+
+            return res;
         },
 
         KilledBySniper(event: GameEvents.KilledBySniper) {
-            _process_kill_event(event);
-            return 5; //TODO: Kill animation
+            return _process_kill_event(event, 'Sniper');
         },
 
         Accused(event: GameEvents.Accused) {
-            return 5; //TODO: Accuse animation
+            const suspect = arenaRef.current.atPosition(event.target);
+
+            const text = `${suspect.character.name} was accused of being the ${event.mafioso.name.capitalize()}`;
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [text, options];
+
         },
 
         UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused) {
-            return 3; //TODO: UnsuccessfulAccused animation
+            const suspect = arenaRef.current.atPosition(event.target);
 
+            const text = `${suspect.character.name}'s accuse was unsuccessful. Not a ${event.mafioso.name.capitalize()}`;
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [text, options];
         },
 
         Arrested(event: GameEvents.Arrested) {
@@ -310,28 +366,50 @@ export default function GameComponent(props: Props) {
                 arena.foreach((suspect) => suspect.removeMarker(removedMarker));
             }
 
-            return 5; //TODO: Arrested animation
+            const text = `${suspect.character.name} (${player.role.name.capitalize()}) was arrested`;
+            const options: ToastOptions = {
+                type: 'error',
+
+            }
+
+            return [text, options];
         },
 
         Disarmed(event: GameEvents.Disarmed) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.removeMarker(event.marker);
 
-            return 5; //TODO: Disarm animation
+            const text = `${event.marker.capitalize()} marker was removed from suspect ${suspect.character.name}`;
+            const options: ToastOptions = {
+                type: 'error',
+            }
+
+            return [text, options];
         },
 
-        AutoSpyCanvased(event: GameEvents.AutoSpyCanvased<User>) {
+        AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>) {
             setPerformingEvent({
                 key: 'AllCanvased',
                 players: event.mafiosi
             })
 
-            setTimeout(() => {
-                setPerformingEvent(undefined);
-                forceUpdate();
-            }, 10000);
+            if (event.mafiosi.isEmpty()) {
+            } else {
+                setTimeout(() => {
+                    setPerformingEvent(undefined);
+                    forceUpdate();
+                }, 10000);
+            }
 
-            return 10;
+            const suspect = arenaRef.current.atPosition(event.target);
+
+            const text = `Autopsy done on ${suspect.character.name}'s corpse`;
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [text, options];
         },
 
         AllCanvased(event: GameEvents.AllCanvased<User>) {
@@ -344,15 +422,20 @@ export default function GameComponent(props: Props) {
             })
 
             if (event.players.isEmpty()) {
-                return 1;
             } else {
                 setTimeout(() => {
                     setPerformingEvent(undefined);
                     forceUpdate();
                 }, 10000);
-
-                return 10;
             }
+
+            const text = `${suspect.character.name} interrogated for finding mafiosi and agents`;
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [text, options];
         },
 
         Profiled(event: GameEvents.Profiled<User>) {
@@ -367,23 +450,45 @@ export default function GameComponent(props: Props) {
                 players: event.mafiosi
             })
 
-            setTimeout(() => {
-                setPerformingEvent(undefined);
-                forceUpdate();
-            }, 10000);
+            if (event.mafiosi.isEmpty()) {
+            } else {
+                setTimeout(() => {
+                    setPerformingEvent(undefined);
+                    forceUpdate();
+                }, 10000);
+            }
 
-            return 10;
+            const text = `${suspect.character.name} interrogated for finding mafiosi`;
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [text, options];
         },
 
         Disguised(event: GameEvents.Disguised) {
+            const suspect = arenaRef.current.atPosition(event.oldIdentity);
+            const role = (suspect.role as Player).role;
+
+
+            let toastText;
             if (event.newIdentity) {
-                const suspect = arenaRef.current.atPosition(event.oldIdentity);
                 const newSuspect = arenaRef.current.atPosition(event.newIdentity);
                 newSuspect.role = suspect.role;
                 suspect.role = 'innocent';
+
+                toastText = `${role.name.capitalize()} disguised. Old identity was ${suspect.character.name}`;
+            } else {
+                toastText = `${role.name.capitalize()}'s disguise failed`;
             }
 
-            return 5; // TODO: Disguise animation
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [toastText, options];
         },
 
         MarkerMoved(event: GameEvents.MarkerMoved) {
@@ -393,7 +498,13 @@ export default function GameComponent(props: Props) {
             from.removeMarker(event.marker);
             to.addMarker(event.marker);
 
-            return 5; // TODO: MarkerMoved animation
+            const text = `${event.marker.capitalize()} marker moved from ${from.character.name} to  ${to.character.name}`;
+            const options: ToastOptions = {
+                type: 'warning',
+
+            }
+
+            return [text, options];
         },
 
         InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked) {
@@ -405,43 +516,83 @@ export default function GameComponent(props: Props) {
                     key: 'canvas',
                     innocents: event.suspects
                 });
-            }
+            } else {
+                const text = `Detective picks card for interrogation`;
+                const options: ToastOptions = {
+                    type: 'info',
 
-            return 5; // TODO: waiting  animation
+                }
+
+                return [text, options];
+            }
         },
 
         ThreatPlaced(event: GameEvents.ThreatPlaced) {
-            event.targets.forEach(target => arenaRef.current.atPosition(target).addMarker(Marker.THREAT));
+            const suspects = event.targets.map(target => arenaRef.current.atPosition(target));
+            suspects.forEach(suspect => suspect.addMarker(Marker.THREAT));
 
-            return 3; // TODO: placing  animation
+            const text = `Threat marker placed on suspects ${suspects.map(suspect => suspect.character.name).join(', ')}`;
+            const options: ToastOptions = {
+                type: 'info',
+
+            }
+
+            return [text, options];
         },
 
         BombPlaced(event: GameEvents.BombPlaced) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.addMarker(Marker.BOMB);
 
-            return 3; // TODO: placing  animation
+            const text = `Bomb marker placed on ${suspect.character.name}`;
+            const options: ToastOptions = {
+                type: 'info',
+
+            }
+
+            return [text, options];
         },
 
         ProtectionPlaced(event: GameEvents.ProtectionPlaced) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.addMarker(Marker.PROTECTION);
 
-            return 3; // TODO: placing  animation
+            const text = `Protection marker placed on ${suspect.character.name}`;
+            const options: ToastOptions = {
+                type: 'info',
+
+            }
+
+            return [text, options];
         },
 
         ProtectionRemoved(event: GameEvents.ProtectionRemoved) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.removeMarker(Marker.PROTECTION);
 
-            return 3; // TODO: removing  animation
+            const text = `Bomb marker removed from ${suspect.character.name}`;
+            const options: ToastOptions = {
+                type: 'info',
+
+            }
+
+            return [text, options];
         },
 
 
         SuspectsSwapped(event: GameEvents.SuspectsSwapped) {
             arenaRef.current.swap(event.position1, event.position2);
 
-            return 5; // TODO: swap  animation
+            const suspect1 = arenaRef.current.atPosition(event.position1);
+            const suspect2 = arenaRef.current.atPosition(event.position2);
+
+            const text = `Suspects ${suspect1.character.name} and  ${suspect2.character.name} swapped`;
+            const options: ToastOptions = {
+                type: 'info',
+
+            }
+
+            return [text, options];
         },
 
         SelfDestructionActivated(event: GameEvents.SelfDestructionActivated) {
@@ -458,7 +609,15 @@ export default function GameComponent(props: Props) {
                 });
             }
 
-            return 5; // TODO: self destruction activated  animation
+            const suspect = arenaRef.current.atPosition(event.target);
+            const mafioso = (suspect.role as Player).role;
+
+            const text = `Mafioso ${suspect.character.name} (${mafioso.name.capitalize()}) found, but activated self destruction.`;
+            const options: ToastOptions = {
+                type: 'error',
+            }
+
+            return [text, options];
         },
 
         ProtectionActivated(event: GameEvents.ProtectionActivated) {
@@ -476,14 +635,22 @@ export default function GameComponent(props: Props) {
                 });
             }
 
-            return 5; // TODO: protection activated  animation
+            const suspect = arenaRef.current.atPosition(event.target);
+
+            const text = `Protection activated for suspect ${suspect.character.name}.`;
+            const options: ToastOptions = {
+                type: 'warning',
+            }
+
+            return [text, options];
         },
 
         ProtectDecided(event: GameEvents.ProtectDecided) {
             assert(arenaRef.current);
 
+            const suspect = arenaRef.current.atPosition(event.target);
+
             if (event.protect) {
-                const suspect = arenaRef.current.atPosition(event.target);
                 suspect.removeMarker(Marker.PROTECTION);
                 if (event.triggerMarker) {
                     suspect.removeMarker(event.triggerMarker);
@@ -495,15 +662,19 @@ export default function GameComponent(props: Props) {
                 setCurrentTurnPlayer(psycho);
             }
 
-            return 5; // TODO: protect decided  animation
+            const text = event.protect ? `Suit decided to protect ${suspect.character.name}` : `Suit decided to let ${suspect.character.name} die`;
+            const options: ToastOptions = {
+                type: event.protect ? 'success' : 'warning',
+            }
+
+            return [text, options];
         }
     };
 
-    const processEvent = (event: GameEvents.Any<User>): number => {
+    const processEvent = (event: GameEvents.Any<User>) => {
         console.log('ProcessingEvent', event);
         const result = visitEvent(event, eventVisitor);
 
-        assert(typeof result === 'number', `Illegal return value ${result} from event function ${event}`);
         return result;
     }
 
@@ -587,14 +758,13 @@ export default function GameComponent(props: Props) {
                 const positions = GameHelper.getMovableMarkerPositions(arena);
                 setPerformingAction({
                     key: 'setup',
-                    supportHighlight: positions.map(val => val[0]),
                     supportHighlightMarkers: positions
                 });
                 break
-            case 'autospy':
+            case 'autopsy':
                 setPerformingAction({
-                    key: 'autospy',
-                    supportHighlight: GameHelper.getAutoSpyPositions(arena, getMyPosition()),
+                    key: 'autopsy',
+                    supportHighlight: GameHelper.getAutopsyPositions(arena, getMyPosition()),
                 });
                 break
             case 'canvas':
@@ -707,8 +877,8 @@ export default function GameComponent(props: Props) {
                 }
                 commitAction(action);
                 break;
-            case 'autospy':
-                action = { type: 'autospy', target: position }
+            case 'autopsy':
+                action = { type: 'autopsy', target: position }
                 commitAction(action);
                 break
             case 'placeProtection':
@@ -934,7 +1104,7 @@ export default function GameComponent(props: Props) {
                     alert={canvasAlertList} />
             }
 
-            <ArenaComponent className={styles.arena}
+            <ArenaComponent
                 arena={arena}
                 fastShift={!!currentTurnPlayer && GameHelper.canDoFastShift(currentTurnPlayer)}
                 disableShift={performingAction?.key !== 'shift'}
@@ -1140,7 +1310,7 @@ type ActionKeysWithoutContext =
     | GameActions.Key<GameActions.Killer.Kill>
     | GameActions.Key<GameActions.Bomber.PlaceBomb>
     | GameActions.Key<GameActions.Sniper.Kill>
-    | GameActions.Key<GameActions.Undercover.AutoSpy>
+    | GameActions.Key<GameActions.Undercover.Autopsy>
     | GameActions.Key<GameActions.Suit.PlaceProtection>
     | GameActions.Key<GameActions.Profiler.Profile>
 

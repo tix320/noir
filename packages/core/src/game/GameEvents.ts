@@ -86,6 +86,7 @@ export namespace GameEvents {
     export interface UnsuccessfulAccused {
         readonly type: 'UnsuccessfulAccused';
         readonly target: Position;
+        readonly mafioso: Role;
     }
 
     export interface Arrested {
@@ -100,8 +101,8 @@ export namespace GameEvents {
         readonly marker: Marker;
     }
 
-    export interface AutoSpyCanvased<I extends Identifiable = Identifiable> {
-        readonly type: 'AutoSpyCanvased';
+    export interface AutopsyCanvased<I extends Identifiable = Identifiable> {
+        readonly type: 'AutopsyCanvased';
         readonly target: Position;
         readonly mafiosi: I[];
     }
@@ -184,7 +185,7 @@ export namespace GameEvents {
 
     export type Any<I extends Identifiable = Identifiable> = Hello
         | Started<I> | Completed | TurnChanged<I> | AvailableActionsChanged
-        | KillTry | Accused | UnsuccessfulAccused | Arrested | AutoSpyCanvased
+        | KillTry | Accused | UnsuccessfulAccused | Arrested | AutopsyCanvased
         | KilledByBomb | AllCanvased | Collapsed | Disarmed
         | Disguised | KilledByKnife | MarkerMoved | InnocentsForCanvasPicked
         | SelfDestructionActivated | BombPlaced | ProtectionPlaced | ThreatPlaced

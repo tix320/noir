@@ -117,6 +117,11 @@ export namespace GameHelper {
     }
 
     export function getProtectionPlacePositions(arena: Arena): Position[] {
+        const protectionsCount = arena.count(suspect => suspect.hasMarker(Marker.PROTECTION));
+        if (protectionsCount === 6) {
+            return [];
+        }
+
         return arena.filter((suspect) => {
             return suspect.isAlive() && !suspect.hasMarker(Marker.PROTECTION);
         });
@@ -171,7 +176,7 @@ export namespace GameHelper {
         })
     }
 
-    export function getAutoSpyPositions(arena: Arena, source: Position): Position[] {
+    export function getAutopsyPositions(arena: Arena, source: Position): Position[] {
         return arena.getAdjacentPositions(source).filter(pos => arena.atPosition(pos).role === 'killed');
     }
 

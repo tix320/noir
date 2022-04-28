@@ -5,7 +5,7 @@ export namespace ApiEvents {
     export const JOIN_GAME = 'joinGame';
     export const CHANGE_ROLE_IN_GAME = 'changeRoleInGame';
     export const LEAVE_GAME = 'leaveGame';
-    
+
     export const DO_GAME_ACTION = 'doGameAction';
 
     export const SUBSCRIBE_ALL_PREPARING_GAMES = "subscribe_allPreparingGames";
@@ -19,4 +19,6 @@ export namespace ApiEvents {
 
     export const SUBSCRIBE_PLAYING_GAME = "subscribe_playingGame";
     export const ROOM_PLAYING_GAME = (gameId: string) => `room_playingGame_${gameId}`;
+
+    export const UNSUBSCRIBE = (subscriptionName: string) => `unsubscribe_${subscriptionName}`;
 }

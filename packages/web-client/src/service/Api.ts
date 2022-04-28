@@ -140,7 +140,7 @@ class API {
         return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PLAYING_GAME, ApiEvents.ROOM_PLAYING_GAME(gameId), gameId);
     }
 
-    private subscribeToStream<T>(subscribeName: string): Observable<T> {
+    private pingAndSubscribeToStream<T>(requestName: string, subscriptionName: string, ...args: any[]): Observable<T> {
         return new Observable(
             observer => {
                 const socket = this.socket();
@@ -149,30 +149,13 @@ class API {
                     observer.next(result)
                 };
 
-                socket.on(subscribeName, listener);
-
-                return () => {
-                    socket.off(subscribeName, listener);
-                };
-            }
-        );
-    }
-
-    private pingAndSubscribeToStream<T>(requestName: string, subscribeName: string, ...args: any[]): Observable<T> {
-        return new Observable(
-            observer => {
-                const socket = this.socket();
-
-                const listener = (result: T) => {
-                    observer.next(result)
-                };
-
-                socket.on(subscribeName, listener);
+                socket.on(subscriptionName, listener);
 
                 socket.emit(requestName, ...args);
 
                 return () => {
-                    socket.off(subscribeName, listener);
+                    socket.off(subscriptionName, listener);
+                    socket.emit(ApiEvents.UNSUBSCRIBE(subscriptionName));
                 };
             }
         );

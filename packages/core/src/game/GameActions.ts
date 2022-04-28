@@ -88,8 +88,8 @@ export namespace GameActions {
     }
 
     export namespace Undercover {
-        export type AutoSpy = {
-            readonly type: 'autospy';
+        export type Autopsy = {
+            readonly type: 'autopsy';
             readonly target: Position;
         };
     }
@@ -146,7 +146,7 @@ export namespace GameActions {
 
     export type OfSniper = ShiftOrCollapse | Sniper.Kill | Sniper.Setup;
 
-    export type OfUndercover = ShiftOrCollapse | Common.Disarm | Common.Accuse | Common.Disguise | Undercover.AutoSpy;
+    export type OfUndercover = ShiftOrCollapse | Common.Disarm | Common.Accuse | Common.Disguise | Undercover.Autopsy;
 
     export type OfDetective = ShiftOrCollapse | Common.Disarm | Detective.FarAccuse | Detective.PickInnocentsForCanvas | Detective.Canvas;
 

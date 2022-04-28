@@ -63,7 +63,11 @@ export namespace Dto {
             mafioso: Role['name']
         };
 
-        export type AutoSpyCanvased = GameEvents.AutoSpyCanvased<User>;
+        export type UnsuccessfulAccused = Omit<GameEvents.UnsuccessfulAccused, 'mafioso'> & {
+            mafioso: Role['name']
+        };
+
+        export type AutopsyCanvased = GameEvents.AutopsyCanvased<User>;
         export type AllCanvased = GameEvents.AllCanvased<User>;
         export type Profiled = GameEvents.Profiled<User>;
 
@@ -72,7 +76,7 @@ export namespace Dto {
             | GameEvents.TurnChanged
             | GameEvents.AvailableActionsChanged
             | GameEvents.Accused
-            | GameEvents.AutoSpyCanvased
+            | GameEvents.AutopsyCanvased
             | GameEvents.AllCanvased
             | GameEvents.Profiled>
     }

@@ -94,9 +94,9 @@ export class GameActionDtoVisitor<I extends Identifiable> {
         }
     }
 
-    autospy(action: GameActions.Undercover.AutoSpy): GameActions.Undercover.AutoSpy {
+    autopsy(action: GameActions.Undercover.Autopsy): GameActions.Undercover.Autopsy {
         return {
-            type: 'autospy',
+            type: 'autopsy',
             target: convertPosition(action.target)
         }
     }

@@ -58,7 +58,7 @@ class _UNDERCOVER extends Role<GameActions.OfUndercover>{
     static INSTANCE = new _UNDERCOVER('UNDERCOVER');
 
     public team = 'FBI' as const;
-    public actions = ['shift', 'collapse', 'disguise', 'disarm', 'autospy', 'accuse'] as const;
+    public actions = ['shift', 'collapse', 'disguise', 'disarm', 'autopsy', 'accuse'] as const;
 
     private constructor(name: string) {
         super(name);

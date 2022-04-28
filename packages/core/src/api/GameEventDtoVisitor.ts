@@ -38,13 +38,13 @@ export abstract class GameEventDtoVisitor<I extends Identifiable> {
 
     abstract Accused(event: Dto.Events.Accused): GameEvents.Accused;
 
-    abstract UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused): GameEvents.UnsuccessfulAccused;
+    abstract UnsuccessfulAccused(event: Dto.Events.UnsuccessfulAccused): GameEvents.UnsuccessfulAccused;
 
     abstract Arrested(event: GameEvents.Arrested): GameEvents.Arrested;
 
     abstract Disarmed(event: GameEvents.Disarmed): GameEvents.Disarmed;
 
-    abstract AutoSpyCanvased(event: Dto.Events.AutoSpyCanvased): GameEvents.AutoSpyCanvased<I>;
+    abstract AutopsyCanvased(event: Dto.Events.AutopsyCanvased): GameEvents.AutopsyCanvased<I>;
 
     abstract AllCanvased(event: Dto.Events.AllCanvased): GameEvents.AllCanvased<I>;
 

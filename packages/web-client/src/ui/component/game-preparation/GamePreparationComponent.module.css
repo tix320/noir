@@ -34,3 +34,8 @@
 .myCard{
     border-color: rgb(15, 144, 250);
 }
+
+.readyButton{
+    width: 8vw;
+    font-size: 1.3vw;
+}

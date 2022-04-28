@@ -7,7 +7,7 @@ import { Role } from "@tix320/noir-core/src/game/Role";
 import { StandardGame } from "@tix320/noir-core/src/game/StandardGame";
 import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor";
 import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor";
-import { filter, map, takeWhile } from 'rxjs/operators';
+import { filter, map, takeWhile, tap } from 'rxjs/operators';
 import { Server } from "socket.io";
 import { GameService, GameData, GamePreparationInfo } from "./game/GameService";
 import { User } from "./user/User";
@@ -18,7 +18,7 @@ import { createServer } from "http";
 import path from "path";
 import { UserService } from "./user/UserService";
 
-process.on('uncaughtException', function (err) { 
+process.on('uncaughtException', function (err) {
     console.error(err);
 });
 
@@ -76,7 +76,7 @@ function suspectResponse(suspect: Suspect<User>): Dto.Suspect {
     }
 }
 
-class GameEventConverter implements GameEventVisitor<User> {
+class GameEventConverter implements GameEventVisitor<User, any> {
 
     Hello(event: GameEvents.Hello) {
         return event;
@@ -157,7 +157,13 @@ class GameEventConverter implements GameEventVisitor<User> {
     }
 
     UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused) {
-        return event;
+        const eventDto: Dto.Events.UnsuccessfulAccused = {
+            type: 'UnsuccessfulAccused',
+            target: event.target,
+            mafioso: event.mafioso.name
+        }
+
+        return eventDto;
     }
 
     Arrested(event: GameEvents.Arrested) {
@@ -168,9 +174,9 @@ class GameEventConverter implements GameEventVisitor<User> {
         return event;
     }
 
-    AutoSpyCanvased(event: GameEvents.AutoSpyCanvased<User>) {
-        const eventDto: Dto.Events.AutoSpyCanvased = {
-            type: 'AutoSpyCanvased',
+    AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>) { 
+        const eventDto: Dto.Events.AutopsyCanvased = {
+            type: 'AutopsyCanvased',
             target: event.target,
             mafiosi: event.mafiosi.map(mafioso => userResponse(mafioso)),
         }
@@ -305,35 +311,46 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, (cb) => {
-        GameService.gameChanges()
+        const subscriptionName = ApiEvents.ROOM_ALL_PREPARING_GAMES;
+
+        const subscription = GameService.gameChanges()
             .onFirst((currentGames: Map<string, GameData>) => {
 
                 const response = [...currentGames.values()]
                     .filter(info => info[0].state === 'PREPARING')
                     .map(info => gamePreparationResponse(info as GamePreparationInfo));
-                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, response);
+                socket.emit(subscriptionName, response);
             })
             .pipe(
                 filter(([gameInfo, _]) => gameInfo.state === 'PREPARING'),
                 takeWhile(() => socket.connected)
             )
             .subscribe((info) => {
-                socket.emit(ApiEvents.ROOM_ALL_PREPARING_GAMES, gamePreparationResponse(info as GamePreparationInfo))
+                socket.emit(subscriptionName, gamePreparationResponse(info as GamePreparationInfo))
             });
+
+        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
+            subscription.unsubscribe();
+        });
     })
 
     socket.on(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, (cb) => {
-        user.currentGameIdChange().subscribe(currentGameId => {
+        const subscriptionName = ApiEvents.ROOM_MY_CURRENT_GAME(user.id);
+
+        const subscription = user.currentGameIdChange().subscribe(currentGameId => {
 
             const gameInfo = currentGameId ? GameService.getGame(currentGameId)[0] : undefined;
 
             const dto: Dto.UserCurrentGame | undefined = gameInfo && {
-                id: gameInfo.id,
+                id: gameInfo.id, 
                 state: gameInfo.state
             }
 
-            const name = ApiEvents.ROOM_MY_CURRENT_GAME(user.id);
-            socket.emit(name, dto);
+            socket.emit(subscriptionName, dto);
+        });
+
+        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
+            subscription.unsubscribe();
         });
     });
 
@@ -341,17 +358,30 @@ io.on("connection", (socket) => {
         const info = GameService.getGamePreparation(gameId);
         const [gameInfo, game] = info;
 
-        game.participantChanges()
+        const subscriptionName = ApiEvents.ROOM_PREPARING_GAME(gameId);
+
+        const subscription = game.participantChanges()
             .pipe(
                 takeWhile(() => socket.connected)
-            ).subscribe(() => socket.emit(ApiEvents.ROOM_PREPARING_GAME(gameId), gamePreparationResponse(info)));
+            ).subscribe(() => socket.emit(subscriptionName, gamePreparationResponse(info)));
+
+        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
+            subscription.unsubscribe();
+        });
     });
 
     socket.on(ApiEvents.SUBSCRIBE_PLAYING_GAME, (gameId: string, cb) => {
-        GameService.gameEvents(gameId, user).pipe(
-            map(event => visitEvent(event, GAME_EVENT_CONVERTER)),
+        const subscriptionName = ApiEvents.ROOM_PLAYING_GAME(gameId);
+
+        const subscription = GameService.gameEvents(gameId, user).pipe(
+            map(event => visitEvent(event, GAME_EVENT_CONVERTER as any)),
+            tap((event: any) => console.log(`${socket.id} - ${user.name} - ${event.type}`)),
             takeWhile(() => socket.connected)
-        ).subscribe((event) => socket.emit(ApiEvents.ROOM_PLAYING_GAME(gameId), event));
+        ).subscribe((event) => socket.emit(subscriptionName, event));
+
+        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
+            subscription.unsubscribe();
+        });
     });
 });
 

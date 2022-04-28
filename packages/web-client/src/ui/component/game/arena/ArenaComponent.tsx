@@ -9,7 +9,7 @@ import styles from './ArenaComponent.module.css';
 import Shift from "./shift/ShiftComponent";
 
 type Props = {
-    className: string,
+    className?: string,
     arena: Arena,
     fastShift: boolean,
     disableShift: boolean,

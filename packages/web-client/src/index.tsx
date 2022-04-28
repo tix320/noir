@@ -3,6 +3,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client'
 import { Provider } from 'react-redux';
+import { ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.min.css';
 import styles from './index.module.css';
 import "./service/i18n";
 import store from './service/Store';
@@ -15,6 +17,7 @@ root.render(
   // <React.StrictMode>
   <Provider store={store}>
     <AppComponent className={styles.app} />
+    <ToastContainer newestOnTop={true} limit={3} />
   </Provider>,
   // </React.StrictMode>,
 )

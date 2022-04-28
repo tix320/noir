@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './ActionComponent.module.scss';
 import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
 import styled from '@emotion/styled';
+import { delay } from 'rxjs';
 
 type Props<K extends GameActions.Any> = {
     className?: string,
@@ -26,7 +27,11 @@ const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
 });
 
 export default function ActionComponent<K extends GameActions.Any>(props: Props<K>) {
-    const onPerform = () => props.onPerform(props.action);
+    const onPerform = () => {
+        if (props.available) {
+            props.onPerform(props.action);
+        }
+    };
 
     const image = require(`../../../images/action/${props.action}.png`);
 
@@ -63,6 +68,8 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
         <CustomWidthTooltip
             title={<div className={styles.tooltip} dangerouslySetInnerHTML={{ __html: tooltipHtml }}></div>}
             placement="top-end"
+            enterDelay={1000}
+            enterNextDelay={1000}
             componentsProps={{
                 tooltip: {
                     sx: {

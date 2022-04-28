@@ -209,10 +209,11 @@ class EventVisitor extends GameEventDtoVisitor<User> {
         }
     }
 
-    UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused): GameEvents.UnsuccessfulAccused {
+    UnsuccessfulAccused(event: Dto.Events.UnsuccessfulAccused): GameEvents.UnsuccessfulAccused {
         return {
             type: 'UnsuccessfulAccused',
-            target: convertPosition(event.target)
+            target: convertPosition(event.target),
+            mafioso: Role.getByName(event.mafioso)
         }
     }
 
@@ -232,9 +233,9 @@ class EventVisitor extends GameEventDtoVisitor<User> {
         }
     }
 
-    AutoSpyCanvased(event: Dto.Events.AutoSpyCanvased): GameEvents.AutoSpyCanvased<User> {
+    AutopsyCanvased(event: Dto.Events.AutopsyCanvased): GameEvents.AutopsyCanvased<User> {
         return {
-            type: 'AutoSpyCanvased',
+            type: 'AutopsyCanvased',
             target: convertPosition(event.target),
             mafiosi: event.mafiosi.map(mafioso => convertUser(mafioso))
         }

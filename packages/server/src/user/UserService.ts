@@ -22,6 +22,10 @@ export namespace UserService {
     }
 
     export async function removeConnectedUser(user: User) {
-        return connectedUsers.delete(user.id);
+        if (!user.currentGameId) {
+            return connectedUsers.delete(user.id);
+        } else {
+            return false;
+        }
     }
 }
