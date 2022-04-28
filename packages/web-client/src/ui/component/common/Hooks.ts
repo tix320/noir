@@ -1,5 +1,5 @@
 import { DependencyList, EffectCallback, MutableRefObject, useEffect, useRef, useState } from "react";
-import Api, { ConnectionState } from "../../../service/Api";
+import {API, ConnectionState } from "../../../service/Api";
 
 export type ComponentForceUpdate = ReturnType<typeof useForceUpdate>;
 
@@ -12,7 +12,7 @@ export function useServerConnectionState() {
     const [value, setValue] = useState<ConnectionState>('DISCONNECTED');
 
     useEffect(() => {
-        const subscription = Api.connectionState().subscribe(state => {
+        const subscription = API.connectionState().subscribe(state => {
             setValue(state);
         })
 

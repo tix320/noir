@@ -9,7 +9,7 @@ import Position from '@tix320/noir-core/src/util/Position';
 import { GameEventDtoVisitor, visitEvent } from '@tix320/noir-core/src/api/GameEventDtoVisitor';
 import { map, Observable } from 'rxjs';
 import User from "../entity/User";
-import Api from '../service/Api';
+import {API} from '../service/Api';
 import { equals } from '@tix320/noir-core/src/util/Identifiable';
 
 export namespace RemoteGame {
@@ -23,22 +23,22 @@ export namespace RemoteGame {
         }
 
         join(identity: User): void {
-            Api.joinGame(this.id);
+            API.joinGame(this.id);
         }
 
         changeRole(selection: RoleSelection<User>): void {
-            Api.changeGameRole({
+            API.changeGameRole({
                 ready: selection.ready,
                 role: selection.role?.name
             });
         }
 
         leave(identity: User): void {
-            Api.leaveGame();
+            API.leaveGame();
         }
 
         participantChanges(): Observable<RoleSelection<User>[]> {
-            return Api.preparingGameStream(this.id)
+            return API.preparingGameStream(this.id)
                 .pipe(map(dto => dto.roles),
                     map(selections =>
                         selections.map(selection => ({
@@ -73,7 +73,7 @@ export namespace RemoteGame {
 
         events(): Observable<GameEvents.Any<User>> {
             const visitor = new EventVisitor();
-            return Api.playingGameEventsStream(this.id).pipe(map(event => visitEvent(event, visitor)));
+            return API.playingGameEventsStream(this.id).pipe(map(event => visitEvent(event, visitor)));
         }
     }
 }
@@ -95,7 +95,7 @@ class Player implements IPlayer<User, GameActions.Any> {
             dtoAction = action;
         }
 
-        return Api.doGameAction(dtoAction);
+        return API.doGameAction(dtoAction);
     }
 
     gameEvents(): Observable<GameEvents.Any<User>> {

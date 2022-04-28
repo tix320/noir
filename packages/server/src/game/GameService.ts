@@ -4,7 +4,6 @@ import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
 import { StandardGame } from '@tix320/noir-core/src/game/StandardGame';
 import { assert } from '@tix320/noir-core/src/util/Assertions';
 import { first, Observable, Subject, switchMap } from 'rxjs';
-import { v4 as uuid } from 'uuid';
 import { User } from '../user/User';
 import { GameDao } from './GameDao';
 import GameInfo from './GameInfo';

@@ -8,7 +8,6 @@ import { Button } from "react-bootstrap";
 import { connect, useSelector } from "react-redux";
 import { takeUntil } from 'rxjs/operators';
 import User from "../../../entity/User";
-import Api from "../../../service/Api";
 import { StoreState } from "../../../service/Store";
 import GameCard from "../cards/GameCardComponent";
 import RoleCard from "../cards/role/RoleCardComponent";
@@ -84,8 +83,7 @@ export default function GamePreparationComponent(props: Props) {
             {roles.map(({ role, user, ready }) =>
                 <div key={user.id}>
                     <div>{user.name}</div>
-                    <RoleCard
-                        className={styles.card}
+                    <RoleCard className={styles.card}
                         additionalClassName={classNames({ [styles.myCard]: equals(user, currentUser!) })}
                         key={role!.name}
                         role={role!}

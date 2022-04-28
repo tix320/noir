@@ -1,3 +1,10 @@
+const PORT = process.env.SERVER_PORT
+const WEB_CLIENT_BUNDLE = process.env.WEB_CLIENT_BUNDLE
+
+console.info(`WORKING_DIRECTORY=${process.cwd()}`)
+console.info(`SERVER_PORT=${PORT}`)
+console.info(`WEB_CLIENT_BUNDLE=${WEB_CLIENT_BUNDLE}`) 
+
 import "@tix320/noir-core";
 import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
 import { Dto } from "@tix320/noir-core/src/api/Dto";
@@ -10,7 +17,6 @@ import { Role } from "@tix320/noir-core/src/game/Role";
 import { StandardGame } from "@tix320/noir-core/src/game/StandardGame";
 import express from "express";
 import { createServer } from "http";
-import path from "path";
 import { filter, map, takeWhile, tap } from 'rxjs/operators';
 import { Server } from "socket.io";
 import './db/Datastore';
@@ -25,7 +31,9 @@ process.on('uncaughtException', function (err) {
 const app = express();
 const httpServer = createServer(app);
 
-app.use(express.static(path.join(__dirname, 'build')));
+if (WEB_CLIENT_BUNDLE) {
+    app.use(express.static(WEB_CLIENT_BUNDLE));
+}
 
 const io = new Server(httpServer, {
     cors: {
@@ -386,4 +394,4 @@ io.on("connection", (socket) => {
 });
 
 
-httpServer.listen(5000);
+httpServer.listen(PORT ?? 5000);

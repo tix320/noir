@@ -2,7 +2,7 @@ import classNames from "classnames";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import User from '../../../entity/User';
-import API from '../../../service/Api';
+import {API} from '../../../service/Api';
 import store, { StoreState, userChanged } from '../../../service/Store';
 import { removeToken, retrieveToken, storeToken } from "../../../service/TokenStorage";
 import LoginComponent from "../login/LoginComponent";

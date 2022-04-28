@@ -2,7 +2,7 @@ import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { onFirst } from "@tix320/noir-core/src/extension/RxJSExtension";
 import { useState } from "react";
 import { Button } from "react-bootstrap";
-import API from "../../../service/Api";
+import {API} from "../../../service/Api";
 import { useServerConnectedEffect } from "../common/Hooks";
 import GameCreationComponent from "./GameCreationComponent";
 import GameSelectionComponent from "./GameSelectionComponent";

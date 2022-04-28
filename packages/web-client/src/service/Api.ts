@@ -1,19 +1,15 @@
-import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
-import { RoleSelection } from "@tix320/noir-core/src/game/Game";
-import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
+import { Dto } from "@tix320/noir-core/src/api/Dto";
+import { assert } from "@tix320/noir-core/src/util/Assertions";
 import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import store from "./Store";
-import User from "../entity/User";
-import { GameActions } from "@tix320/noir-core/src/game/GameActions";
-import { assert } from "@tix320/noir-core/src/util/Assertions";
 
-const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://10.10.10.11:5000"
+const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://localhost:5000"
 
 export type ConnectionState = 'CONNECTED' | 'DISCONNECTED'
 
-class API {
+class Api {
 
     #socket?: Socket
 
@@ -171,4 +167,4 @@ class API {
     }
 }
 
-export default new API();
+export const API = new Api();

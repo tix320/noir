@@ -32,7 +32,7 @@ export default function RoleCardComponent(props: Props) {
 
     return (
         <div className={classNames(styles.container, props.className)}>
-            <CharacterCard className={styles.card} {...props} character={character} onClick={onRoleClick} />
+            <CharacterCard {...props} className={styles.card} character={character} onClick={onRoleClick} />
             <img className={styles.roleIcon} src={roleImage}/>
         </div>
     );

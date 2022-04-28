@@ -1,6 +1,6 @@
 import { Component } from "react";
 import { Button, Form } from "react-bootstrap";
-import API from "../../../service/Api";
+import {API} from "../../../service/Api";
 import styles from "./GameCreationComponent.module.css";
 
 type Props = {

@@ -3,7 +3,7 @@ import classNames from "classnames";
 import { Fragment, useState } from "react";
 import { useSelector } from "react-redux";
 import { RemoteGame } from "../../../game/RemoteGame";
-import Api from "../../../service/Api";
+import {API} from "../../../service/Api";
 import { StoreState } from "../../../service/Store";
 import { useServerConnectedEffect } from "../common/Hooks";
 import GamePreparationComponent from "../game-preparation/GamePreparationComponent";
@@ -21,7 +21,7 @@ export default function MainComponent({ className }: Props) {
     const user = useSelector((state: StoreState) => state.user);
 
     useServerConnectedEffect(() => {
-        const subscription = Api.myCurrentGameStream().subscribe(game => {
+        const subscription = API.myCurrentGameStream().subscribe(game => {
             setCurrentGame(game);
         })
 
