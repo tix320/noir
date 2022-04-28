@@ -65,6 +65,8 @@ export default function GameComponent(props: Props) {
     const [actionsEnabledRef, setActionsEnabled] = useRefState<boolean>(false);
     const [actionsAvailabilityRef, setActionsAvailability] = useRefState<ActionAvailability[]>([]);
 
+    const [fastShiftRef, setFastShift] = useRefState<boolean>(false);
+
     const [teamPlayersRef, setTeamPlayers] = useRefState<[Player<User>[], Player<User>[]]>([[], []]);
 
     const [score, setScore] = useRefState<Score>([0, 0]);
@@ -81,6 +83,7 @@ export default function GameComponent(props: Props) {
         lastShiftRef.current = undefined;
         actionsEnabledRef.current = false;
         actionsAvailabilityRef.current = [];
+        fastShiftRef.current = false;
         teamPlayersRef.current = [[], []];
         score.current = [0, 0];
     };
@@ -94,6 +97,24 @@ export default function GameComponent(props: Props) {
 
     const forceUpdate = useForceUpdate();
     const [t] = useTranslation();
+
+    function onKeyDown(event: KeyboardEvent) {
+        if (event.code === 'KeyP') {
+            if (performingActionRef.current?.key === 'profile') {
+                setPerformingAction(undefined);
+            } else {
+                setPerformingAction({
+                    key: 'profile'
+                });
+            }
+            forceUpdate();
+        } else if (event.code === 'KeyS') {
+            if (GameHelper.canDoFastShift(myPlayerRef.current!))  {
+                setFastShift(!fastShiftRef.current);
+                forceUpdate();
+            }
+        }
+    }
 
     useServerConnectedEffect(() => {
         const eventsQueue: GameEvents.Any<User>[] = [];
@@ -144,11 +165,18 @@ export default function GameComponent(props: Props) {
                 }
             });
 
+        const keyDownListener = (event: KeyboardEvent) => {
+            onKeyDown(event);
+        };
+
+        document.addEventListener('keydown', keyDownListener);
+
         scheduleEventProcessor(1);
 
         return () => {
             stopListener = true;
             subscription.unsubscribe();
+            document.removeEventListener('keydown', keyDownListener);
             resetState();
         }
     }, [game]);
@@ -275,7 +303,7 @@ export default function GameComponent(props: Props) {
             arenaRef.current.shift(event.direction, event.index, event.fast ? 2 : 1);
 
             const indexText = `${event.direction === Direction.UP || event.direction === Direction.DOWN ? 'column' : 'row'} ${event.index + 1}`;
-            const text = `${currentTurnPlayerRef.current!.role.name.capitalize()}: ${event.direction.capitalize()} ${event.fast ? 'fast' : ''} shift at ${indexText}`;
+            const text = `${currentTurnPlayerRef.current!.role.name.capitalize()}: ${event.direction.capitalize()} ${event.fast ? 'double' : ''} shift at ${indexText}`;
             const options: ToastOptions = {
                 type: 'info',
 
@@ -1081,8 +1109,8 @@ export default function GameComponent(props: Props) {
 
 
     function changeHighLight(positions: Position[]) {
-        assert(performingAction);
-        performingAction.supportHighlight = positions;
+        assert(performingActionRef.current);
+        performingActionRef.current.supportHighlight = positions;
         forceUpdate();
     }
 
@@ -1106,7 +1134,7 @@ export default function GameComponent(props: Props) {
 
             <ArenaComponent
                 arena={arena}
-                fastShift={!!currentTurnPlayer && GameHelper.canDoFastShift(currentTurnPlayer)}
+                fastShift={fastShiftRef.current}
                 disableShift={performingAction?.key !== 'shift'}
                 lastShift={lastShift}
                 meHighlight={myPosition}
@@ -1186,15 +1214,15 @@ export default function GameComponent(props: Props) {
                     ||
                     (profilerDialogOpenPredicate &&
                         (
-                            profilerHandRef.current.map((suspect, index) => {
+                            profilerHand.map((suspect, index) => {
                                 const position = arena.findFirst((sus) => sus.character.name === suspect.character.name)![1];
 
                                 return <SuspectCard key={index}
                                     suspect={suspect}
-                                    highlight={performingAction?.key === 'profile' && suspect.isPlayerOrSuspect()}
-                                    onMouseEnter={() => performingAction?.key === 'profile' && changeHighLight([position])}
-                                    onMouseLeave={() => performingAction?.key === 'profile' && changeHighLight([])}
-                                    onSuspectClick={() => suspect.isPlayerOrSuspect() && onSuspectClick(position)}
+                                    highlight={equals(currentTurnPlayer?.identity, myPlayer.identity) && suspect.isPlayerOrSuspect()}
+                                    onMouseEnter={() => changeHighLight([position])}
+                                    onMouseLeave={() => changeHighLight([])}
+                                    onSuspectClick={() => equals(currentTurnPlayer?.identity, myPlayer.identity) && suspect.isPlayerOrSuspect() && onSuspectClick(position)}
                                 />
                             })
                         )

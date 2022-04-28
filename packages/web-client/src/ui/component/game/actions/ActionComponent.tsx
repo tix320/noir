@@ -58,7 +58,7 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
 
         return () => {
             document.removeEventListener('keydown', keyDownListener);
-            document.removeEventListener('keydown', keyUpListener);
+            document.removeEventListener('keyup', keyUpListener);
         }
     }, []);
 
@@ -96,9 +96,11 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
 
 function createMarkup(role: Role, action: GameActions.Key, showDetails: boolean, t: any) {
     const header = `<span style='font-size:1.3em;'>${t(`action.description.header[${action}]`)}</span> </br>`;
+    const canFastShift = Role.CAN_DO_FAST_SHIFT.includes(role);
     const details = showDetails
         ? t(`action.description.details[${action}]`, {
-            shiftCount: Role.CAN_DO_FAST_SHIFT.includes(role) ? '1 or 2' : '1'
+            shiftCount: canFastShift ? '1 or 2' : '1',
+            doubleShiftHint: canFastShift ? `</br></br> Press <span style='color:#ff66ec;'>S</span> to switch <span style='color:#ff66ec;'>double shift</span>.` : ''
         })
         : t("action.description.details.enableHint");
 

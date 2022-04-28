@@ -18,6 +18,6 @@ root.render(
     <Provider store={store}>
       <AppComponent className={styles.app} />
       <ToastContainer newestOnTop={true} limit={3} />
-    </Provider>,
+    </Provider>
   </React.StrictMode>,
 )
