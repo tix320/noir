@@ -15,7 +15,7 @@ import classNames from 'classnames';
 import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { toast, ToastContent, ToastOptions, Zoom } from 'react-toastify';
+import { Slide, toast, ToastContent, ToastOptions, Zoom } from 'react-toastify';
 import User from '../../../entity/User';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
@@ -131,13 +131,13 @@ export default function GameComponent(props: Props) {
                 if (event) {
                     const toastData = processEvent(event);
                     render();
-                    if (toastData) {
+                    if (toastData && !document.hidden) {
                         const [text, options] = toastData;
 
                         const commonOptions: ToastOptions = {
                             position: 'bottom-right',
                             theme: 'dark',
-                            transition: Zoom,
+                            transition: Slide,
                             pauseOnFocusLoss: false,
                         }
 
@@ -161,6 +161,8 @@ export default function GameComponent(props: Props) {
                             });
                         }
                     } else {
+                        setPerformingEvent(undefined);
+                        render();
                         scheduleEventProcessor(0.5);
                     }
                 } else {
@@ -545,19 +547,40 @@ export default function GameComponent(props: Props) {
             assert(myPlayerRef.current, 'Invalid state');
 
             if (myPlayerRef.current.role === Role.DETECTIVE) {
+                if (event.suspects.isEmpty()) {
+                    const text = `Canvas failed. Cards are not alive`;
+                    const options: ToastOptions = {
+                        type: 'warning',
+                        autoClose: 2500
+                    }
 
-                setPerformingAction({
-                    key: 'canvas',
-                    innocents: event.suspects
-                });
-            } else {
-                const text = `Detective picks card for interrogation`;
-                const options: ToastOptions = {
-                    type: 'info',
-                    autoClose: 2500
+                    return [text, options];
+
+                } else {
+                    setPerformingAction({
+                        key: 'canvas',
+                        innocents: event.suspects
+                    });
                 }
 
-                return [text, options];
+            } else {
+                if (event.suspects.isEmpty()) {
+                    const text = `Detective's canvas failed. Cards are not alive`;
+                    const options: ToastOptions = {
+                        type: 'warning',
+                        autoClose: 2500
+                    }
+
+                    return [text, options];
+                } else {
+                    const text = `Detective picks card for interrogation`;
+                    const options: ToastOptions = {
+                        type: 'info',
+                        autoClose: 2500
+                    }
+
+                    return [text, options];
+                }
             }
         },
 

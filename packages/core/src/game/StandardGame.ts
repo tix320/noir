@@ -1002,9 +1002,13 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
         const suspects: Position[] = [];
         if (first.isAlive()) {
             suspects.push(Helper.findSuspectInArena(first, this.context));
+        } else {
+            this.context.evidenceDeck.unshift(first);
         }
         if (second.isAlive()) {
             suspects.push(Helper.findSuspectInArena(second, this.context));
+        } else {
+            this.context.evidenceDeck.unshift(second);
         }
 
         const event: GameEvents.InnocentsForCanvasPicked = {
@@ -1032,6 +1036,11 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
         assert(canvas.find(pos => pos.equals(position)), `Invalid position ${position}`);
 
         const adjacentPlayers = Helper.canvas(position, this.context, true);
+
+        const secondCardToDrop = canvas.find(pos => !pos.equals(position));
+        if (secondCardToDrop) {
+            this.context.evidenceDeck.unshift(this.context.arena.atPosition(secondCardToDrop));
+        }
 
         const event: GameEvents.AllCanvased<Identifiable> = {
             type: 'AllCanvased',
@@ -1539,10 +1548,11 @@ namespace Helper {
     export function tryPeekNewIdentityFor(player: Player, context: GameContext): StandardSuspect | undefined {
         const newIdentity = context.evidenceDeck.pop();
         if (!newIdentity) {
-            throw new Error("hmmm"); // TODO: wtf state
+            throw new Error("Illegal state, evidence deck is empty");
         }
 
         if (newIdentity.role === 'killed') {
+            context.evidenceDeck.unshift(newIdentity);
             return undefined;
         } else if (newIdentity.role === 'suspect') {
             newIdentity.role = player;
