@@ -364,7 +364,7 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
         return new Set();
     }
 
-    changePhase(phase: string) {
+    changePhase(phase: string, reaction?: boolean) {
         if (phase === 'END') {
             if (this.tryCompleteGame()) {
                 return;
@@ -384,13 +384,12 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
 
             this.phaseHistory.push(this.#currentPhaseIndex);
             this.#currentPhaseIndex = index;
-            Helper.fireAvailableActionsChangedEvent(this, this.context);
+
+            if (!reaction) {
+                Helper.fireAvailableActionsChangedEvent(this, this.context);
+            }
         }
     }
-
-    abstract canDoFastShift(): boolean;
-
-    abstract ownMarker(): Marker | undefined;
 
     abstract initTurn(): void;
 
@@ -500,14 +499,6 @@ class Killer<I extends Identifiable> extends Mafioso<I, GameActions.OfKiller>  {
     readonly role = Role.KILLER;
     readonly phases: readonly string[] = ['ACTION'];
 
-    override canDoFastShift(): boolean {
-        return true;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return undefined;
-    }
-
     override initTurn(): void {
         this.changePhase('ACTION');
     }
@@ -529,7 +520,7 @@ class Killer<I extends Identifiable> extends Mafioso<I, GameActions.OfKiller>  {
 
         assert(Helper.isAdjacentTo(this, target), `You can kill only your adjacent suspects`);
 
-        Helper.tryKillSuspect(target, this.context, 'KilledByKnife', null, () => {
+        Helper.tryKillSuspect(target, this.context, 'KilledByKnife', this, () => {
             this.changePhase('END');
         });
     }
@@ -545,14 +536,6 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
     readonly role = Role.PSYCHO;
     readonly phases: readonly string[] = ['ACTION', 'PLACE'];
 
-    override canDoFastShift(): boolean {
-        return false;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return Marker.THREAT;
-    }
-
     override initTurn(): void {
         const arena = this.context.arena;
 
@@ -566,7 +549,7 @@ class Psycho<I extends Identifiable> extends Mafioso<I, GameActions.OfPsycho> {
                 this.changePhase('ACTION');
             } else {
                 const target = item.value;
-                Helper.tryKillSuspect(target, this.context, 'KilledByThreat', Marker.THREAT, handler);
+                Helper.tryKillSuspect(target, this.context, 'KilledByThreat', this, handler);
             }
         }
 
@@ -669,14 +652,6 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
     readonly role = Role.BOMBER;
     readonly phases: Readonly<string[]> = ['ACTION', 'SELF_DESTRUCT'];
 
-    override canDoFastShift(): boolean {
-        return false;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return Marker.BOMB;
-    }
-
     override initTurn(): void {
         this.changePhase('ACTION');
     }
@@ -714,7 +689,7 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
         }
         this.context.game.fireEvent(event);
 
-        this.changePhase('SELF_DESTRUCT');
+        this.changePhase('SELF_DESTRUCT', true);
     }
 
     protected placeBomb(action: GameActions.Bomber.PlaceBomb) {
@@ -801,7 +776,7 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
                 const suspect = arena.atPosition(target);
                 suspect.removeMarker(Marker.BOMB);
                 if (suspect.isAlive()) {
-                    Helper.tryKillSuspect(target, this.context, 'KilledByBomb', Marker.BOMB, (isProtect) => {
+                    Helper.tryKillSuspect(target, this.context, 'KilledByBomb', this, (isProtect) => {
                         if (isProtect) {
                             onComplete();
                         } else {
@@ -833,14 +808,6 @@ class Sniper<I extends Identifiable> extends Mafioso<I, GameActions.OfSniper>{
     readonly role = Role.SNIPER;
     readonly phases: Readonly<string[]> = ['ACTION'];
 
-    override canDoFastShift(): boolean {
-        return true;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return undefined;
-    }
-
     override initTurn(): void {
         this.changePhase('ACTION');
     }
@@ -849,7 +816,7 @@ class Sniper<I extends Identifiable> extends Mafioso<I, GameActions.OfSniper>{
         const arena = this.context.arena;
 
         const canKill = GameHelper.geSnipeKillPositions(arena, this.locate()).isNonEmpty();
-        const canSetup = GameHelper.getMovableMarkerPositions(arena);
+        const canSetup = GameHelper.getMovableMarkerPositions(arena).isNonEmpty();
 
         const actions: GameActions.Key<GameActions.OfSniper>[] = [];
         if (canKill) {
@@ -872,7 +839,7 @@ class Sniper<I extends Identifiable> extends Mafioso<I, GameActions.OfSniper>{
             `Invalid target=${arena.atPosition(target)}. You can kill only suspects 3 spaces away from you in diagonal line`);
 
 
-        Helper.tryKillSuspect(target, this.context, 'KilledBySniper', null, () => {
+        Helper.tryKillSuspect(target, this.context, 'KilledBySniper', this, () => {
             this.changePhase('END');
         });
     }
@@ -911,14 +878,6 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
     readonly role = Role.UNDERCOVER;
     readonly phases: Readonly<string[]> = ['ACTION'];
 
-    override canDoFastShift(): boolean {
-        return false;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return undefined;
-    }
-
     override initTurn(): void {
         this.changePhase('ACTION');
     }
@@ -931,7 +890,7 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
 
         const arena = this.context.arena;
 
-        const canAccuse = GameHelper.getAccusePositions(arena, this.locate());
+        const canAccuse = GameHelper.getAccusePositions(arena, this.locate()).isNonEmpty();
         const canAutopsy = GameHelper.getAutopsyPositions(arena, this.locate()).isNonEmpty();
 
         if (canAccuse) {
@@ -988,14 +947,6 @@ class Undercover<I extends Identifiable> extends Agent<I, GameActions.OfUndercov
 class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective> {
     readonly role = Role.DETECTIVE;
     readonly phases: Readonly<string[]> = ['ACTION', 'CANVAS'];
-
-    override canDoFastShift(): boolean {
-        return true;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return undefined;
-    }
 
     override initTurn(): void {
         this.changePhase('ACTION');
@@ -1101,14 +1052,6 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
     readonly role = Role.SUIT;
     readonly phases: readonly string[] = ['MARKER', 'ACTION', 'PROTECTION'];
 
-    override canDoFastShift(): boolean {
-        return true;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return Marker.PROTECTION;
-    }
-
     override initTurn(): void {
         this.changePhase('MARKER');
     }
@@ -1133,7 +1076,7 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
                     actions.push('disarm');
                 }
 
-                const canAccuse = GameHelper.getAccusePositions(arena, this.locate())
+                const canAccuse = GameHelper.getAccusePositions(arena, this.locate()).isNonEmpty();
 
                 if (canAccuse) {
                     actions.push('accuse');
@@ -1153,11 +1096,12 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
 
         const event: GameEvents.ProtectionActivated = {
             type: 'ProtectionActivated',
-            target: context.target
+            target: context.target,
+            trigger: context.trigger.role
         }
         this.context.game.fireEvent(event);
 
-        this.changePhase('PROTECTION');
+        this.changePhase('PROTECTION', true);
     }
 
     protected placeProtection(action: GameActions.Suit.PlaceProtection) {
@@ -1227,16 +1171,21 @@ class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
         assert(!protect || GameHelper.canProtect(this.locate(), protectionContext.target),
             "You cannot protect from your position");
 
+        const triggerMarker = protectionContext.trigger.role.ownMarker;
+
         if (protect) {
             const suspect = arena.atPosition(protectionContext.target);
             suspect.removeMarker(Marker.PROTECTION);
+            if (triggerMarker) {
+                suspect.removeMarker(triggerMarker);
+            }
         }
 
         const event: GameEvents.ProtectDecided = {
             type: 'ProtectDecided',
             target: protectionContext.target,
             protect: protect,
-            triggerMarker: protectionContext.triggerMarker
+            trigger: protectionContext.trigger.role
         };
         this.context.game.fireEvent(event);
 
@@ -1254,21 +1203,13 @@ type ProtectionEndHandler = (isProtected: boolean) => void;
 
 interface ProtectionContext {
     target: Position;
-    triggerMarker: Marker | null,
+    trigger: Player,
     onReactionEnd: ProtectionEndHandler;
 }
 
 class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler>  {
     readonly role = Role.PROFILER;
     readonly phases: Readonly<string[]> = ['ACTION'];
-
-    override canDoFastShift(): boolean {
-        return false;
-    }
-
-    override ownMarker(): Marker | undefined {
-        return undefined;
-    }
 
     override initTurn(): void {
         this.changePhase('ACTION');
@@ -1283,7 +1224,7 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
 
         const arena = this.context.arena;
 
-        const canAccuse = GameHelper.getAccusePositions(arena, this.locate());
+        const canAccuse = GameHelper.getAccusePositions(arena, this.locate()).isNonEmpty();
         const canProfile = this.context.profiler.evidenceHand.some(suspect => suspect.isAlive());
 
         if (canAccuse) {
@@ -1307,8 +1248,6 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
         Helper.accuse(target, mafioso, this.context, () => {
             this.changePhase('END');
         });
-
-        this.changePhase('END');
     }
 
     protected profile(action: GameActions.Profiler.Profile): void {
@@ -1420,7 +1359,7 @@ namespace Helper {
     }
 
     export function shift(shift: GameActions.Common.Shift, actor: Player, context: GameContext) {
-        assert(actor.canDoFastShift() || !shift.fast, "You cannot do fast shift");
+        assert(actor.role.canDoFastShift || !shift.fast, "You cannot do fast shift");
 
         assert(!context.lastShift || !GameHelper.isReverseShifts(shift, context.lastShift), "Cannot undo last shift");
 
@@ -1442,13 +1381,7 @@ namespace Helper {
     }
 
 
-    export function tryKillSuspect(target: Position, context: GameContext, killEventType: GameEvents.Kills['type'], killMarker: Marker | null, onProtectionEnd: ProtectionEndHandler): void {
-        const tryKillEvent: GameEvents.KillTry = {
-            type: 'KillTry',
-            target: target,
-        };
-        context.game.fireEvent(tryKillEvent);
-
+    export function tryKillSuspect(target: Position, context: GameContext, killEventType: GameEvents.Kills['type'], killer: Player, onProtectionEnd: ProtectionEndHandler): void {
         const suspect = context.arena.atPosition(target);
         suspect.assertAlive();
 
@@ -1462,7 +1395,7 @@ namespace Helper {
 
         if (suspect.hasMarker(Marker.PROTECTION)) {
             const suit = findSuit(context);
-            suit.enableReaction({ target: target, triggerMarker: killMarker, onReactionEnd: handler })
+            suit.enableReaction({ target: target, trigger: killer, onReactionEnd: handler })
         } else {
             handler(false);
         }
@@ -1548,7 +1481,7 @@ namespace Helper {
 
         context.score[1] += 1;
 
-        const ownMarker = suspectRole.ownMarker();
+        const ownMarker = suspectRole.role.ownMarker;
         if (ownMarker) {
             context.arena.foreach((suspect) => suspect.removeMarker(ownMarker));
         }

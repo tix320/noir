@@ -12,7 +12,7 @@ import { equals } from '@tix320/noir-core/src/util/Identifiable';
 import Matrix from '@tix320/noir-core/src/util/Matrix';
 import Position from '@tix320/noir-core/src/util/Position';
 import classNames from 'classnames';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { toast, ToastContent, ToastOptions, Zoom } from 'react-toastify';
@@ -95,7 +95,7 @@ export default function GameComponent(props: Props) {
         return res[1];
     }
 
-    const forceUpdate = useForceUpdate();
+    const render = useForceUpdate();
     const [t] = useTranslation();
 
     function onKeyDown(event: KeyboardEvent) {
@@ -107,11 +107,11 @@ export default function GameComponent(props: Props) {
                     key: 'profile'
                 });
             }
-            forceUpdate();
+            render();
         } else if (event.code === 'KeyS') {
-            if (GameHelper.canDoFastShift(myPlayerRef.current!))  {
+            if (myPlayerRef.current!.role.canDoFastShift) {
                 setFastShift(!fastShiftRef.current);
-                forceUpdate();
+                render();
             }
         }
     }
@@ -125,22 +125,44 @@ export default function GameComponent(props: Props) {
             if (stopListener) {
                 return;
             }
+
             return setTimeout(() => {
                 const event = eventsQueue.shift();
                 if (event) {
                     const toastData = processEvent(event);
+                    render();
                     if (toastData) {
-                        toast(toastData[0], {
-                            ...toastData[1],
+                        const [text, options] = toastData;
+
+                        const commonOptions: ToastOptions = {
                             position: 'bottom-right',
                             theme: 'dark',
                             transition: Zoom,
                             pauseOnFocusLoss: false,
+                        }
 
-                        });
+                        toast.dismiss();
+
+                        if (options.autoClose === false) {
+                            toast(text, {
+                                ...options,
+                                ...commonOptions,
+                            });
+                            scheduleEventProcessor(0);
+                        } else {
+                            toast(text, {
+                                ...options,
+                                ...commonOptions,
+                                onClose: () => {
+                                    setPerformingEvent(undefined);
+                                    render();
+                                    scheduleEventProcessor(0);
+                                }
+                            });
+                        }
+                    } else {
+                        scheduleEventProcessor(0.5);
                     }
-                    forceUpdate();
-                    scheduleEventProcessor(2);
                 } else {
                     scheduleEventProcessor(1);
                 }
@@ -157,10 +179,13 @@ export default function GameComponent(props: Props) {
                     eventsQueue.push(event);
                 } else {
                     eventUIChangeSkipCount.current--;
-                    processEvent(event);
                     if (eventUIChangeSkipCount.current === 0) {
+                        setPerformingAction(undefined);
                         setPerformingEvent(undefined);
-                        forceUpdate();
+                        render();
+                        eventsQueue.push(event);
+                    } else {
+                        processEvent(event);
                     }
                 }
             });
@@ -199,6 +224,7 @@ export default function GameComponent(props: Props) {
 
         const options: ToastOptions = {
             type: 'error',
+            autoClose: 3000,
         }
         return [text, options];
     }
@@ -218,7 +244,7 @@ export default function GameComponent(props: Props) {
         },
 
         GameCompleted(event: GameEvents.Completed) {
-            console.log('Game completed');
+            console.info('Game completed');
         },
 
         TurnChanged(event: GameEvents.TurnChanged<User>) {
@@ -227,6 +253,13 @@ export default function GameComponent(props: Props) {
             setCurrentTurnPlayer(player);
             setLastShift(event.lastShift);
             setScore(event.score);
+
+            if (currentTurnPlayerRef.current !== myPlayerRef.current) {
+                return [`Current turn: ${currentTurnPlayerRef.current!.role.name.capitalize()}`, {
+                    type: 'info',
+                    autoClose: 2500
+                }];
+            }
         },
 
         AvailableActionsChanged(event: GameEvents.AvailableActionsChanged) {
@@ -241,6 +274,11 @@ export default function GameComponent(props: Props) {
             const arena = arenaRef.current;
 
             if (currentTurnPlayer === myPlayer) {
+                const toastOptions: ToastOptions = {
+                    type: 'success',
+                    autoClose: 2500,
+                }
+
                 let actions: ActionAvailability[] = resolveAvailableActions(role, availableActions);
                 setActionsAvailability(actions);
 
@@ -253,11 +291,11 @@ export default function GameComponent(props: Props) {
                                 supportHighlight: GameHelper.getThreatPlacePositions(arena, getMyPosition()),
                             });
                             setActionsEnabled(false);
-                            return ['Now place threats', { type: 'success' }];
+                            return ['Place threats', toastOptions];
                         } else {
                             setPerformingAction(undefined);
                             setActionsEnabled(true);
-                            return ['Your turn', { type: 'success' }];
+                            return ['Your turn', toastOptions];
                         }
                         break;
                     case Role.SUIT:
@@ -271,24 +309,22 @@ export default function GameComponent(props: Props) {
                                 supportHighlightMarkers: removePositions.map(pos => [pos, [Marker.PROTECTION]]),
                             });
                             setActionsEnabled(false);
-                            return ['Your turn: at the beginning place or remove protection', { type: 'success' }];
-                        } else if (availableActions.has('decideProtect')) {
-                            setActionsEnabled(false);
+                            return ['Your turn: Place or remove protection', toastOptions];
                         } else {
                             setPerformingAction(undefined);
                             setActionsEnabled(true);
-                            return ['Now do action', { type: 'success' }];
+                            return ['Now do action', toastOptions];
                         }
                         break;
                     case Role.DETECTIVE:
                         if (!availableActions.has('canvas')) {
                             setActionsEnabled(true);
-                            return ['Your turn', { type: 'success' }];
+                            return ['Your turn', toastOptions];
                         }
                         break;
                     default:
                         setActionsEnabled(true);
-                        return ['Your turn', { type: 'success' }];
+                        return ['Your turn', toastOptions];
                 }
 
 
@@ -306,7 +342,7 @@ export default function GameComponent(props: Props) {
             const text = `${currentTurnPlayerRef.current!.role.name.capitalize()}: ${event.direction.capitalize()} ${event.fast ? 'double' : ''} shift at ${indexText}`;
             const options: ToastOptions = {
                 type: 'info',
-
+                autoClose: 3000,
             }
 
             return [text, options];
@@ -318,16 +354,7 @@ export default function GameComponent(props: Props) {
             const text = `${currentTurnPlayerRef.current!.role.name.capitalize()}: Collapsed to ${event.direction.capitalize()}`;
             const options: ToastOptions = {
                 type: 'info',
-            }
-
-            return [text, options];
-        },
-
-        KillTry(event: GameEvents.KillTry) {
-            const suspect = arenaRef.current.atPosition(event.target);
-            const text = `${suspect.character.name} under the danger`;
-            const options: ToastOptions = {
-                type: 'warning',
+                autoClose: 3000,
             }
 
             return [text, options];
@@ -360,11 +387,10 @@ export default function GameComponent(props: Props) {
             const text = `${suspect.character.name} was accused of being the ${event.mafioso.name.capitalize()}`;
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: 3000,
             }
 
             return [text, options];
-
         },
 
         UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused) {
@@ -373,7 +399,7 @@ export default function GameComponent(props: Props) {
             const text = `${suspect.character.name}'s accuse was unsuccessful. Not a ${event.mafioso.name.capitalize()}`;
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: 2000,
             }
 
             return [text, options];
@@ -397,7 +423,7 @@ export default function GameComponent(props: Props) {
             const text = `${suspect.character.name} (${player.role.name.capitalize()}) was arrested`;
             const options: ToastOptions = {
                 type: 'error',
-
+                autoClose: 3000,
             }
 
             return [text, options];
@@ -410,6 +436,7 @@ export default function GameComponent(props: Props) {
             const text = `${event.marker.capitalize()} marker was removed from suspect ${suspect.character.name}`;
             const options: ToastOptions = {
                 type: 'error',
+                autoClose: 3000,
             }
 
             return [text, options];
@@ -418,23 +445,16 @@ export default function GameComponent(props: Props) {
         AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>) {
             setPerformingEvent({
                 key: 'AllCanvased',
-                players: event.mafiosi
+                players: event.mafiosi,
+                alert: [event.target]
             })
-
-            if (event.mafiosi.isEmpty()) {
-            } else {
-                setTimeout(() => {
-                    setPerformingEvent(undefined);
-                    forceUpdate();
-                }, 10000);
-            }
 
             const suspect = arenaRef.current.atPosition(event.target);
 
-            const text = `Autopsy done on ${suspect.character.name}'s corpse`;
+            const text = `Autopsy done on ${suspect.character.name}'s corpse. ${event.mafiosi.isEmpty() ? 'Nobody found' : 'Founds ' + event.mafiosi.length + ' mafioso'}`;
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: event.mafiosi.isEmpty() ? 3000 : 10000
             }
 
             return [text, options];
@@ -446,21 +466,14 @@ export default function GameComponent(props: Props) {
 
             setPerformingEvent({
                 key: 'AllCanvased',
-                players: event.players
+                players: event.players,
+                alert: [event.target]
             })
 
-            if (event.players.isEmpty()) {
-            } else {
-                setTimeout(() => {
-                    setPerformingEvent(undefined);
-                    forceUpdate();
-                }, 10000);
-            }
-
-            const text = `${suspect.character.name} interrogated for finding mafiosi and agents`;
+            const text = `${suspect.character.name} interrogated for finding mafiosi and agents․ ${event.players.isEmpty() ? 'Nobody found' : 'Founds ' + event.players.length + ' players'}`;
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: event.players.isEmpty() ? 3000 : 10000
             }
 
             return [text, options];
@@ -475,21 +488,14 @@ export default function GameComponent(props: Props) {
 
             setPerformingEvent({
                 key: 'AllCanvased',
-                players: event.mafiosi
+                players: event.mafiosi,
+                alert: [event.target]
             })
 
-            if (event.mafiosi.isEmpty()) {
-            } else {
-                setTimeout(() => {
-                    setPerformingEvent(undefined);
-                    forceUpdate();
-                }, 10000);
-            }
-
-            const text = `${suspect.character.name} interrogated for finding mafiosi`;
+            const text = `${suspect.character.name} interrogated for finding mafiosi. ${event.mafiosi.isEmpty() ? 'Nobody found' : 'Founds ' + event.mafiosi.length + ' mafioso'}`;
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: event.mafiosi.isEmpty() ? 3000 : 10000
             }
 
             return [text, options];
@@ -513,7 +519,7 @@ export default function GameComponent(props: Props) {
 
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: 3000
             }
 
             return [toastText, options];
@@ -529,7 +535,7 @@ export default function GameComponent(props: Props) {
             const text = `${event.marker.capitalize()} marker moved from ${from.character.name} to  ${to.character.name}`;
             const options: ToastOptions = {
                 type: 'warning',
-
+                autoClose: 3000
             }
 
             return [text, options];
@@ -548,7 +554,7 @@ export default function GameComponent(props: Props) {
                 const text = `Detective picks card for interrogation`;
                 const options: ToastOptions = {
                     type: 'info',
-
+                    autoClose: 2500
                 }
 
                 return [text, options];
@@ -562,7 +568,7 @@ export default function GameComponent(props: Props) {
             const text = `Threat marker placed on suspects ${suspects.map(suspect => suspect.character.name).join(', ')}`;
             const options: ToastOptions = {
                 type: 'info',
-
+                autoClose: 2500
             }
 
             return [text, options];
@@ -575,7 +581,7 @@ export default function GameComponent(props: Props) {
             const text = `Bomb marker placed on ${suspect.character.name}`;
             const options: ToastOptions = {
                 type: 'info',
-
+                autoClose: 2500
             }
 
             return [text, options];
@@ -588,7 +594,7 @@ export default function GameComponent(props: Props) {
             const text = `Protection marker placed on ${suspect.character.name}`;
             const options: ToastOptions = {
                 type: 'info',
-
+                autoClose: 2500
             }
 
             return [text, options];
@@ -601,7 +607,7 @@ export default function GameComponent(props: Props) {
             const text = `Bomb marker removed from ${suspect.character.name}`;
             const options: ToastOptions = {
                 type: 'info',
-
+                autoClose: 2500
             }
 
             return [text, options];
@@ -617,7 +623,7 @@ export default function GameComponent(props: Props) {
             const text = `Suspects ${suspect1.character.name} and  ${suspect2.character.name} swapped`;
             const options: ToastOptions = {
                 type: 'info',
-
+                autoClose: 3000
             }
 
             return [text, options];
@@ -627,30 +633,50 @@ export default function GameComponent(props: Props) {
             assert(myPlayerRef.current);
             assert(playersRef.current);
 
+            setPerformingEvent({
+                key: 'SelfDestructionActivated',
+                alert: [event.target]
+            });
+
             const bomber = playersRef.current.find(player => player.role === Role.BOMBER);
             setCurrentTurnPlayer(bomber);
+
+            const suspect = arenaRef.current.atPosition(event.target);
+            const mafioso = (suspect.role as Player).role;
+
             if (myPlayerRef.current === bomber) {
                 setPerformingAction({
                     key: 'selfDestruct',
                     chain: [],
                     supportHighlight: [event.target],
                 });
+
+                const text = `Mafioso ${suspect.character.name} (${mafioso.name.capitalize()}) was found by agent, detonate before will be arrested.`;
+                const options: ToastOptions = {
+                    type: 'error',
+                    autoClose: false
+                }
+
+                return [text, options];
+            } else {
+                const text = `Mafioso ${suspect.character.name} (${mafioso.name.capitalize()}) found, but activated self destruction.`;
+                const options: ToastOptions = {
+                    type: 'error',
+                    autoClose: false
+                }
+
+                return [text, options];
             }
-
-            const suspect = arenaRef.current.atPosition(event.target);
-            const mafioso = (suspect.role as Player).role;
-
-            const text = `Mafioso ${suspect.character.name} (${mafioso.name.capitalize()}) found, but activated self destruction.`;
-            const options: ToastOptions = {
-                type: 'error',
-            }
-
-            return [text, options];
         },
 
         ProtectionActivated(event: GameEvents.ProtectionActivated) {
             assert(myPlayerRef.current);
             assert(playersRef.current);
+
+            setPerformingEvent({
+                key: 'ProtectionActivated',
+                alert: [event.target]
+            });
 
             const suit = playersRef.current.find(player => player.role === Role.SUIT);
             setCurrentTurnPlayer(suit);
@@ -661,16 +687,17 @@ export default function GameComponent(props: Props) {
                     canProtect: GameHelper.canProtect(getMyPosition(), event.target),
                     supportHighlight: [event.target],
                 });
+            } else {
+                const suspect = arenaRef.current.atPosition(event.target);
+
+                const text = `${event.trigger.name.capitalize()} tries to kill ${suspect.character.name}. Suit must decide protect him.`;
+                const options: ToastOptions = {
+                    type: 'warning',
+                    autoClose: false
+                }
+
+                return [text, options];
             }
-
-            const suspect = arenaRef.current.atPosition(event.target);
-
-            const text = `Protection activated for suspect ${suspect.character.name}.`;
-            const options: ToastOptions = {
-                type: 'warning',
-            }
-
-            return [text, options];
         },
 
         ProtectDecided(event: GameEvents.ProtectDecided) {
@@ -678,14 +705,17 @@ export default function GameComponent(props: Props) {
 
             const suspect = arenaRef.current.atPosition(event.target);
 
+            const killerRole = event.trigger;
+            const triggerMarker = killerRole.ownMarker;
+
             if (event.protect) {
                 suspect.removeMarker(Marker.PROTECTION);
-                if (event.triggerMarker) {
-                    suspect.removeMarker(event.triggerMarker);
+                if (triggerMarker) {
+                    suspect.removeMarker(triggerMarker);
                 }
             }
 
-            if (event.triggerMarker === Marker.THREAT) { // workaround
+            if (killerRole === Role.PSYCHO) { // workaround
                 const psycho = playersRef.current.find(player => player.role === Role.PSYCHO);
                 setCurrentTurnPlayer(psycho);
             }
@@ -693,6 +723,7 @@ export default function GameComponent(props: Props) {
             const text = event.protect ? `Suit decided to protect ${suspect.character.name}` : `Suit decided to let ${suspect.character.name} die`;
             const options: ToastOptions = {
                 type: event.protect ? 'success' : 'warning',
+                autoClose: 3000
             }
 
             return [text, options];
@@ -700,15 +731,13 @@ export default function GameComponent(props: Props) {
     };
 
     const processEvent = (event: GameEvents.Any<User>) => {
-        console.log('ProcessingEvent', event);
+        console.info('ProcessingEvent', event);
         const result = visitEvent(event, eventVisitor);
 
         return result;
     }
 
     const prepareAction = (key: GameActions.Key) => {
-        console.log('Preparing action', key);
-
         const arena = arenaRef.current;
         switch (key) {
             case 'shift':
@@ -812,7 +841,7 @@ export default function GameComponent(props: Props) {
                 break
         }
 
-        forceUpdate();
+        render();
     }
 
     const onSuspectClick = (position: Position) => {
@@ -838,7 +867,7 @@ export default function GameComponent(props: Props) {
                 } else {
                     performingAction.supportHighlight = undefined;
                     performingAction.target = position;
-                    forceUpdate();
+                    render();
                 }
                 break;
             case 'knifeKill':
@@ -857,7 +886,7 @@ export default function GameComponent(props: Props) {
                 } else {
                     performingAction.firstPosition = position;
                     performingAction.supportHighlight = arena.getAdjacentPositions(position);
-                    forceUpdate();
+                    render();
                 }
                 break;
             case 'placeThreat':
@@ -871,7 +900,7 @@ export default function GameComponent(props: Props) {
                     commitAction(action);
                 } else {
                     performingAction.supportHighlight!.removeFirstBy(pos => pos.equals(position));
-                    forceUpdate();
+                    render();
                 }
                 break;
             case 'placeBomb':
@@ -883,7 +912,7 @@ export default function GameComponent(props: Props) {
                 performingAction.chain.push(position);
                 performingAction.supportHighlight = GameHelper.getBombChainPositions(arena, position).filter(pos => !performingAction.chain.some(ch => pos.equals(ch)));
                 if (arena.atPosition(position).hasMarker(Marker.BOMB) && performingAction.supportHighlight.isNonEmpty()) {
-                    forceUpdate();
+                    render();
                 } else {
                     const action: GameActions.Bomber.DetonateBomb | GameActions.Bomber.SelfDestruct =
                         { type: performingAction.key, chain: performingAction.chain }
@@ -955,6 +984,7 @@ export default function GameComponent(props: Props) {
                 performingAction.marker = marker;
                 performingAction.supportHighlightMarkers = undefined;
                 performingAction.supportHighlight = GameHelper.getMarkerMoveDestPositions(arena, position, marker);
+                render();
                 break;
             case 'placeProtection':
                 action = { type: 'removeProtection', target: position }
@@ -1037,15 +1067,13 @@ export default function GameComponent(props: Props) {
     }
 
     const commitAction = (action: GameActions.Any) => {
-        console.log("Commit action", action);
-
         assert(currentTurnPlayerRef.current, 'Current player not set');
 
         currentTurnPlayerRef.current.doAction(action);
 
         setPerformingAction(undefined);
         setActionsEnabled(false);
-        forceUpdate();
+        render();
     }
 
     const arena = arenaRef.current;
@@ -1088,7 +1116,7 @@ export default function GameComponent(props: Props) {
     const onActionSelect = (action: GameActions.Key) => {
         if (performingActionRef.current && performingActionRef.current.key === action) {
             setPerformingAction(undefined);
-            forceUpdate();
+            render();
         } else {
             prepareAction(action);
         }
@@ -1111,7 +1139,7 @@ export default function GameComponent(props: Props) {
     function changeHighLight(positions: Position[]) {
         assert(performingActionRef.current);
         performingActionRef.current.supportHighlight = positions;
-        forceUpdate();
+        render();
     }
 
     return (
@@ -1141,6 +1169,7 @@ export default function GameComponent(props: Props) {
                 teamHighlight={myTeamPositions}
                 supportHighlight={performingAction?.supportHighlight}
                 supportHighlightMarkers={performingAction?.supportHighlightMarkers}
+                alert={performingEvent?.alert}
                 onShift={doShift}
                 onSuspectClick={onSuspectClick}
                 onMarkerClick={onMarkerClick}
@@ -1185,16 +1214,18 @@ export default function GameComponent(props: Props) {
                     )
                     ||
                     (decideProtectDialogOpenPredicate &&
-                        (<div>
-                            <Button onClick={() => doProtectDecisionAction(true)}
-                                disabled={!performingAction.canProtect} >
-                                {t('protect')}
-                            </Button>
+                        (
+                            <div className={styles.decideProtectDialog}>
+                                <Button onClick={() => doProtectDecisionAction(true)}
+                                    disabled={!performingAction.canProtect} >
+                                    {t('protect')}
+                                </Button>
 
-                            <Button onClick={() => doProtectDecisionAction(false)} >
-                                {t('let-die')}
-                            </Button>
-                        </div>
+                                <Button onClick={() => doProtectDecisionAction(false)} >
+                                    {t('let-die')}
+                                </Button>
+                            </div>
+
                         )
                     )
                     ||
@@ -1360,6 +1391,7 @@ type PerformingAction =
 
 interface BaseEventContext {
     readonly key: GameEvents.Key,
+    readonly alert?: Position[]
 }
 
 interface CanvasEventContext extends BaseEventContext {
@@ -1367,4 +1399,12 @@ interface CanvasEventContext extends BaseEventContext {
     players: User[]
 }
 
-type PerformingEvent = CanvasEventContext
+interface ProtectionActivatedContext extends BaseEventContext {
+    readonly key: GameEvents.Key<GameEvents.ProtectionActivated>,
+}
+
+interface SelfDestructionActivatedContext extends BaseEventContext {
+    readonly key: GameEvents.Key<GameEvents.SelfDestructionActivated>,
+}
+
+type PerformingEvent = CanvasEventContext | ProtectionActivatedContext | SelfDestructionActivatedContext

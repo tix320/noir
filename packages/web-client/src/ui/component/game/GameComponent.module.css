@@ -36,3 +36,9 @@
 .collapseDirectionButton {
     height: 6vh;
 }
+
+.decideProtectDialog {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}

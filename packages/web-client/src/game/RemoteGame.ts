@@ -162,13 +162,6 @@ class EventVisitor extends GameEventDtoVisitor<User> {
         }
     }
 
-    KillTry(event: GameEvents.KillTry): GameEvents.KillTry {
-        return {
-            type: 'KillTry',
-            target: convertPosition(event.target)
-        }
-    }
-
     KilledByKnife(event: GameEvents.KilledByKnife): GameEvents.KilledByKnife {
         return {
             type: 'KilledByKnife',
@@ -300,7 +293,7 @@ class EventVisitor extends GameEventDtoVisitor<User> {
     ProtectionPlaced(event: GameEvents.ProtectionPlaced): GameEvents.ProtectionPlaced {
         return {
             type: 'ProtectionPlaced',
-            target: convertPosition(event.target)
+            target: convertPosition(event.target),
         }
     }
 
@@ -326,19 +319,20 @@ class EventVisitor extends GameEventDtoVisitor<User> {
         }
     }
 
-    ProtectionActivated(event: GameEvents.ProtectionActivated): GameEvents.ProtectionActivated {
+    ProtectionActivated(event: Dto.Events.ProtectionActivated): GameEvents.ProtectionActivated {
         return {
             type: 'ProtectionActivated',
-            target: convertPosition(event.target)
+            target: convertPosition(event.target),
+            trigger: Role.getByName(event.trigger)
         }
     }
 
-    ProtectDecided(event: GameEvents.ProtectDecided): GameEvents.ProtectDecided {
+    ProtectDecided(event: Dto.Events.ProtectDecided): GameEvents.ProtectDecided {
         return {
             type: 'ProtectDecided',
             target: convertPosition(event.target),
             protect: event.protect,
-            triggerMarker: event.triggerMarker
+            trigger: Role.getByName(event.trigger)
         }
     }
 }

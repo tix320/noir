@@ -17,8 +17,6 @@ export interface GameEventVisitor<I extends Identifiable, R = unknown> {
 
     Collapsed?(event: GameEvents.Collapsed): R;
 
-    KillTry?(event: GameEvents.KillTry): R;
-
     KilledByKnife?(event: GameEvents.KilledByKnife): R;
 
     KilledByThreat?(event: GameEvents.KilledByThreat): R;

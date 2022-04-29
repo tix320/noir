@@ -3,7 +3,7 @@ const WEB_CLIENT_BUNDLE = process.env.WEB_CLIENT_BUNDLE
 
 console.info(`WORKING_DIRECTORY=${process.cwd()}`)
 console.info(`SERVER_PORT=${PORT}`)
-console.info(`WEB_CLIENT_BUNDLE=${WEB_CLIENT_BUNDLE}`) 
+console.info(`WEB_CLIENT_BUNDLE=${WEB_CLIENT_BUNDLE}`)
 
 import "@tix320/noir-core";
 import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
@@ -134,10 +134,6 @@ class GameEventConverter implements GameEventVisitor<User, any> {
         return event;
     }
 
-    KillTry(event: GameEvents.KillTry) {
-        return event;
-    }
-
     KilledByKnife(event: GameEvents.KilledByKnife) {
         return event;
     }
@@ -250,11 +246,24 @@ class GameEventConverter implements GameEventVisitor<User, any> {
     }
 
     ProtectionActivated(event: GameEvents.ProtectionActivated) {
-        return event;
+        const eventDto: Dto.Events.ProtectionActivated = {
+            type: 'ProtectionActivated',
+            target: event.target,
+            trigger: event.trigger.name
+        }
+
+        return eventDto;
     }
 
     ProtectDecided(event: GameEvents.ProtectDecided) {
-        return event;
+        const eventDto: Dto.Events.ProtectDecided = {
+            type: 'ProtectDecided',
+            target: event.target,
+            trigger: event.trigger.name,
+            protect: event.protect,
+        }
+
+        return eventDto;
     }
 }
 
@@ -383,7 +392,6 @@ io.on("connection", (socket) => {
 
         const subscription = GameService.gameEvents(gameId, user).pipe(
             map(event => visitEvent(event, GAME_EVENT_CONVERTER as any)),
-            tap((event: any) => console.log(`${socket.id} - ${user.name} - ${event.type}`)),
             takeWhile(() => socket.connected)
         ).subscribe((event) => socket.emit(subscriptionName, event));
 

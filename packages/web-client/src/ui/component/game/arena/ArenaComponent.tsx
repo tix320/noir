@@ -18,6 +18,7 @@ type Props = {
     teamHighlight?: Position[],
     supportHighlight?: Position[],
     supportHighlightMarkers?: [Position, Marker[]][],
+    alert?: Position[],
     onShift(direction: Direction, index: number, fast: boolean): void,
     onContextMenu(): void,
     onSuspectClick(position: Position, suspect: Suspect): void,
@@ -25,14 +26,14 @@ type Props = {
 }
 
 export default function ArenaComponent(props: Props) {
-    const { className, arena, disableShift, lastShift, teamHighlight, supportHighlight, supportHighlightMarkers, onShift, onSuspectClick, onMarkerClick } = props;
+    const { className, arena, disableShift, lastShift, teamHighlight, supportHighlight, supportHighlightMarkers, alert, onShift, onSuspectClick, onMarkerClick } = props;
 
     const isReverseShift = (direction: Direction, index: number) => {
         return !!lastShift && GameHelper.isReverseShifts({ direction: direction, index: index }, lastShift);
     }
 
     const arenaRowSize = arena.rows;
-    const arenaColumnSize = arena.columns; 
+    const arenaColumnSize = arena.columns;
     const arrRow = [...Array(arenaRowSize)].map(a => a + 1);
     const arrCol = [...Array(arenaColumnSize)].map(a => a + 1);
 
@@ -68,7 +69,8 @@ export default function ArenaComponent(props: Props) {
                             additionalClassName={props.meHighlight?.x === row && props.meHighlight?.y === column ?
                                 styles.mySuspect
                                 : teamHighlight?.some(pos => pos.x === row && pos.y === column) ? styles.teamSuspect : undefined}
-                            highlight={supportHighlight?.some(pos => pos.x === row && pos.y === column)}
+                            additionalHighLightClassName={alert?.some(pos => pos.x === row && pos.y === column) ? styles.alert : undefined}
+                            highlight={supportHighlight?.some(pos => pos.x === row && pos.y === column) || alert?.some(pos => pos.x === row && pos.y === column)}
                             highlightMarkers={supportHighlightMarkers?.find(posWithMarkers => posWithMarkers[0].x === row && posWithMarkers[0].y === column)?.[1]}
                             onSuspectClick={suspect => onSuspectClick(new Position(row, column), suspect)}
                             onMarkerClick={(suspect, marker) => onMarkerClick(new Position(row, column), suspect, marker)} />)}

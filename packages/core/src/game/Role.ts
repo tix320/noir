@@ -1,10 +1,12 @@
 import { AssertionError } from "../util/Assertions";
-import { Team } from "./Game";
+import { Marker, Team } from "./Game";
 import { GameActions } from "./GameActions";
 
 export abstract class Role<A extends GameActions.Any = GameActions.Any> {
     public abstract readonly team: Team;
     public abstract readonly actions: readonly GameActions.Key<A>[];
+    public abstract readonly ownMarker: Marker | null;
+    public abstract readonly canDoFastShift: boolean;
 
     protected constructor(public readonly name: string) {
     }
@@ -15,6 +17,8 @@ class _KILLER extends Role<GameActions.OfKiller>{
 
     public team = 'MAFIA' as const;
     public actions = ["shift", "collapse", "disguise", "knifeKill"] as const;
+    public ownMarker = null;
+    public canDoFastShift = true;
 
     private constructor(name: string) {
         super(name);
@@ -26,6 +30,8 @@ class _PSYCHO extends Role<GameActions.OfPsycho>{
 
     public team = 'MAFIA' as const;
     public actions = ['shift', 'collapse', 'swapSuspects', 'placeThreat'] as const;
+    public ownMarker = Marker.THREAT;
+    public canDoFastShift = false;
 
     private constructor(name: string) {
         super(name);
@@ -37,6 +43,8 @@ class _BOMBER extends Role<GameActions.OfBomber>{
 
     public team = 'MAFIA' as const;
     public actions = ['shift', 'collapse', 'placeBomb', 'detonateBomb', 'selfDestruct'] as const;
+    public ownMarker = Marker.BOMB;
+    public canDoFastShift = false;
 
     private constructor(name: string) {
         super(name);
@@ -48,6 +56,8 @@ class _SNIPER extends Role<GameActions.OfSniper>{
 
     public team = 'MAFIA' as const;
     public actions = ['shift', 'collapse', 'setup', 'snipeKill'] as const;
+    public ownMarker = null;
+    public canDoFastShift = true;
 
     private constructor(name: string) {
         super(name);
@@ -59,6 +69,8 @@ class _UNDERCOVER extends Role<GameActions.OfUndercover>{
 
     public team = 'FBI' as const;
     public actions = ['shift', 'collapse', 'disguise', 'disarm', 'autopsy', 'accuse'] as const;
+    public ownMarker = null;
+    public canDoFastShift = false;
 
     private constructor(name: string) {
         super(name);
@@ -70,6 +82,8 @@ class _DETECTIVE extends Role<GameActions.OfDetective>{
 
     public team = 'FBI' as const;
     public actions = ['shift', 'collapse', 'disarm', 'pickInnocentsForCanvas', 'canvas', 'farAccuse'] as const;
+    public ownMarker = null;
+    public canDoFastShift = false;
 
     private constructor(name: string) {
         super(name);
@@ -81,6 +95,8 @@ class _SUIT extends Role<GameActions.OfSuit>{
 
     public team = 'FBI' as const;
     public actions = ['shift', 'collapse', 'placeProtection', 'removeProtection', 'decideProtect', 'disarm', 'accuse'] as const;
+    public ownMarker = Marker.PROTECTION;
+    public canDoFastShift = true;
 
     private constructor(name: string) {
         super(name);
@@ -92,6 +108,8 @@ class _PROFILER extends Role<GameActions.OfProfiler>{
 
     public team = 'FBI' as const;
     public actions = ['shift', 'collapse', 'profile', 'disarm', 'accuse'] as const;
+    public ownMarker = null;
+    public canDoFastShift = false;
 
     private constructor(name: string) {
         super(name);
@@ -114,8 +132,6 @@ export namespace Role {
 
     export const FOR_6_GAME: Role[] = [KILLER, PSYCHO, BOMBER, UNDERCOVER, DETECTIVE, SUIT];
     export const FOR_8_GAME: Role[] = [KILLER, PSYCHO, BOMBER, SNIPER, UNDERCOVER, DETECTIVE, SUIT, PROFILER];
-
-    export const CAN_DO_FAST_SHIFT: Role[] = [Role.KILLER, Role.SNIPER, Role.DETECTIVE, Role.SUIT];
 
     export function getByName(name: string): Role {
         switch (name) {

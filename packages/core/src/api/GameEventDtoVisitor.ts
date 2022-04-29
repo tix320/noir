@@ -26,8 +26,6 @@ export abstract class GameEventDtoVisitor<I extends Identifiable> {
         return event;
     }
 
-    abstract KillTry(event: GameEvents.KillTry): GameEvents.KillTry;
-
     abstract KilledByKnife(event: GameEvents.KilledByKnife): GameEvents.KilledByKnife;
 
     abstract KilledByThreat(event: GameEvents.KilledByThreat): GameEvents.KilledByThreat;
@@ -68,9 +66,9 @@ export abstract class GameEventDtoVisitor<I extends Identifiable> {
 
     abstract SelfDestructionActivated(event: GameEvents.SelfDestructionActivated): GameEvents.SelfDestructionActivated;
 
-    abstract ProtectionActivated(event: GameEvents.ProtectionActivated): GameEvents.ProtectionActivated;
+    abstract ProtectionActivated(event: Dto.Events.ProtectionActivated): GameEvents.ProtectionActivated;
 
-    abstract ProtectDecided(event: GameEvents.ProtectDecided): GameEvents.ProtectDecided;
+    abstract ProtectDecided(event: Dto.Events.ProtectDecided): GameEvents.ProtectDecided;
 }
 
 export function visitEvent<I extends Identifiable>(event: Dto.Events.Any, eventVisitor: GameEventDtoVisitor<I>) {

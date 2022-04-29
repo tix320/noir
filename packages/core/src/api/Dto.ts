@@ -71,6 +71,14 @@ export namespace Dto {
         export type AllCanvased = GameEvents.AllCanvased<User>;
         export type Profiled = GameEvents.Profiled<User>;
 
+        export type ProtectionActivated = Omit<GameEvents.ProtectionActivated, 'trigger'> & {
+            trigger: Role['name']
+        };
+
+        export type ProtectDecided = Omit<GameEvents.ProtectDecided, 'trigger'> & {
+            trigger: Role['name']
+        };
+
         export type Any = Exclude<GameEvents.Any,
             | GameEvents.Started<any>
             | GameEvents.TurnChanged
@@ -78,7 +86,8 @@ export namespace Dto {
             | GameEvents.Accused
             | GameEvents.AutopsyCanvased
             | GameEvents.AllCanvased
-            | GameEvents.Profiled>
+            | GameEvents.Profiled
+            | GameEvents.ProtectionActivated>
     }
 
     export namespace Actions {

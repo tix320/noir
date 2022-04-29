@@ -2,6 +2,8 @@
     "token": "Token",
     "save-token": "Save Token",
     "cancel": "Cancel",
+    "protect": "Protect",
+    "let-die": "Let die",
     "action.description.details.enableHint": "Press <span style='color:#ffc135;'>ctrl</span> for details",
     "action.description.header[shift]": "Shift",
     "action.description.header[collapse]": "Collapse",
@@ -37,8 +39,4 @@
     "action.description.details[canvas]": "Pick <span style='color:#e5d819;'>2</span> cards from <span style='color:#ff66ec;'>evidence deck</span>. Choose one of them. Each <span style='color:#ff3636;'>mafioso</span> or <span style='color:#4db300;'>agent</span> player <span style='color:#e5d819;'>adjacent</span> to that suspect will become known. Chosen suspect will be marked as <span style='color:#40bafd;'>innocent</span>.",
     "action.description.details[profile]": "<span style='color:#91a9c1;'>Passive(At start of a game):</span></br> You have a 4 cards from <span style='color:#ff66ec;'>evidence deck</span>. It forms your <span style='color:#ff66ec;'>evidence hand</span>. </br></br> <span style='color:#91a9c1;'>Active:</span></br>  Choose one <span style='color:#07ff03;'>alive</span> card from <span style='color:#ff66ec;'>evidence hand</span>. Every mafioso player <span style='color:#e5d819;'>adjacent</span> to that suspect will become known. Chosen suspect will be marked as <span style='color:#40bafd;'>innocent</span>. </br></br> <span style='color:#91a9c1;'>Passive(At end of your turn):</span></br> <span style='color:#ff66ec;'>Evidence hand</span> will be filled up to 4 cards, removing <span style='color:#fd4040;'>killed</span> suspect cards. </br></br> Press <span style='color:#ff66ec;'>P</span> to open <span style='color:#ff66ec;'>Evidence hand</span>.",
     "action.description.details[placeProtection]": "<span style='color:#91a9c1;'>Passive(At start of your turn):</span></br> Place or remove <span style='color:#2e67e5;'>protection</span> marker from any suspect. You may not have more than <span style='color:#e5d819;'>6</span> in play at a time.</br></br> <span style='color:#91a9c1;'>Reaction:</span></br> When a suspect with a <span style='color:#2e67e5;'>protection</span> marker would be <span style='color:#fd4040;'>killed</span>, if you are in the same <span style='color:#e5d819;'>row</span> or <span style='color:#e5d819;'>column</span> as that suspect, you may <span style='color:#2e67e5;'>protect</span> him, and he do not die. Any effects of the kill action will be <span style='color:#bced5c;'>stopped</span>(such as bomb detonation chain).  You cannot protect <span style='color:#e5d819;'>yourself</span>."
-
-
-
-
 }

@@ -51,11 +51,6 @@ export namespace GameEvents {
         readonly direction: Direction;
     }
 
-    export interface KillTry {
-        readonly type: 'KillTry';
-        readonly target: Position;
-    }
-
     export interface AbstractKill {
         readonly killed: Position;
         readonly newFbiIdentity?: Position;
@@ -172,20 +167,21 @@ export namespace GameEvents {
     export interface ProtectionActivated {
         readonly type: 'ProtectionActivated';
         readonly target: Position;
+        readonly trigger: Role;
     }
 
     export interface ProtectDecided {
         readonly type: 'ProtectDecided';
         readonly target: Position;
+        readonly trigger: Role;
         readonly protect: boolean;
-        readonly triggerMarker: Marker | null;
     }
 
     export type Kills = KilledByKnife | KilledByThreat | KilledByBomb | KilledBySniper;
 
     export type Any<I extends Identifiable = Identifiable> = Hello
         | Started<I> | Completed | TurnChanged<I> | AvailableActionsChanged
-        | KillTry | Accused | UnsuccessfulAccused | Arrested | AutopsyCanvased
+        | Accused | UnsuccessfulAccused | Arrested | AutopsyCanvased
         | KilledByBomb | AllCanvased | Collapsed | Disarmed
         | Disguised | KilledByKnife | MarkerMoved | InnocentsForCanvasPicked
         | SelfDestructionActivated | BombPlaced | ProtectionPlaced | ThreatPlaced

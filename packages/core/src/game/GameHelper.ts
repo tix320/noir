@@ -41,10 +41,6 @@ export namespace GameHelper {
         return res[1];
     }
 
-    export function canDoFastShift<A extends GameActions.Any>(player: Player<any, A>) {
-        return Role.CAN_DO_FAST_SHIFT.includes(player.role);
-    }
-
     export function getAvailableCollapseDirections(arena: Arena): Direction[] {
         return arena.getAvailableCollapseDirections(suspect => suspect.role === 'killed');
     }
@@ -147,7 +143,7 @@ export namespace GameHelper {
     }
 
     export function canMoveMarkerTo(marker: Marker, suspect: Suspect) {
-        return !suspect.hasMarker(marker) && (marker !== Marker.BOMB || suspect.isAlive());
+        return !suspect.hasMarker(marker) && (marker === Marker.BOMB || suspect.isAlive());
     }
 
     export function getMovableMarkerPositions(arena: Arena): [Position, Marker[]][] {
@@ -181,6 +177,10 @@ export namespace GameHelper {
     }
 
     export function canProtect(suitPosition: Position, targetPosition: Position) {
+        if (suitPosition.equals(targetPosition)) {
+            return false;
+        }
+
         return suitPosition.x === targetPosition.x || suitPosition.y === targetPosition.y;
     }
 }

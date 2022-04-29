@@ -20,3 +20,21 @@
 .teamSuspect {
     border-color: rgb(50, 185, 79);
 }
+
+@keyframes alertAnimation {
+    from {
+        border-color: rgb(255, 0, 0);
+    }
+
+    to {
+        border-color: rgb(240, 231, 228);
+    }
+}
+
+.alert {
+    border-style: solid;
+    animation-name: alertAnimation;
+    animation-duration: 0.3s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate-reverse;
+}
