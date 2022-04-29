@@ -13,7 +13,7 @@ services:
     build:
         context: .
         args:
-            - REACT_APP_SERVER_ADDRESS=http://${HOSTNAME}:${SERVER_PORT}
+            - REACT_APP_SERVER_ADDRESS=http://${HOSTNAME}
     environment:
         - SERVER_PORT=${SERVER_PORT}
         - DB_HOST=db:${DB_PORT}

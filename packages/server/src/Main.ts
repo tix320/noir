@@ -275,12 +275,10 @@ io.use(async (socket, next) => {
 
     const user = await UserService.login(token);
     if (user) {
-        UserService.addConnectedUser(user)
         console.info(`Connected ${user.name}`)
 
         socket.on('disconnect', reason => {
             console.error(`Disconnected ${user.name} Reason: ${reason}`);
-            UserService.removeConnectedUser(user);
         });
 
         socket.data = user;
