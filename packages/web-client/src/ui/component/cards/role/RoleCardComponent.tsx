@@ -27,8 +27,8 @@ export default function RoleCardComponent(props: Props) {
 
     const character = props.character ??
         (role.team === 'MAFIA'
-            ? new Character(Character.ALL.length + "", role.name)
-            : new Character(Character.ALL.length + 1 + "", role.name));
+            ? new Character("100", role.name)
+            : new Character("101", role.name));
 
     const roleImage = require(`../../../images/card/role/${role.name.toLowerCase()}.png`);
 

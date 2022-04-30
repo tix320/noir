@@ -19,10 +19,12 @@
 
 .leftPlayersPanel {
     max-width: 90%;
+    margin-top: 3.3vh;
 }
 
 .rightPlayersPanel {
     max-width: 90%;
+    margin-top: 3.3vh;
 }
 
 .actionsPanel {
@@ -41,4 +43,10 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+.menuButton {
+    position: absolute;
+    top: 1vh;
+    right: 2.2vh;
 }
