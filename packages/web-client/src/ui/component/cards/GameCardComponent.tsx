@@ -7,7 +7,8 @@ export type Props = {
     additionalClassName?: string,
     highlight?: boolean,
     additionalHighLightClassName?: string,
-    description?: string,
+    topDescription?: string,
+    bottomDescription?: string,
     onMouseEnter?: () => void,
     onMouseLeave?: () => void,
     onClick?: (...args: any[]) => any,
@@ -25,7 +26,8 @@ export default function GameCardComponent(props: Props) {
             onMouseLeave={props.onMouseLeave}
             onClick={props.onClick}>
             <img className={styles.contentImage} src={props.image} />
-            <span className={styles.description}> {props.description} </span>
+            <span className={styles.topDescription}> {props.topDescription} </span>
+            <span className={styles.bottomDescription}> {props.bottomDescription} </span>
         </div>
 
     );

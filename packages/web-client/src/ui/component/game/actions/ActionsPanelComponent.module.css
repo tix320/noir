@@ -1,6 +1,8 @@
 .container {
     display: grid;
     grid-template-columns: 50% 50%;
+    justify-content: center;
+    justify-items: center;
     gap: 10px;
 }
 

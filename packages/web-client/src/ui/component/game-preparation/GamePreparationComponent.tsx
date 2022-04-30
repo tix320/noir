@@ -81,16 +81,16 @@ export default function GamePreparationComponent(props: Props) {
 
         return (<div className={styles.selectedRolesContainer}>
             {roles.map(({ role, user, ready }) =>
-                <div key={user.id}>
-                    <div>{user.name}</div>
+                <div key={user.id} className={styles.roleWithButton}>
                     <RoleCard className={styles.card}
+                        topDescription={user.name}
                         additionalClassName={classNames({ [styles.myCard]: equals(user, currentUser!) })}
                         key={role!.name}
                         role={role!}
                         onClick={() => equals(user, currentUser) && deselectRole()}
                     />
                     <Button className={styles.readyButton} variant={ready ? 'success' : 'danger'} disabled={!equals(user, currentUser!)} onClick={() => changeReadiness(role!, !ready)}>
-                        {ready ? 'Ready' : 'Not ready'}
+                        {equals(user, currentUser!) ? 'Ready' : ready ? 'Ready' : 'Not ready'}
                     </Button>
 
                 </div>
@@ -102,7 +102,7 @@ export default function GamePreparationComponent(props: Props) {
     function renderAvailableRoles(roles: Role[], myRole: Role | undefined) {
         return (roles
             .map(role => <RoleCard
-                className={styles.card}
+                className={classNames(styles.availableRoleCard, styles.card)}
                 key={role.name}
                 role={role}
                 highlight={myRole === undefined}
@@ -128,7 +128,7 @@ export default function GamePreparationComponent(props: Props) {
                         renderAvailableRoles(mafiaAvailableRoles, mySelectedRole)
                     }
                     {!mySelectedRole && <GameCard
-                        className={styles.card}
+                        className={classNames(styles.availableRoleCard, styles.card)}
                         image={randomImg}
                         highlight={true}
                         onClick={selectRandom}

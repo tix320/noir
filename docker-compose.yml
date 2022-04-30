@@ -4,7 +4,7 @@ services:
     image: "mongo:5.0.8"
     container_name: noir-db
     volumes:
-      - ~/noir/db:/data/db
+      - ${DB_VOLUME}:/data/db
     ports:
         - ${DB_PORT}:27017
     restart: always

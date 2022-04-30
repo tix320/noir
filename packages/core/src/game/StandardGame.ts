@@ -253,8 +253,6 @@ export namespace StandardGame {
         }
 
         public events(): Observable<GameEvents.Any<I>> {
-            assert(!this.completed, 'Game is already completed');
-
             const hello: GameEvents.Hello = {
                 type: 'Hello',
                 readyEventsCount: this.#eventsCount

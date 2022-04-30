@@ -38,8 +38,8 @@ export default function ArenaComponent(props: Props) {
     const arrCol = [...Array(arenaColumnSize)].map(a => a + 1);
 
     const gridStyles = {
-        gridTemplateRows: `2% repeat(${arenaRowSize}, minmax(auto, ${arenaRowSize == 7 ? 13 : 15}%)) 2%`,
-        gridTemplateColumns: `2% repeat(${arenaColumnSize}, minmax(auto, ${arenaColumnSize == 7 ? 14 : 15}%)) 2%`,
+        gridTemplateRows: `3% repeat(${arenaRowSize}, minmax(auto, ${arenaRowSize == 7 ? 13 : 15}%)) 3%`,
+        gridTemplateColumns: `2.2% repeat(${arenaColumnSize}, minmax(auto, ${arenaColumnSize == 7 ? 14 : 15}%)) 2.2%`,
     };
 
     return (
@@ -48,7 +48,7 @@ export default function ArenaComponent(props: Props) {
             onContextMenu={(event) => { props.onContextMenu(); event.preventDefault(); return false; }} >
             <div />
 
-            {arrCol.map((e, index) => <Shift className={styles.shiftCell} key={`up${index}`}
+            {arrCol.map((e, index) => <Shift className={styles.verticalShiftCell} key={`up${index}`}
                 direction={Direction.UP}
                 disabled={disableShift || isReverseShift(Direction.UP, index)}
                 fast={props.fastShift}
@@ -58,7 +58,7 @@ export default function ArenaComponent(props: Props) {
             {
                 arrRow.map((e, row) =>
                     <Fragment key={row}>
-                        <Shift className={styles.shiftCell} key={`left${row}`}
+                        <Shift className={styles.horizontalShiftCell} key={`left${row}`}
                             direction={Direction.LEFT}
                             disabled={disableShift || isReverseShift(Direction.LEFT, row)}
                             fast={props.fastShift}
@@ -75,7 +75,7 @@ export default function ArenaComponent(props: Props) {
                             onSuspectClick={suspect => onSuspectClick(new Position(row, column), suspect)}
                             onMarkerClick={(suspect, marker) => onMarkerClick(new Position(row, column), suspect, marker)} />)}
 
-                        <Shift className={styles.shiftCell} key={`right${row}`}
+                        <Shift className={styles.horizontalShiftCell} key={`right${row}`}
                             direction={Direction.RIGHT}
                             disabled={disableShift || isReverseShift(Direction.RIGHT, row)}
                             fast={props.fastShift}
@@ -85,7 +85,7 @@ export default function ArenaComponent(props: Props) {
             }
 
             <div />
-            {arrCol.map((e, index) => <Shift className={styles.shiftCell} key={`down${index}`}
+            {arrCol.map((e, index) => <Shift className={styles.verticalShiftCell} key={`down${index}`}
                 direction={Direction.DOWN}
                 disabled={disableShift || isReverseShift(Direction.DOWN, index)}
                 fast={props.fastShift}

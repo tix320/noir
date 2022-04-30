@@ -2,11 +2,16 @@
     display: grid;
     justify-items: center;
     align-items: center;
-    gap: 5px;
+    column-gap: 0.4%;
+    row-gap: 0.3%;
 }
 
-.shiftCell {
-    height: 25px;
+.verticalShiftCell {
+    height: 100%;
+}
+
+.horizontalShiftCell {
+    width: 100%;
 }
 
 .suspectCell {

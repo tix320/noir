@@ -15,14 +15,14 @@ import classNames from 'classnames';
 import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { Slide, toast, ToastContent, ToastOptions, Zoom } from 'react-toastify';
+import { Slide, toast, ToastContent, ToastOptions, TypeOptions } from 'react-toastify';
 import User from '../../../entity/User';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
 import { useForceUpdate, useServerConnectedEffect } from '../common/Hooks';
 import DirectionButton from '../util/DirectionButtonComponent';
 import ActionDialog from './action-dialog/ActionDialogComponent';
-import ActionsPanel, { ActionAvailability } from './actions/ActionsPanelComponent';
+import ActionsPanel from './actions/ActionsPanelComponent';
 import ArenaComponent from './arena/ArenaComponent';
 import styles from './GameComponent.module.css';
 import TeamPlayersPanel from './TeamPlayersPanelComponent';
@@ -63,7 +63,7 @@ export default function GameComponent(props: Props) {
     const [lastShiftRef, setLastShift] = useRefState<ShiftAction | undefined>(undefined);
 
     const [actionsEnabledRef, setActionsEnabled] = useRefState<boolean>(false);
-    const [actionsAvailabilityRef, setActionsAvailability] = useRefState<ActionAvailability[]>([]);
+    const [availableActionsRef, setAvailableActions] = useRefState<Set<GameActions.Key>>(new Set());
 
     const [fastShiftRef, setFastShift] = useRefState<boolean>(false);
 
@@ -82,7 +82,7 @@ export default function GameComponent(props: Props) {
         profilerHandRef.current = [];
         lastShiftRef.current = undefined;
         actionsEnabledRef.current = false;
-        actionsAvailabilityRef.current = [];
+        availableActionsRef.current = new Set();
         fastShiftRef.current = false;
         teamPlayersRef.current = [[], []];
         score.current = [0, 0];
@@ -99,7 +99,7 @@ export default function GameComponent(props: Props) {
     const [t] = useTranslation();
 
     function onKeyDown(event: KeyboardEvent) {
-        if (event.code === 'KeyP') {
+        if (event.code === 'KeyP' && currentTurnPlayerRef.current?.role === Role.PROFILER) {
             if (performingActionRef.current?.key === 'profile') {
                 setPerformingAction(undefined);
             } else {
@@ -111,6 +111,12 @@ export default function GameComponent(props: Props) {
         } else if (event.code === 'KeyS') {
             if (myPlayerRef.current!.role.canDoFastShift) {
                 setFastShift(!fastShiftRef.current);
+                render();
+            }
+        } else if (event.code === 'Escape') {
+            const performingAction = performingActionRef.current;
+            if (performingAction && !performingAction.nonCancelable) {
+                setPerformingAction(undefined);
                 render();
             }
         }
@@ -246,7 +252,26 @@ export default function GameComponent(props: Props) {
         },
 
         GameCompleted(event: GameEvents.Completed) {
-            console.info('Game completed');
+            setScore(event.score);
+
+            let text;
+            let type: TypeOptions;
+            if (event.winner === 'DRAW') {
+                text = 'GAME OVER. DRAW.';
+                type = 'warning';
+            } else {
+                text = `GAME OVER. ${event.winner} WON.`;
+                if (event.winner === myPlayerRef.current?.role.team) {
+                    type = 'success';
+                } else {
+                    type = 'error';
+                }
+            }
+
+            return [text, {
+                type: type,
+                autoClose: false
+            }];
         },
 
         TurnChanged(event: GameEvents.TurnChanged<User>) {
@@ -273,7 +298,6 @@ export default function GameComponent(props: Props) {
 
             const availableActions = event.actions;
             const role = currentTurnPlayer.role;
-            const arena = arenaRef.current;
 
             if (currentTurnPlayer === myPlayer) {
                 const toastOptions: ToastOptions = {
@@ -281,59 +305,42 @@ export default function GameComponent(props: Props) {
                     autoClose: 2500,
                 }
 
-                let actions: ActionAvailability[] = resolveAvailableActions(role, availableActions);
-                setActionsAvailability(actions);
+                setAvailableActions(availableActions);
+                setActionsEnabled(true);
 
                 switch (role) {
                     case Role.PSYCHO:
                         if (availableActions.has('placeThreat')) {
-                            setPerformingAction({
-                                key: 'placeThreat',
-                                targets: [],
-                                supportHighlight: GameHelper.getThreatPlacePositions(arena, getMyPosition()),
-                            });
-                            setActionsEnabled(false);
+                            prepareAction('placeThreat');
                             return ['Place threats', toastOptions];
                         } else {
                             setPerformingAction(undefined);
-                            setActionsEnabled(true);
                             return ['Your turn', toastOptions];
                         }
                         break;
                     case Role.SUIT:
                         if (availableActions.has('placeProtection') || availableActions.has('removeProtection')) {
-                            const placePositions = GameHelper.getProtectionPlacePositions(arena);
-                            const removePositions = GameHelper.getProtectionRemovePositions(arena);
-
-                            setPerformingAction({
-                                key: 'placeProtection',
-                                supportHighlight: placePositions,
-                                supportHighlightMarkers: removePositions.map(pos => [pos, [Marker.PROTECTION]]),
-                            });
-                            setActionsEnabled(false);
+                            prepareAction('placeProtection');
                             return ['Your turn: Place or remove protection', toastOptions];
                         } else {
                             setPerformingAction(undefined);
-                            setActionsEnabled(true);
                             return ['Now do action', toastOptions];
                         }
                         break;
                     case Role.DETECTIVE:
-                        if (!availableActions.has('canvas')) {
-                            setActionsEnabled(true);
+                        if (availableActions.has('canvas')) {
+                            setActionsEnabled(false);
+                        } else {
                             return ['Your turn', toastOptions];
                         }
                         break;
                     default:
-                        setActionsEnabled(true);
                         return ['Your turn', toastOptions];
                 }
-
-
             } else {
                 setPerformingAction(undefined);
                 setActionsEnabled(false);
-                setActionsAvailability(resolveAvailableActions(myPlayer.role, new Set()));
+                setAvailableActions(new Set());
             }
         },
 
@@ -559,7 +566,8 @@ export default function GameComponent(props: Props) {
                 } else {
                     setPerformingAction({
                         key: 'canvas',
-                        innocents: event.suspects
+                        innocents: event.suspects,
+                        nonCancelable: true
                     });
                 }
 
@@ -672,6 +680,7 @@ export default function GameComponent(props: Props) {
                     key: 'selfDestruct',
                     chain: [],
                     supportHighlight: [event.target],
+                    nonCancelable: true
                 });
 
                 const text = `Mafioso ${suspect.character.name} (${mafioso.name.capitalize()}) was found by agent, detonate before will be arrested.`;
@@ -709,6 +718,7 @@ export default function GameComponent(props: Props) {
                     target: event.target,
                     canProtect: GameHelper.canProtect(getMyPosition(), event.target),
                     supportHighlight: [event.target],
+                    nonCancelable: true
                 });
             } else {
                 const suspect = arenaRef.current.atPosition(event.target);
@@ -754,7 +764,7 @@ export default function GameComponent(props: Props) {
     };
 
     const processEvent = (event: GameEvents.Any<User>) => {
-        console.info('ProcessingEvent', event);
+        // console.info('ProcessingEvent', event);
         const result = visitEvent(event, eventVisitor);
 
         return result;
@@ -850,6 +860,7 @@ export default function GameComponent(props: Props) {
             case 'canvas':
                 setPerformingAction({
                     key: 'canvas',
+                    nonCancelable: true
                 });
 
                 const peekAction: GameActions.Detective.PickInnocentsForCanvas = {
@@ -862,6 +873,23 @@ export default function GameComponent(props: Props) {
                     key: 'profile',
                 });
                 break
+            case 'placeThreat':
+                setPerformingAction({
+                    key: 'placeThreat',
+                    targets: [],
+                    supportHighlight: GameHelper.getThreatPlacePositions(arena, getMyPosition()),
+                });
+                break;
+            case 'placeProtection':
+                const placePositions = GameHelper.getProtectionPlacePositions(arena);
+                const removePositions = GameHelper.getProtectionRemovePositions(arena);
+
+                setPerformingAction({
+                    key: 'placeProtection',
+                    supportHighlight: placePositions,
+                    supportHighlightMarkers: removePositions.map(pos => [pos, [Marker.PROTECTION]]),
+                });
+                break;
         }
 
         render();
@@ -1211,7 +1239,7 @@ export default function GameComponent(props: Props) {
             {myPlayer && <ActionsPanel
                 className={styles.actionsPanel}
                 role={myPlayer.role}
-                actions={actionsAvailabilityRef.current}
+                availableActions={availableActionsRef.current}
                 enabled={actionsEnabledRef.current}
                 selectedAction={performingAction?.key}
                 onActionSelect={onActionSelect}
@@ -1289,55 +1317,11 @@ export default function GameComponent(props: Props) {
     );
 }
 
-function resolveAvailableActions(role: Role, availableActions: Set<GameActions.Key>): ActionAvailability[] {
-    let actions: ActionAvailability[];
-
-    if (role === Role.DETECTIVE) {
-        actions = role.actions
-            .filter(action => action !== 'pickInnocentsForCanvas' && action !== 'canvas')
-            .map(action => (
-                {
-                    key: action,
-                    available: availableActions.has(action),
-                }));
-
-        actions.push({
-            key: 'canvas',
-            available: availableActions.has('pickInnocentsForCanvas'),
-        });
-
-    } else if (role === Role.SUIT) {
-        actions = role.actions
-            .filter(action => action !== 'placeProtection' && action !== 'removeProtection' && action !== 'decideProtect')
-            .map(action => (
-                {
-                    key: action,
-                    available: availableActions.has(action),
-                }));
-
-        actions.push({
-            key: 'placeProtection',
-            available: availableActions.has('placeProtection') || availableActions.has('removeProtection'),
-        });
-    } else if (role === Role.BOMBER) {
-        actions = role.actions.filter(action => action !== 'selfDestruct').map(action => ({
-            key: action,
-            available: availableActions.has(action)
-        }));
-    } else {
-        actions = role.actions.map(action => ({
-            key: action,
-            available: availableActions.has(action)
-        }));
-    }
-
-    return actions;
-}
-
 interface BaseActionContext {
     readonly key: GameActions.Key,
     supportHighlight?: Position[],
     supportHighlightMarkers?: [Position, Marker[]][],
+    nonCancelable?: boolean
 }
 
 interface ShiftActionContext extends BaseActionContext {
@@ -1352,6 +1336,7 @@ interface CollapseActionContext extends BaseActionContext {
 interface CanvasActionContext extends BaseActionContext {
     readonly key: GameActions.Key<GameActions.Detective.Canvas>,
     innocents?: Position[],
+    nonCancelable: true
 }
 
 interface AccuseActionContext extends BaseActionContext {
@@ -1370,8 +1355,14 @@ interface PlaceThreatContext extends BaseActionContext {
 }
 
 interface BombDetonationContext extends BaseActionContext {
-    readonly key: GameActions.Key<GameActions.Bomber.DetonateBomb> | GameActions.Key<GameActions.Bomber.SelfDestruct>,
+    readonly key: GameActions.Key<GameActions.Bomber.DetonateBomb>,
     chain: Position[]
+}
+
+interface SelfDestructionContext extends BaseActionContext {
+    readonly key: GameActions.Key<GameActions.Bomber.SelfDestruct>,
+    chain: Position[],
+    nonCancelable: true
 }
 
 interface SetupContext extends BaseActionContext {
@@ -1383,7 +1374,8 @@ interface SetupContext extends BaseActionContext {
 interface ProtectDecisionContext extends BaseActionContext {
     readonly key: GameActions.Key<GameActions.Suit.DecideProtect>,
     target: Position
-    canProtect: boolean
+    canProtect: boolean,
+    nonCancelable: true
 }
 
 type ActionKeysWithoutContext =
@@ -1409,6 +1401,7 @@ type PerformingAction =
     | SwapSuspectsContext
     | PlaceThreatContext
     | BombDetonationContext
+    | SelfDestructionContext
     | SetupContext
     | ProtectDecisionContext
 

@@ -27,15 +27,25 @@
 }
 
 .card {
-    width: 9vw;
     margin: 5px 0px;
 }
 
-.myCard{
+.myCard {
     border-color: rgb(15, 144, 250);
 }
 
-.readyButton{
-    width: 8vw;
-    font-size: 1.3vw;
+.readyButton {
+    font-size: 1vw;
+    height: 100%;
+    width: 100%;
+}
+
+.roleWithButton {
+    display: flex;
+    flex-direction: column;
+    width: 9vw;
+}
+
+.availableRoleCard {
+    width: 9vw;
 }

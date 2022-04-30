@@ -15,20 +15,13 @@ type Props<K extends GameActions.Any> = {
     action: GameActions.Key<K>,
     available: boolean,
     selected: boolean,
-    onPerform: (action: GameActions.Key<K>) => void
+    alwaysShowDetails?: boolean,
+    onPerform?: (action: GameActions.Key<K>) => void
 }
-
-const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
-    <Tooltip {...props} classes={{ popper: className }} />
-))({
-    [`& .${tooltipClasses.tooltip}`]: {
-        maxWidth: "30vw",
-    },
-});
 
 export default function ActionComponent<K extends GameActions.Any>(props: Props<K>) {
     const onPerform = () => {
-        if (props.available) {
+        if (props.onPerform && props.available) {
             props.onPerform(props.action);
         }
     };
@@ -62,18 +55,19 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
         }
     }, []);
 
-    const tooltipHtml = createMarkup(props.role, props.action, showDetails, t);
+    const tooltipHtml = createMarkup(props.role, props.action, props.alwaysShowDetails || showDetails, t);
 
     return (
-        <CustomWidthTooltip
+        <Tooltip
             title={<div className={styles.tooltip} dangerouslySetInnerHTML={{ __html: tooltipHtml }}></div>}
             placement="top-end"
-            enterDelay={1000}
-            enterNextDelay={1000}
+            enterDelay={500}
+            enterNextDelay={500}
             componentsProps={{
                 tooltip: {
                     sx: {
                         bgcolor: 'rgba(38, 38, 38, 0.95)',
+                        maxWidth: '30vw'
                     },
                 },
             }}
@@ -90,7 +84,7 @@ export default function ActionComponent<K extends GameActions.Any>(props: Props<
                     onClick={onPerform}
                 />
             </div>
-        </CustomWidthTooltip>
+        </Tooltip>
     );
 }
 

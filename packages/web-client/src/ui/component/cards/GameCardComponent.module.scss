@@ -9,11 +9,13 @@
 }
 
 .box:active {
-  border-color: rgb(241 192 53);;
+  border-color: rgb(241 192 53);
+  ;
 }
 
 .highlight {
-  border-color: rgb(241 192 53);;
+  border-color: rgb(241 192 53);
+  ;
   border-style: dashed;
 }
 
@@ -23,16 +25,28 @@
   aspect-ratio: 1;
 }
 
-.description {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+
+@mixin description {
   font-family: Consolas;
   font-weight: 900;
-  font-size: 0.95vw;
-  background-color: rgb(189 189 189 / 50%);
-  border-radius: 6px;
-  color: honeydew;
+  font-size: 0.75vw;
+  background-color: rgba(100, 206, 218, 0.72);
+  border-radius: 10%;
+  color: #ffffff;
+}
+
+.topDescription {
+  position: absolute;
+  top: 1%;
+  left: 1%;
+  @include description;
+}
+
+.bottomDescription {
+  position: absolute;
+  bottom: 1%;
+  left: 1%;
+  @include description;
 }
 
 .description:hover {
