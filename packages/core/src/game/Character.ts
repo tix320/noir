@@ -46,12 +46,11 @@ const CHARACTER_NAMES: readonly string[] = [
     "Megan",
     "Paula",
     "Russ",
-    "Sam",
+    "Damian",
     "Steve",
     "Trevor",
     "Victor",
     "Xavier",
-    "Damian"
 ];
 
 export class Character implements Identifiable {
