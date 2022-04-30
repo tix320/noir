@@ -103,7 +103,7 @@ class Player implements IPlayer<User, GameActions.Any> {
             dtoAction = action;
         }
 
-        return API.doGameAction(this.identity.id, dtoAction);
+        return API.doGameAction(dtoAction);
     }
 
     gameEvents(): Observable<GameEvents.Any<User>> {
