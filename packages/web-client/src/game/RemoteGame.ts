@@ -9,7 +9,7 @@ import Position from '@tix320/noir-core/src/util/Position';
 import { GameEventDtoVisitor, visitEvent } from '@tix320/noir-core/src/api/GameEventDtoVisitor';
 import { map, Observable } from 'rxjs';
 import User from "../entity/User";
-import {API} from '../service/Api';
+import { API } from '../service/Api';
 import { equals } from '@tix320/noir-core/src/util/Identifiable';
 
 export namespace RemoteGame {
@@ -71,9 +71,17 @@ export namespace RemoteGame {
             throw new Error('Unsupported. Instead get players from `GameStarted` event');
         }
 
-        events(): Observable<GameEvents.Any<User>> {
+        public events(): Observable<GameEvents.Any<User>> {
             const visitor = new EventVisitor();
             return API.playingGameEventsStream(this.id).pipe(map(event => visitEvent(event, visitor)));
+        }
+
+        public forceComplete(): void {
+            throw new Error('Method not implemented.');
+        }
+
+        public onComplete(): Observable<void> {
+            throw new Error('Method not implemented.');
         }
     }
 }
@@ -95,7 +103,7 @@ class Player implements IPlayer<User, GameActions.Any> {
             dtoAction = action;
         }
 
-        return API.doGameAction(dtoAction);
+        return API.doGameAction(this.identity.id, dtoAction);
     }
 
     gameEvents(): Observable<GameEvents.Any<User>> {

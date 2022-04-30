@@ -98,6 +98,10 @@ export namespace Game {
         readonly players: Player<I>[];
 
         events(): Observable<GameEvents.Any<I>>;
+
+        forceComplete(): void;
+
+        onComplete(): Observable<void>;
     }
 }
 

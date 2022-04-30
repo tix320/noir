@@ -1,4 +1,4 @@
-import { BehaviorSubject, concat, identity, Observable, of, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, concat, filter, identity, map, Observable, of, ReplaySubject } from 'rxjs';
 import { swap } from '../util/ArrayUtils';
 import { assert, AssertionError } from '../util/Assertions';
 import { Direction } from '../util/Direction';
@@ -204,7 +204,7 @@ export namespace StandardGame {
 
     export class Play<I extends Identifiable> implements Game.Play<I>{
 
-        completed = false;
+        #completed = new BehaviorSubject(false);
 
         #context: GameContext<I>;
 
@@ -261,6 +261,19 @@ export namespace StandardGame {
             return concat(of(hello), this.#events.asObservable());
         }
 
+        public forceComplete(): void {
+            const event: GameEvents.Aborted = {
+                type: 'Aborted'
+            }
+
+            this.fireEvent(event);
+            this.complete();
+        }
+
+        public onComplete(): Observable<void> {
+            return this.#completed.asObservable().pipe(filter(completed => completed), map(() => { }));
+        }
+
         checkWin(score: Score): Winner | undefined {
             if (score[0] >= this.#winningScores[0] && score[1] >= this.#winningScores[1]) {
                 return 'DRAW';
@@ -273,6 +286,16 @@ export namespace StandardGame {
             } else {
                 return undefined;
             }
+        }
+
+        complete() {
+            this.#completed.next(true);
+            this.#completed.complete();
+            this.#events.complete();
+        }
+
+        get completed() {
+            return this.#completed.value;
         }
 
         fireEvent(event: GameEvents.Any<I>) {
@@ -420,7 +443,7 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
     private tryCompleteGame(): boolean {
         const winner = this.context.game.checkWin(this.context.score);
         if (winner) {
-            this.context.game.completed = true;
+            this.context.game.complete();
             const event: GameEvents.Completed = { type: 'GameCompleted', winner: winner, score: [...this.context.score] };
             this.context.game.fireEvent(event);
 

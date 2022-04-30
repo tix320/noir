@@ -27,6 +27,10 @@ export namespace GameEvents {
         readonly score: Score;
     }
 
+    export interface Aborted {
+        readonly type: 'Aborted';
+    }
+
     export interface TurnChanged<I extends Identifiable = Identifiable> {
         readonly type: 'TurnChanged';
         readonly player: I;
@@ -180,7 +184,7 @@ export namespace GameEvents {
     export type Kills = KilledByKnife | KilledByThreat | KilledByBomb | KilledBySniper;
 
     export type Any<I extends Identifiable = Identifiable> = Hello
-        | Started<I> | Completed | TurnChanged<I> | AvailableActionsChanged
+        | Started<I> | Completed | Aborted | TurnChanged<I> | AvailableActionsChanged
         | Accused | UnsuccessfulAccused | Arrested | AutopsyCanvased
         | KilledByBomb | AllCanvased | Collapsed | Disarmed
         | Disguised | KilledByKnife | MarkerMoved | InnocentsForCanvasPicked
