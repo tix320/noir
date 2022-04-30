@@ -13,8 +13,9 @@ import GameCard from "../cards/GameCardComponent";
 import RoleCard from "../cards/role/RoleCardComponent";
 import { useServerConnectedEffect } from "../common/Hooks";
 import randomImg from '../../images/random.png';
-
+import { ImExit } from 'react-icons/im';
 import styles from './GamePreparationComponent.module.css';
+import { API } from "../../../service/Api";
 
 type Props = {
     className?: string,
@@ -76,6 +77,10 @@ export default function GamePreparationComponent(props: Props) {
         })
     }
 
+    const leave = () => {
+        API.leaveGame();
+    }
+
     function renderSelectedRoles(roles: Required<JoinedUserInfo>[]) {
         roles.sort(roleSelectionCompare);
 
@@ -96,6 +101,9 @@ export default function GamePreparationComponent(props: Props) {
                 </div>
             )
             }
+            <Button className={styles.leaveButton} variant='danger' onClick={leave}>
+                <ImExit />
+            </Button>
         </div>);
     }
 
