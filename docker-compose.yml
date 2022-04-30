@@ -21,4 +21,4 @@ services:
         - ${SERVER_PORT}:${SERVER_PORT}
     restart: always
     depends_on:
-        - noirdb
+        - db
