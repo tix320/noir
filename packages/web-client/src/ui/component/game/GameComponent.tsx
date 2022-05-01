@@ -73,6 +73,8 @@ export default function GameComponent(props: Props) {
 
     const [score, setScore] = useRefState<Score>([0, 0]);
 
+    const [completed, setCompleted] = useRefState<boolean>(false);
+
     function resetState() {
         eventUIChangeSkipCount.current = 0;
         playersRef.current = [];
@@ -115,7 +117,7 @@ export default function GameComponent(props: Props) {
     }
 
     function onKeyDown(event: KeyboardEvent) {
-        if (event.code === 'KeyP' && currentTurnPlayerRef.current?.role === Role.PROFILER) {
+        if (event.code === 'KeyP' && myPlayerRef.current?.role === Role.PROFILER) { 
             if (performingActionRef.current?.key === 'profile') {
                 setPerformingAction(undefined);
             } else {
@@ -264,6 +266,7 @@ export default function GameComponent(props: Props) {
 
         GameCompleted(event: GameEvents.Completed) {
             setScore(event.score);
+            setCompleted(true);
 
             let text;
             let type: TypeOptions;
@@ -286,6 +289,7 @@ export default function GameComponent(props: Props) {
         },
 
         GameAborted(event: GameEvents.Aborted) {
+            setCompleted(true);
             makeToast('Game Aborted due the player abandon.', {
                 autoClose: 5000
             });
@@ -1199,8 +1203,7 @@ export default function GameComponent(props: Props) {
     }
 
     const leave = () => {
-        const leave = confirm("Are you sure? Game will be aborted.");
-        if (leave) {
+        if (completed.current || confirm("Are you sure? Game will be aborted.")) {
             API.leaveGame();
         }
     }

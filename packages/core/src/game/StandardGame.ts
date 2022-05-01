@@ -390,7 +390,7 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
                 return;
             }
 
-            if (this.context.actionInProcess !== 'shift') {
+            if (this.context.actionInProcess !== 'placeThreat' && this.context.actionInProcess !== 'shift') {
                 this.context.lastShift = undefined;
             }
 

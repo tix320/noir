@@ -134,8 +134,6 @@ export namespace GameService {
             }
         } else if (gameData.state === 'PLAYING') {
             gameData.game.forceComplete();
-        } else {
-            throw new Error(`Invalid state`);
         }
 
         user.currentGameContext = undefined;
@@ -157,8 +155,10 @@ export namespace GameService {
             GameDao.fillInitialState(gameId, gamePlay.initialState);
 
             gamePlay.onComplete().subscribe(() => {
-                _games.delete(gameData.id);
-                players.forEach(player => player.identity.currentGameContext = undefined);
+                _games.set(gameData.id, {
+                    ...gameData,
+                    state: 'COMPLETED'
+                });
             });
         }
 
