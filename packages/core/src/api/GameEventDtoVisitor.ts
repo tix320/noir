@@ -14,6 +14,10 @@ export abstract class GameEventDtoVisitor<I extends Identifiable> {
         return event;
     }
 
+    GameAborted(event: GameEvents.Aborted): GameEvents.Aborted {
+        return event;
+    }
+
     abstract TurnChanged(event: Dto.Events.TurnChanged): GameEvents.TurnChanged<I>;
 
     abstract AvailableActionsChanged(event: Dto.Events.AvailableActionsChanged): GameEvents.AvailableActionsChanged;

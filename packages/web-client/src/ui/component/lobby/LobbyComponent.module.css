@@ -12,5 +12,5 @@
 .createGameButton {
     position: absolute;
     top: 2vh;
-    left: 2vh;
+    right: 2vh;
 }

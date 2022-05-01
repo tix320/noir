@@ -28,7 +28,7 @@ export namespace GameEvents {
     }
 
     export interface Aborted {
-        readonly type: 'Aborted';
+        readonly type: 'GameAborted';
     }
 
     export interface TurnChanged<I extends Identifiable = Identifiable> {

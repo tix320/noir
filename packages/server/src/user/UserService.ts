@@ -11,10 +11,14 @@ export namespace UserService {//TODO:
 
         let user = connectedUsers.get(userModel.id);
         if (!user) {
-            user = new User(userModel.id, userModel.name); 
+            user = new User(userModel.id, userModel.name);
             connectedUsers.set(user.id, user);
         }
 
         return user;
+    }
+
+    export function getUser(id: string): User | undefined {
+        return connectedUsers.get(id);
     }
 }

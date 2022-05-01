@@ -12,11 +12,13 @@ import { equals } from '@tix320/noir-core/src/util/Identifiable';
 import Matrix from '@tix320/noir-core/src/util/Matrix';
 import Position from '@tix320/noir-core/src/util/Position';
 import classNames from 'classnames';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
+import { ImExit } from 'react-icons/im';
 import { Slide, toast, ToastContent, ToastOptions, TypeOptions } from 'react-toastify';
 import User from '../../../entity/User';
+import { API } from '../../../service/Api';
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
 import { useForceUpdate, useServerConnectedEffect } from '../common/Hooks';
@@ -98,6 +100,20 @@ export default function GameComponent(props: Props) {
     const render = useForceUpdate();
     const [t] = useTranslation();
 
+    function makeToast(content: ToastContent, options: ToastOptions) {
+        const commonOptions: ToastOptions = {
+            position: 'bottom-right',
+            theme: 'dark',
+            transition: Slide,
+            pauseOnFocusLoss: false,
+        }
+
+        toast(content, {
+            ...options,
+            ...commonOptions,
+        });
+    }
+
     function onKeyDown(event: KeyboardEvent) {
         if (event.code === 'KeyP' && currentTurnPlayerRef.current?.role === Role.PROFILER) {
             if (performingActionRef.current?.key === 'profile') {
@@ -122,6 +138,19 @@ export default function GameComponent(props: Props) {
         }
     }
 
+    useEffect(() => {
+        const keyDownListener = (event: KeyboardEvent) => {
+            onKeyDown(event);
+        };
+
+        document.addEventListener('keydown', keyDownListener);
+
+        return () => {
+            document.removeEventListener('keydown', keyDownListener);
+        }
+    }, []);
+
+
     useServerConnectedEffect(() => {
         const eventsQueue: GameEvents.Any<User>[] = [];
 
@@ -140,25 +169,14 @@ export default function GameComponent(props: Props) {
                     if (toastData && !document.hidden) {
                         const [text, options] = toastData;
 
-                        const commonOptions: ToastOptions = {
-                            position: 'bottom-right',
-                            theme: 'dark',
-                            transition: Slide,
-                            pauseOnFocusLoss: false,
-                        }
-
                         toast.dismiss();
 
                         if (options.autoClose === false) {
-                            toast(text, {
-                                ...options,
-                                ...commonOptions,
-                            });
+                            makeToast(text, options);
                             scheduleEventProcessor(0);
                         } else {
-                            toast(text, {
+                            makeToast(text, {
                                 ...options,
-                                ...commonOptions,
                                 onClose: () => {
                                     setPerformingEvent(undefined);
                                     render();
@@ -176,13 +194,15 @@ export default function GameComponent(props: Props) {
                 }
             }, delaySeconds * 1000);
         }
+        scheduleEventProcessor(1);
 
-        const subscription = game.events().pipe(
+        const gameEventsSubscription = game.events().pipe(
             onFirst((event: GameEvents.Hello) => {
                 if (event.readyEventsCount !== 0) {
                     setEventUIChangeSkipCount(event.readyEventsCount);
                 }
             })).subscribe(event => {
+                console.info('ReceivedEvent', event);
                 if (eventUIChangeSkipCount.current === 0) {
                     eventsQueue.push(event);
                 } else {
@@ -198,18 +218,9 @@ export default function GameComponent(props: Props) {
                 }
             });
 
-        const keyDownListener = (event: KeyboardEvent) => {
-            onKeyDown(event);
-        };
-
-        document.addEventListener('keydown', keyDownListener);
-
-        scheduleEventProcessor(1);
-
         return () => {
             stopListener = true;
-            subscription.unsubscribe();
-            document.removeEventListener('keydown', keyDownListener);
+            gameEventsSubscription.unsubscribe();
             resetState();
         }
     }, [game]);
@@ -274,9 +285,16 @@ export default function GameComponent(props: Props) {
             }];
         },
 
+        GameAborted(event: GameEvents.Aborted) {
+            makeToast('Game Aborted due the player abandon.', {
+                autoClose: 5000
+            });
+        },
+
         TurnChanged(event: GameEvents.TurnChanged<User>) {
             const player = GameHelper.findPlayerByIdentity(playersRef.current, event.player);
             assert(player, `Player with identity ${event.player} not found`);
+
             setCurrentTurnPlayer(player);
             setLastShift(event.lastShift);
             setScore(event.score);
@@ -664,12 +682,14 @@ export default function GameComponent(props: Props) {
             assert(myPlayerRef.current);
             assert(playersRef.current);
 
+            const bomber = playersRef.current.find(player => player.role === Role.BOMBER);
+            assert(bomber);
+
             setPerformingEvent({
                 key: 'SelfDestructionActivated',
                 alert: [event.target]
             });
 
-            const bomber = playersRef.current.find(player => player.role === Role.BOMBER);
             setCurrentTurnPlayer(bomber);
 
             const suspect = arenaRef.current.atPosition(event.target);
@@ -705,12 +725,14 @@ export default function GameComponent(props: Props) {
             assert(myPlayerRef.current);
             assert(playersRef.current);
 
+            const suit = playersRef.current.find(player => player.role === Role.SUIT);
+            assert(suit);
+
             setPerformingEvent({
                 key: 'ProtectionActivated',
                 alert: [event.target]
             });
 
-            const suit = playersRef.current.find(player => player.role === Role.SUIT);
             setCurrentTurnPlayer(suit);
             if (myPlayerRef.current === suit) {
                 setPerformingAction({
@@ -764,7 +786,6 @@ export default function GameComponent(props: Props) {
     };
 
     const processEvent = (event: GameEvents.Any<User>) => {
-        // console.info('ProcessingEvent', event);
         const result = visitEvent(event, eventVisitor);
 
         return result;
@@ -1173,6 +1194,13 @@ export default function GameComponent(props: Props) {
         }
     }
 
+    const leave = () => {
+        const leave = confirm("Are you sure? Game will be aborted.");
+        if (leave) {
+            API.leaveGame();
+        }
+    }
+
     const mafiosiPlayersInfo = mafiosiPlayers.map(player => ({
         identity: player.identity,
         role: player.role,
@@ -1312,7 +1340,9 @@ export default function GameComponent(props: Props) {
                 }
             </ActionDialog>
 
-
+            <Button className={styles.leaveButton} variant='danger' onClick={leave}>
+                <ImExit />
+            </Button>
         </div>
     );
 }

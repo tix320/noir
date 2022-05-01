@@ -68,12 +68,11 @@ export namespace StandardGame {
             this.assertNotStarted();
 
             const participant = this.#participants.removeFirstBy(p => equals(p.identity, identity));
+            assert(participant, 'Not a participant');
 
-            if (participant) {
-                // reset ready states
-                this.resetReadiness();
-                this.emitParticipants();
-            }
+            // reset ready states
+            this.resetReadiness();
+            this.emitParticipants();
         }
 
         public participantChanges(): Observable<RoleSelection<I>[]> {
@@ -263,7 +262,7 @@ export namespace StandardGame {
 
         public forceComplete(): void {
             const event: GameEvents.Aborted = {
-                type: 'Aborted'
+                type: 'GameAborted'
             }
 
             this.fireEvent(event);
@@ -443,9 +442,9 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
     private tryCompleteGame(): boolean {
         const winner = this.context.game.checkWin(this.context.score);
         if (winner) {
-            this.context.game.complete();
             const event: GameEvents.Completed = { type: 'GameCompleted', winner: winner, score: [...this.context.score] };
             this.context.game.fireEvent(event);
+            this.context.game.complete();
 
             return true;
         }

@@ -9,6 +9,8 @@ export interface GameEventVisitor<I extends Identifiable, R = unknown> {
 
     GameCompleted?(event: GameEvents.Completed): R;
 
+    GameAborted(event: GameEvents.Aborted): R;
+
     TurnChanged?(event: GameEvents.TurnChanged<I>): R;
 
     AvailableActionsChanged?(event: GameEvents.AvailableActionsChanged): R;

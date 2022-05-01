@@ -1,7 +1,28 @@
-import { GameState } from "@tix320/noir-core/src/game/Game";
+import { Game, GameState } from "@tix320/noir-core/src/game/Game";
+import { User } from "../user/User";
 
-export default interface GameInfo {
+export interface BaseGameData {
     readonly id: string;
     readonly name: string;
     readonly state: GameState;
 }
+
+export interface GamePreparationData extends BaseGameData {
+    readonly state: 'PREPARING';
+    readonly game: Game.Preparation<User>;
+}
+
+export class GamePlayData implements BaseGameData {
+    readonly state = 'PLAYING';
+
+    constructor(public readonly id: string, public readonly name: string, public readonly game: Game.Play<User>) {
+
+    }
+}
+
+export type GameData = GamePreparationData | GamePlayData;
+
+export type GamePreparationInfo = Omit<GamePreparationData, 'game'>;
+export type GamePlayInfo = Omit<GamePlayData, 'game'>;
+
+export type GameInfo = GamePreparationInfo | GamePlayInfo;

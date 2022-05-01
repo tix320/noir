@@ -119,7 +119,7 @@ class Api {
     }
 
     allPreparingGamesStream(): Observable<Dto.GamePreparation> {
-        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, ApiEvents.ROOM_ALL_PREPARING_GAMES);
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, ApiEvents.STREAM_ALL_PREPARING_GAMES);
     }
 
     myCurrentGameStream(): Observable<Dto.UserCurrentGame> {
@@ -127,15 +127,15 @@ class Api {
         if (!user) {
             throw new Error('User does not exists in state');
         }
-        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, ApiEvents.ROOM_MY_CURRENT_GAME(user.id));
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, ApiEvents.STREAM_MY_CURRENT_GAME(user.id));
     }
 
     preparingGameStream(gameId: string): Observable<Dto.GamePreparation> {
-        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PREPARING_GAME, ApiEvents.ROOM_PREPARING_GAME(gameId), gameId);
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PREPARING_GAME, ApiEvents.STREAM_PREPARING_GAME(gameId), gameId);
     }
 
     playingGameEventsStream(gameId: string): Observable<Dto.Events.Any> {
-        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PLAYING_GAME, ApiEvents.ROOM_PLAYING_GAME(gameId), gameId);
+        return this.pingAndSubscribeToStream(ApiEvents.SUBSCRIBE_PLAYING_GAME, ApiEvents.STREAM_PLAYING_GAME(gameId), gameId);
     }
 
     private pingAndSubscribeToStream<T>(requestName: string, subscriptionName: string, ...args: any[]): Observable<T> {
@@ -150,6 +150,25 @@ class Api {
                 socket.on(subscriptionName, listener);
 
                 socket.emit(requestName, ...args);
+
+                return () => {
+                    socket.off(subscriptionName, listener);
+                    socket.emit(ApiEvents.UNSUBSCRIBE(subscriptionName));
+                };
+            }
+        );
+    }
+
+    private subscribeToStream<T>(subscriptionName: string): Observable<T> {
+        return new Observable(
+            observer => {
+                const socket = this.socket();
+
+                const listener = (result: T) => {
+                    observer.next(result)
+                };
+
+                socket.on(subscriptionName, listener);
 
                 return () => {
                     socket.off(subscriptionName, listener);

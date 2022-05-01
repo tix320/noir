@@ -5,24 +5,25 @@ console.info(`WORKING_DIRECTORY=${process.cwd()}`)
 console.info(`SERVER_PORT=${PORT}`)
 console.info(`WEB_CLIENT_BUNDLE=${WEB_CLIENT_BUNDLE}`)
 
-import "@tix320/noir-core";
-import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents";
-import { Dto } from "@tix320/noir-core/src/api/Dto";
-import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor";
-import { Player, Suspect } from "@tix320/noir-core/src/game/Game";
-import { GameActions } from "@tix320/noir-core/src/game/GameActions";
-import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
-import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor";
-import { Role } from "@tix320/noir-core/src/game/Role";
-import { StandardGame } from "@tix320/noir-core/src/game/StandardGame";
-import express from "express";
-import { createServer } from "http";
-import { filter, map, takeWhile, tap } from 'rxjs/operators';
-import { Server } from "socket.io";
-import './db/Datastore';
-import { GameData, GamePreparationInfo, GameService } from "./game/GameService";
-import { User } from "./user/User";
-import { UserService } from "./user/UserService";
+import "@tix320/noir-core"
+import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents"
+import { Dto } from "@tix320/noir-core/src/api/Dto"
+import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor"
+import { Player, Suspect } from "@tix320/noir-core/src/game/Game"
+import { GameActions } from "@tix320/noir-core/src/game/GameActions"
+import { GameEvents } from "@tix320/noir-core/src/game/GameEvents"
+import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor"
+import { Role } from "@tix320/noir-core/src/game/Role"
+import { StandardGame } from "@tix320/noir-core/src/game/StandardGame"
+import express from "express"
+import { createServer } from "http"
+import { filter, map, takeWhile } from 'rxjs/operators'
+import { Server } from "socket.io"
+import './db/Datastore'
+import { GameData, GamePreparationData } from "./game/GameInfo"
+import { GameService } from "./game/GameService"
+import { User } from "./user/User"
+import { UserService } from "./user/UserService"
 
 process.on('uncaughtException', function (err) {
     console.error(err);
@@ -42,14 +43,14 @@ const io = new Server(httpServer, {
 
 });
 
-function gamePreparationResponse(data: GamePreparationInfo): Dto.GamePreparation {
-    const [gameInfo, game] = data;
+function gamePreparationResponse(gameData: GamePreparationData): Dto.GamePreparation {
+    const game = gameData.game;
 
     const participants = game.getParticipants();
 
     return {
-        id: gameInfo.id,
-        name: gameInfo.name,
+        id: gameData.id,
+        name: gameData.name,
         maxPlayersCount: StandardGame.ROLE_SETS.at(-1)!.size,
         roles: participants.map(participant => {
             return {
@@ -103,6 +104,10 @@ class GameEventConverter implements GameEventVisitor<User, any> {
     }
 
     GameCompleted(event: GameEvents.Completed) {
+        return event;
+    }
+
+    GameAborted(event: GameEvents.Aborted) {
         return event;
     }
 
@@ -307,7 +312,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.CHANGE_ROLE_IN_GAME, (roleSelection: Dto.GameRoleSelection, cb) => {
-        const [gameInfo, game] = GameService.changeGameRole(user, {
+        const gameInfo = GameService.changeGameRole(user, {
             ready: roleSelection.ready,
             role: roleSelection.role ? Role.getByName(roleSelection.role) : undefined
         });
@@ -326,22 +331,22 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.SUBSCRIBE_ALL_PREPARING_GAMES, (cb) => {
-        const subscriptionName = ApiEvents.ROOM_ALL_PREPARING_GAMES;
+        const subscriptionName = ApiEvents.STREAM_ALL_PREPARING_GAMES;
 
         const subscription = GameService.gameChanges()
             .onFirst((currentGames: Map<string, GameData>) => {
 
                 const response = [...currentGames.values()]
-                    .filter(info => info[0].state === 'PREPARING')
-                    .map(info => gamePreparationResponse(info as GamePreparationInfo));
+                    .filter(gameData => gameData.state === 'PREPARING')
+                    .map(gameData => gamePreparationResponse(gameData as GamePreparationData));
                 socket.emit(subscriptionName, response);
             })
             .pipe(
-                filter(([gameInfo, _]) => gameInfo.state === 'PREPARING'),
+                filter(gameData => gameData.state === 'PREPARING'),
                 takeWhile(() => socket.connected)
             )
-            .subscribe((info) => {
-                socket.emit(subscriptionName, gamePreparationResponse(info as GamePreparationInfo))
+            .subscribe((gameData) => {
+                socket.emit(subscriptionName, gamePreparationResponse(gameData as GamePreparationData))
             });
 
         socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
@@ -350,11 +355,11 @@ io.on("connection", (socket) => {
     })
 
     socket.on(ApiEvents.SUBSCRIBE_MY_CURRENT_GAME, (cb) => {
-        const subscriptionName = ApiEvents.ROOM_MY_CURRENT_GAME(user.id);
+        const subscriptionName = ApiEvents.STREAM_MY_CURRENT_GAME(user.id);
 
-        const subscription = user.currentGameIdChange().subscribe(currentGameId => {
+        const subscription = user.currentGameChange().subscribe(currentGame => {
 
-            const gameInfo = currentGameId ? GameService.getGame(currentGameId)[0] : undefined;
+            const gameInfo = currentGame ? GameService.getGame(currentGame.id) : undefined;
 
             const dto: Dto.UserCurrentGame | undefined = gameInfo && {
                 id: gameInfo.id,
@@ -370,15 +375,14 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.SUBSCRIBE_PREPARING_GAME, (gameId: string, cb) => {
-        const info = GameService.getGamePreparation(gameId);
-        const [gameInfo, game] = info;
+        const subscriptionName = ApiEvents.STREAM_PREPARING_GAME(gameId);
 
-        const subscriptionName = ApiEvents.ROOM_PREPARING_GAME(gameId);
+        const gameData = GameService.getGamePreparation(gameId);
 
-        const subscription = game.participantChanges()
+        const subscription = gameData.game.participantChanges()
             .pipe(
                 takeWhile(() => socket.connected)
-            ).subscribe(() => socket.emit(subscriptionName, gamePreparationResponse(info)));
+            ).subscribe(() => socket.emit(subscriptionName, gamePreparationResponse(gameData)));
 
         socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
             subscription.unsubscribe();
@@ -386,7 +390,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on(ApiEvents.SUBSCRIBE_PLAYING_GAME, (gameId: string, cb) => {
-        const subscriptionName = ApiEvents.ROOM_PLAYING_GAME(gameId);
+        const subscriptionName = ApiEvents.STREAM_PLAYING_GAME(gameId);
 
         const subscription = GameService.gameEvents(gameId, user).pipe(
             map(event => visitEvent(event, GAME_EVENT_CONVERTER as any)),
