@@ -4,21 +4,21 @@ services:
     image: "mongo:5.0.8"
     container_name: noir-db
     volumes:
-      - ${DB_VOLUME}:/data/db
+      - ${NOIR_DB_VOLUME}:/data/db
     ports:
-        - ${DB_PORT}:27017
+        - ${NOIR_DB_PORT}:27017
     restart: always
    app:
     container_name: noir-app
     build:
         context: .
         args:
-            - REACT_APP_SERVER_ADDRESS=http://${HOSTNAME}
+            - REACT_APP_SERVER_ADDRESS=http://${NOIR_HOSTNAME}
     environment:
-        - SERVER_PORT=${SERVER_PORT}
-        - DB_HOST=db:${DB_PORT}
+        - SERVER_PORT=${NOIR_SERVER_PORT}
+        - DB_HOST=db:${NOIR_DB_PORT}
     ports:
-        - ${SERVER_PORT}:${SERVER_PORT}
+        - ${NOIR_SERVER_PORT}:${NOIR_SERVER_PORT}
     restart: always
     depends_on:
         - db
