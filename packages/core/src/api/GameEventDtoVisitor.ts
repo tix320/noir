@@ -38,6 +38,8 @@ export abstract class GameEventDtoVisitor<I extends Identifiable> {
 
     abstract KilledBySniper(event: GameEvents.KilledBySniper): GameEvents.KilledBySniper;
 
+    abstract BombDetonated(event: GameEvents.BombDetonated): GameEvents.BombDetonated;
+
     abstract Accused(event: Dto.Events.Accused): GameEvents.Accused;
 
     abstract UnsuccessfulAccused(event: Dto.Events.UnsuccessfulAccused): GameEvents.UnsuccessfulAccused;

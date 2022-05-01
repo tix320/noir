@@ -202,6 +202,13 @@ class EventVisitor extends GameEventDtoVisitor<User> {
         }
     }
 
+    BombDetonated(event: GameEvents.BombDetonated): GameEvents.BombDetonated {
+        return {
+            type: 'BombDetonated',
+            target: convertPosition(event.target),
+        }
+    }
+
     Accused(event: Dto.Events.Accused): GameEvents.Accused {
         return {
             type: 'Accused',

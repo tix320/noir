@@ -408,6 +408,10 @@ export default function GameComponent(props: Props) {
             return _process_kill_event(event, 'Sniper');
         },
 
+        BombDetonated(event: GameEvents.BombDetonated) {
+            arenaRef.current.atPosition(event.target).removeMarker(Marker.BOMB);
+        },
+
         Accused(event: GameEvents.Accused) {
             const suspect = arenaRef.current.atPosition(event.target);
 

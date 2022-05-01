@@ -27,6 +27,8 @@ export interface GameEventVisitor<I extends Identifiable, R = unknown> {
 
     KilledBySniper?(event: GameEvents.KilledBySniper): R;
 
+    BombDetonated?(event: GameEvents.BombDetonated): R;
+
     Accused?(event: GameEvents.Accused): R;
 
     UnsuccessfulAccused?(event: GameEvents.UnsuccessfulAccused): R;

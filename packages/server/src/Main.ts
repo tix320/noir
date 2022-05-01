@@ -155,6 +155,10 @@ class GameEventConverter implements GameEventVisitor<User, any> {
         return event;
     }
 
+    BombDetonated(event: GameEvents.BombDetonated) {
+        return event;
+    }
+
     Accused(event: GameEvents.Accused) {
         const eventDto: Dto.Events.Accused = {
             type: 'Accused',

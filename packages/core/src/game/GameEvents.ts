@@ -76,6 +76,11 @@ export namespace GameEvents {
         readonly type: 'KilledBySniper';
     }
 
+    export interface BombDetonated {
+        readonly type: 'BombDetonated';
+        readonly target: Position;
+    }
+
     export interface Accused {
         readonly type: 'Accused';
         readonly target: Position;
@@ -186,7 +191,7 @@ export namespace GameEvents {
     export type Any<I extends Identifiable = Identifiable> = Hello
         | Started<I> | Completed | Aborted | TurnChanged<I> | AvailableActionsChanged
         | Accused | UnsuccessfulAccused | Arrested | AutopsyCanvased
-        | KilledByBomb | AllCanvased | Collapsed | Disarmed
+        | BombDetonated | KilledByBomb | AllCanvased | Collapsed | Disarmed
         | Disguised | KilledByKnife | MarkerMoved | InnocentsForCanvasPicked
         | SelfDestructionActivated | BombPlaced | ProtectionPlaced | ThreatPlaced
         | Profiled | ProtectionActivated | ProtectDecided | ProtectionRemoved

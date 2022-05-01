@@ -795,6 +795,13 @@ class Bomber<I extends Identifiable> extends Mafioso<I, GameActions.OfBomber> {
                 const target = item.value;
                 const suspect = arena.atPosition(target);
                 suspect.removeMarker(Marker.BOMB);
+
+                const event: GameEvents.BombDetonated = {
+                    type: 'BombDetonated',
+                    target: target
+                }
+                this.context.game.fireEvent(event);
+
                 if (suspect.isAlive()) {
                     Helper.tryKillSuspect(target, this.context, 'KilledByBomb', this, (isProtect) => {
                         if (isProtect) {
