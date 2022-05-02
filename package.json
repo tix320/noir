@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "core": "npm start -w packages/core",
-    "server": "npm start -w packages/server",
-    "web-client": "npm start -w packages/web-client",
-    "start": "concurrently --kill-others \"npm run core\" \"npm run server\" \"npm run web-client\""
   },
   "workspaces": [
     "packages/*"

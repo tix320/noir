@@ -8,8 +8,9 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json ./
 COPY packages/core/package.json ./packages/core/
+COPY packages/web-client-core/package.json ./packages/web-client-core/
+COPY packages/react-client/package.json ./packages/react-client/
 COPY packages/server/package.json ./packages/server/
-COPY packages/web-client/package.json ./packages/web-client/
 
 RUN npm install --production
 
@@ -18,9 +19,10 @@ COPY . .
 RUN npm install -g typescript
 
 RUN npm -w packages/core run build
+RUN npm -w packages/web-client-core run build
+RUN npm -w packages/react-client run build
 RUN npm -w packages/server run build
-RUN npm -w packages/web-client run build
 
-ENV WEB_CLIENT_BUNDLE="../web-client/build"
+ENV WEB_CLIENT_BUNDLE="../react-client/build"
 
-CMD [ "npm", "-w", "packages/server", "run", "start-prod" ]
+CMD [ "npm", "-w", "packages/server", "run", "start" ]

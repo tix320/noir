@@ -1,0 +1,26 @@
+.container {
+  background-image: url("@tix320/noir-web-client-core/src/images/background.jpg");
+  background-size: cover;
+
+}
+
+.container>* {
+  color: #49a1e3;
+  font-family: Consolas;
+}
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+.main {
+  width: 100%;
+  height: 100%;
+}
+
+.login {
+  width: 100%;
+  height: 100%;
+}

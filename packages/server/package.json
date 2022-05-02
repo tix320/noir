@@ -5,8 +5,8 @@
   "main": "src/Main.js",
   "scripts": {
     "build": "tsc",
-    "start": "concurrently --kill-others \"tsc -w\" \"nodemon src/app.js\"",
-    "start-prod": "node src/Main.js"
+    "dev": "concurrently --kill-others \"tsc -w\" \"nodemon src/app.js\"",
+    "start": "node src/Main.js"
   },
   "dependencies": {
     "express": "^4.17.3",
