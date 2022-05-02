@@ -117,7 +117,7 @@ export default function GameComponent(props: Props) {
     }
 
     function onKeyDown(event: KeyboardEvent) {
-        if (event.code === 'KeyP' && myPlayerRef.current?.role === Role.PROFILER) { 
+        if (event.code === 'KeyP' && myPlayerRef.current?.role === Role.PROFILER) {
             if (performingActionRef.current?.key === 'profile') {
                 setPerformingAction(undefined);
             } else {
@@ -210,7 +210,6 @@ export default function GameComponent(props: Props) {
                 } else {
                     eventUIChangeSkipCount.current--;
                     if (eventUIChangeSkipCount.current === 0) {
-                        setPerformingAction(undefined);
                         setPerformingEvent(undefined);
                         render();
                         eventsQueue.push(event);
@@ -267,6 +266,7 @@ export default function GameComponent(props: Props) {
         GameCompleted(event: GameEvents.Completed) {
             setScore(event.score);
             setCompleted(true);
+            setActionsEnabled(false);
 
             let text;
             let type: TypeOptions;
@@ -290,8 +290,9 @@ export default function GameComponent(props: Props) {
 
         GameAborted(event: GameEvents.Aborted) {
             setCompleted(true);
+            setActionsEnabled(false);
             makeToast('Game Aborted due the player abandon.', {
-                autoClose: 5000
+                autoClose: false
             });
         },
 
@@ -579,8 +580,16 @@ export default function GameComponent(props: Props) {
         InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked) {
             assert(myPlayerRef.current, 'Invalid state');
 
+            const success = event.suspects.some(pos => arenaRef.current.atPosition(pos).isAlive());
+
             if (myPlayerRef.current.role === Role.DETECTIVE) {
-                if (event.suspects.isEmpty()) {
+                setPerformingAction({
+                    key: 'canvas',
+                    innocents: event.suspects,
+                    nonCancelable: true
+                });
+
+                if (!success) {
                     const text = `Canvas failed. Cards are not alive`;
                     const options: ToastOptions = {
                         type: 'warning',
@@ -588,28 +597,21 @@ export default function GameComponent(props: Props) {
                     }
 
                     return [text, options];
-
-                } else {
-                    setPerformingAction({
-                        key: 'canvas',
-                        innocents: event.suspects,
-                        nonCancelable: true
-                    });
                 }
 
             } else {
-                if (event.suspects.isEmpty()) {
-                    const text = `Detective's canvas failed. Cards are not alive`;
+                if (success) {
+                    const text = `Detective picks card for interrogation`;
                     const options: ToastOptions = {
-                        type: 'warning',
+                        type: 'info',
                         autoClose: 2500
                     }
 
                     return [text, options];
                 } else {
-                    const text = `Detective picks card for interrogation`;
+                    const text = `Detective's canvas failed. Cards are not alive`;
                     const options: ToastOptions = {
-                        type: 'info',
+                        type: 'warning',
                         autoClose: 2500
                     }
 
@@ -1185,7 +1187,6 @@ export default function GameComponent(props: Props) {
     const collapseDialogOpenPredicate = performingAction?.key === 'collapse';
     const profilerDialogOpenPredicate = myPlayer?.role === Role.PROFILER && performingAction?.key === 'profile';
 
-
     const dialogOpenPredicate =
         collapseDialogOpenPredicate
         || profilerDialogOpenPredicate
@@ -1296,7 +1297,7 @@ export default function GameComponent(props: Props) {
                             highlight={arena.atPosition(pos).isAlive()}
                             onMouseEnter={() => changeHighLight([pos])}
                             onMouseLeave={() => changeHighLight([])}
-                            onSuspectClick={() => onSuspectClick(pos)} />)
+                            onSuspectClick={() => arena.atPosition(pos).isAlive() && onSuspectClick(pos)} />)
                     )
                     ||
                     (decideProtectDialogOpenPredicate &&

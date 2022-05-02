@@ -80,6 +80,10 @@ export namespace RemoteGame {
             throw new Error('Method not implemented.');
         }
 
+        public get isCompleted(): boolean {
+            throw new Error('Property not implemented.');
+        }
+
         public onComplete(): Observable<void> {
             throw new Error('Method not implemented.');
         }

@@ -20,14 +20,9 @@ export class GamePlayData implements BaseGameData {
     }
 }
 
-export interface GameCompletedData extends BaseGameData {
-    readonly state: 'COMPLETED';
-}
-
-export type GameData = GamePreparationData | GamePlayData | GameCompletedData;
+export type GameData = GamePreparationData | GamePlayData;
 
 export type GamePreparationInfo = Omit<GamePreparationData, 'game'>;
 export type GamePlayInfo = Omit<GamePlayData, 'game'>;
-export type GameCompletedInfo = Omit<GameCompletedData, 'game'>;
 
-export type GameInfo = GamePreparationInfo | GamePlayInfo | GameCompletedInfo;
+export type GameInfo = GamePreparationInfo | GamePlayInfo;

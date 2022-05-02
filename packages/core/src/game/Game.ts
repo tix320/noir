@@ -101,6 +101,8 @@ export namespace Game {
 
         forceComplete(): void;
 
+        isCompleted: boolean;
+
         onComplete(): Observable<void>;
     }
 }

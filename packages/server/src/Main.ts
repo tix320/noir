@@ -373,7 +373,7 @@ io.on("connection", (socket) => {
             socket.emit(subscriptionName, dto);
         });
 
-        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
+        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => { 
             subscription.unsubscribe();
         });
     });

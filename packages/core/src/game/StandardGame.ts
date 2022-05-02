@@ -261,12 +261,18 @@ export namespace StandardGame {
         }
 
         public forceComplete(): void {
+            assert(!this.isCompleted, 'Already completed');
+
             const event: GameEvents.Aborted = {
                 type: 'GameAborted'
             }
 
             this.fireEvent(event);
             this.complete();
+        }
+
+        public get isCompleted() {
+            return this.#completed.value;
         }
 
         public onComplete(): Observable<void> {
@@ -291,10 +297,6 @@ export namespace StandardGame {
             this.#completed.next(true);
             this.#completed.complete();
             this.#events.complete();
-        }
-
-        get completed() {
-            return this.#completed.value;
         }
 
         fireEvent(event: GameEvents.Any<I>) {
@@ -453,7 +455,7 @@ abstract class Player<I extends Identifiable = Identifiable, A extends GameActio
     }
 
     private assertStateForAction() {
-        assert(!this.context.game.completed, "Game completed");
+        assert(!this.context.game.isCompleted, "Game completed");
 
         assert(this.isMyTurn(), 'Not your turn');
     }
@@ -1026,14 +1028,17 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
         const first = this.context.evidenceDeck.pop()!;
         const second = this.context.evidenceDeck.pop()!;
 
-        const suspects: Position[] = [];
+        const suspects: Position[] = [Helper.findSuspectInArena(first, this.context), Helper.findSuspectInArena(second, this.context)];
+
+        let success = false;
+
         if (first.isAlive()) {
-            suspects.push(Helper.findSuspectInArena(first, this.context));
+            success = true;
         } else {
             this.context.evidenceDeck.unshift(first);
         }
         if (second.isAlive()) {
-            suspects.push(Helper.findSuspectInArena(second, this.context));
+            success = true;
         } else {
             this.context.evidenceDeck.unshift(second);
         }
@@ -1044,11 +1049,11 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
         }
         this.context.game.fireEvent(event);
 
-        if (suspects.isEmpty()) {
-            this.changePhase('END');
-        } else {
+        if (success) {
             this.context.detective.canvas = suspects;
             this.changePhase('CANVAS');
+        } else {
+            this.changePhase('END');
         }
     }
 
@@ -1061,6 +1066,7 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
         assert(canvas);
 
         assert(canvas.find(pos => pos.equals(position)), `Invalid position ${position}`);
+        assert(this.context.arena.atPosition(position).isAlive(), `${position} not alive`);
 
         const adjacentPlayers = Helper.canvas(position, this.context, true);
 

@@ -3,7 +3,7 @@ import { GameActions } from '@tix320/noir-core/src/game/GameActions';
 import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
 import { StandardGame } from '@tix320/noir-core/src/game/StandardGame';
 import { assert } from '@tix320/noir-core/src/util/Assertions';
-import { Observable, Subject } from 'rxjs';
+import { first, Observable, skip, Subject, zip } from 'rxjs';
 import { CurrentGameContext, User } from '../user/User';
 import { GameDao } from './GameDao';
 import { GameData, GameInfo, GamePlayData, GamePlayInfo, GamePreparationData, GamePreparationInfo } from './GameInfo';
@@ -133,7 +133,9 @@ export namespace GameService {
                 _gameChanges.next(gameData);
             }
         } else if (gameData.state === 'PLAYING') {
-            gameData.game.forceComplete();
+            if (!gameData.game.isCompleted) {
+                gameData.game.forceComplete();
+            }
         }
 
         user.currentGameContext = undefined;
@@ -155,10 +157,11 @@ export namespace GameService {
             GameDao.fillInitialState(gameId, gamePlay.initialState);
 
             gamePlay.onComplete().subscribe(() => {
-                _games.set(gameData.id, {
-                    ...gameData,
-                    state: 'COMPLETED'
-                });
+                const allPlayersLeaveGame = players.map(player => player.identity.currentGameChange().pipe(skip(1), first()));
+
+                zip(allPlayersLeaveGame).subscribe(() => {
+                    _games.delete(gameId);
+                })
             });
         }
 
