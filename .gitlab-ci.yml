@@ -9,4 +9,5 @@ build:
   script:
     - docker rm -f noir-db
     - docker rm -f noir-app
+    - docker rmi -f noir_app
     - docker-compose up --build -d
