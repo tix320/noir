@@ -203,7 +203,7 @@ export default function GameComponent(props: Props) {
                     setEventUIChangeSkipCount(event.readyEventsCount);
                 }
             })).subscribe(event => {
-                console.info('ReceivedEvent', event);
+                // console.info('ReceivedEvent', event);
                 if (eventUIChangeSkipCount.current === 0) {
                     eventsQueue.push(event);
                 } else {
