@@ -1,9 +1,8 @@
 import { Character } from "../game/Character";
-import { GameState, Marker, RoleSelection } from "../game/Game";
+import { GameState, Marker } from "../game/Game";
 import { GameActions } from "../game/GameActions";
 import { GameEvents } from "../game/GameEvents";
 import { Role } from "../game/Role";
-import Position from "../util/Position";
 
 export namespace Dto {
 

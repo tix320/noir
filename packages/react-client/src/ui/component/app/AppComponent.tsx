@@ -9,13 +9,16 @@ import LoginComponent from "../login/LoginComponent";
 import MainComponent from "../main/MainComponent";
 import styles from './AppComponent.module.css';
 
+const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://localhost:5000"
+console.info(`SERVER_ADDRESS=${SERVER_ADDRESS}`);
+
 type Props = {
     className?: string;
 }
 
 export default function AppComponent(props: Props) {
     const login = (token: string, saveToken: boolean) => {
-        API.connect(token).then(user => {
+        API.connect(SERVER_ADDRESS, token).then(user => {
             storeToken(token, saveToken)
             store.dispatch(userChanged(new User(user.id, user.name)))
         }).catch(reason => {

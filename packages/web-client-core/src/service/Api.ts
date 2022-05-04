@@ -5,10 +5,6 @@ import { Observable } from "rxjs";
 import { io, Socket } from "socket.io-client";
 import store from "../../../react-client/src/service/Store";
 
-const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://localhost:5000"
-
-console.info(`SERVER_ADDRESS=${SERVER_ADDRESS}`);
-
 export type ConnectionState = 'CONNECTED' | 'DISCONNECTED'
 
 class Api {
@@ -46,8 +42,8 @@ class Api {
         });
     }
 
-    connect(token: string): Promise<Dto.User> {
-        this.#socket = io(SERVER_ADDRESS, {
+    connect(address: string, token: string): Promise<Dto.User> {
+        this.#socket = io(address, {
             auth: {
                 token: token
             }
