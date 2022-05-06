@@ -17,9 +17,9 @@ type Props = {
 }
 
 export default function AppComponent(props: Props) {
-    const login = (token: string, saveToken: boolean) => {
-        API.connect(SERVER_ADDRESS, token).then(user => {
-            storeToken(token, saveToken)
+    const login = (username: string, password: string, saveToken: boolean) => {
+        API.connect(SERVER_ADDRESS, username, password).then(user => {
+            storeToken(btoa(`${username}$$${password}`), saveToken) //TODO:
             store.dispatch(userChanged(new User(user.id, user.name)))
         }).catch(reason => {
             console.error(reason);
@@ -32,9 +32,11 @@ export default function AppComponent(props: Props) {
     const user = useSelector((state: StoreState) => state.user);
 
     useEffect(() => {
-        const token = retrieveToken();
+        const token = retrieveToken(); TODO:
         if (token) {
-            login(token, false)
+            const decoded = atob(token);
+            const [username, password] = decoded.split('$$');
+            login(username, password, false)
         }
     }, [])
 

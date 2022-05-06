@@ -8,24 +8,26 @@ import classNames from "classnames";
 type Props = {
     className?:string,
     t: any,
-    onLogin(token: string, permanent: boolean): void
+    onLogin(username: string, password: string, permanent: boolean): void
 }
 
 type State = {
-    token: string,
+    username: string,
+    password: string,
     saveToken: boolean
 }
 
 class LoginComponent extends Component<Props, State>  {
 
     state: State = {
-        token: "",
+        username: "",
+        password: "",
         saveToken: false
     };
 
     handleSubmit = (event : any) => {
         event.preventDefault();
-        this.props.onLogin(this.state.token, this.state.saveToken)
+        this.props.onLogin(this.state.username,this.state.password, this.state.saveToken)
     }
 
     render() {
@@ -41,8 +43,12 @@ class LoginComponent extends Component<Props, State>  {
                     </div>
                     <div className="form">
                         <div className="form-group">
-                            <input type="text" placeholder={locale('token')}
-                                onChange={(e) => this.setState({ token: e.target.value })} />
+                            <input type="text" placeholder={locale('username')}
+                                onChange={(e) => this.setState({ username: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <input type="password" placeholder={locale('password')}
+                                onChange={(e) => this.setState({ password: e.target.value })} />
                         </div>
                         <div className="form-check">
                             <Form.Check

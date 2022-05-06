@@ -74,9 +74,10 @@ const GAME_ACTION_DTO_CONVERTER = new GameActionDtoConverter();
 const GAME_EVENT_CONVERTER = new GameEventConverter();
 
 io.use(async (socket, next) => {
-    const token = socket.handshake.auth.token || socket.handshake.auth.password;
+    const username = socket.handshake.auth.username;
+    const password = socket.handshake.auth.password;
 
-    const user = await UserService.login(token);
+    const user = await UserService.login(username, password);
     if (user) {
         console.info(`Connected ${user.name}`)
 
@@ -88,8 +89,8 @@ io.use(async (socket, next) => {
 
         next()
     } else {
-        console.info(`Invalid token ${token}`)
-        next(new Error("Invalid token"))
+        console.info(`Invalid credentials for ${username}`)
+        next(new Error("Invalid credentials"))
     }
 });
 

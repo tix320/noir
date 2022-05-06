@@ -42,10 +42,11 @@ class Api {
         });
     }
 
-    connect(address: string, token: string): Promise<Dto.User> {
+    connect(address: string, username : string, password: string): Promise<Dto.User> {
         this.#socket = io(address, {
             auth: {
-                token: token
+                username: username,
+                password: password,
             }
         });
 

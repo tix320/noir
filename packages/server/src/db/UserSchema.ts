@@ -1,13 +1,13 @@
 import { Schema, model } from 'mongoose';
 
 export interface IUser {
-    name: string;
-    token: string;
+    username: string;
+    password: string;
 }
 
 const userSchema = new Schema<IUser>({
-    name: { type: String, required: true  },
-    token: { type: String, required: true,  },
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true, },
 });
 
 export const UserModel = model<IUser>('User', userSchema);
