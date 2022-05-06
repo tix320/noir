@@ -1,24 +1,27 @@
+import { Dto } from '@tix320/noir-core/src/api/Dto';
 import { Character } from '@tix320/noir-core/src/game/Character';
+import { GameState } from '@tix320/noir-core/src/game/Game';
 import { Role } from "@tix320/noir-core/src/game/Role";
-import { Schema, model } from 'mongoose';
+import { Schema, model, ObjectId } from 'mongoose';
 import { UserModel } from './UserSchema';
 
 interface PlayerInfo {
-    identity: string,
+    identity: ObjectId,
     role: Role['name']
 }
 
 interface Action {
-    actor: string,
-    properties: object
+    actor: ObjectId,
+    properties: Dto.Action
 }
 
-interface IGame {
+export interface IGame {
     name: string;
     players: PlayerInfo[],
     arena: Character['name'][][],
     evidenceDeck: Character['name'][];
-    actions: Action[]
+    actions: Action[],
+    state: GameState
 }
 
 const playerSchema = new Schema<PlayerInfo>({
@@ -28,15 +31,16 @@ const playerSchema = new Schema<PlayerInfo>({
 
 const actionSchema = new Schema<Action>({
     actor: { type: Schema.Types.ObjectId, ref: UserModel, required: true },
-    properties: {}
+    properties: { type: {}, required: true },
 })
 
 const gameSchema = new Schema<IGame>({
     name: { type: String, required: true },
-    players: [playerSchema],
+    players: { type: [playerSchema], required: true },
     arena: { type: [[String]], required: true },
     evidenceDeck: { type: [String], required: true },
-    actions: [actionSchema]
+    actions: { type: [actionSchema], required: true },
+    state: { type: String, required: true }
 });
 
 export const GameModel = model<IGame>('Game', gameSchema);

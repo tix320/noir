@@ -8,18 +8,18 @@ console.info(`WEB_CLIENT_BUNDLE=${WEB_CLIENT_BUNDLE}`)
 import "@tix320/noir-core"
 import { ApiEvents } from "@tix320/noir-core/src/api/ApiEvents"
 import { Dto } from "@tix320/noir-core/src/api/Dto"
-import { GameActionDtoVisitor, visitAction } from "@tix320/noir-core/src/api/GameActionDtoVisitor"
-import { Player, Suspect } from "@tix320/noir-core/src/game/Game"
+import { GameActionDtoConverter, visitAction } from "@tix320/noir-core/src/api/GameActionDtoConverter"
 import { GameActions } from "@tix320/noir-core/src/game/GameActions"
-import { GameEvents } from "@tix320/noir-core/src/game/GameEvents"
-import { GameEventVisitor, visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor"
+import { visitEvent } from "@tix320/noir-core/src/game/GameEventVisitor"
 import { Role } from "@tix320/noir-core/src/game/Role"
 import { StandardGame } from "@tix320/noir-core/src/game/StandardGame"
+import { assert } from "@tix320/noir-core/src/util/Assertions"
 import express from "express"
 import { createServer } from "http"
 import { filter, map, takeWhile } from 'rxjs/operators'
 import { Server } from "socket.io"
 import './db/Datastore'
+import { GameEventConverter } from "./game/GameEventConverter"
 import { GameData, GamePreparationData } from "./game/GameInfo"
 import { GameService } from "./game/GameService"
 import { User } from "./user/User"
@@ -70,213 +70,7 @@ function userResponse(user: User): Dto.User {
     };
 }
 
-function playerResponse(player: Player<User>): Dto.Player {
-    return {
-        identity: userResponse(player.identity),
-        role: player.role.name
-    }
-}
-
-function suspectResponse(suspect: Suspect<User>): Dto.Suspect {
-    return {
-        character: suspect.character,
-        role: typeof suspect.role === 'string' ? suspect.role : playerResponse(suspect.role),
-        markers: suspect.markersSnapshot()
-    }
-}
-
-class GameEventConverter implements GameEventVisitor<User, any> {
-
-    Hello(event: GameEvents.Hello) {
-        return event;
-    }
-
-    GameStarted(event: GameEvents.Started<User>) {
-        const eventDto: Dto.Events.Started = {
-            type: 'GameStarted',
-            players: event.players.map(player => playerResponse(player)),
-            arena: event.arena.map(suspect => suspectResponse(suspect)).raw(),
-            evidenceDeck: event.evidenceDeck,
-            profilerHand: event.profilerHand
-        }
-
-        return eventDto;
-    }
-
-    GameCompleted(event: GameEvents.Completed) {
-        return event;
-    }
-
-    GameAborted(event: GameEvents.Aborted) {
-        return event;
-    }
-
-    TurnChanged(event: GameEvents.TurnChanged<User>) {
-        const eventDto: Dto.Events.TurnChanged = {
-            type: 'TurnChanged',
-            player: userResponse(event.player),
-            score: event.score,
-            lastShift: event.lastShift
-        }
-
-        return eventDto;
-    }
-
-    AvailableActionsChanged(event: GameEvents.AvailableActionsChanged) {
-        const eventDto: Dto.Events.AvailableActionsChanged = {
-            type: 'AvailableActionsChanged',
-            actions: [...event.actions]
-        }
-
-        return eventDto;
-    }
-
-    Shifted(event: GameEvents.Shifted) {
-        return event;
-    }
-
-    Collapsed(event: GameEvents.Collapsed) {
-        return event;
-    }
-
-    KilledByKnife(event: GameEvents.KilledByKnife) {
-        return event;
-    }
-
-    KilledByThreat(event: GameEvents.KilledByThreat) {
-        return event;
-    }
-
-    KilledByBomb(event: GameEvents.KilledByBomb) {
-        return event;
-    }
-
-    KilledBySniper(event: GameEvents.KilledBySniper) {
-        return event;
-    }
-
-    BombDetonated(event: GameEvents.BombDetonated) {
-        return event;
-    }
-
-    Accused(event: GameEvents.Accused) {
-        const eventDto: Dto.Events.Accused = {
-            type: 'Accused',
-            target: event.target,
-            mafioso: event.mafioso.name
-        }
-
-        return eventDto;
-    }
-
-    UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused) {
-        const eventDto: Dto.Events.UnsuccessfulAccused = {
-            type: 'UnsuccessfulAccused',
-            target: event.target,
-            mafioso: event.mafioso.name
-        }
-
-        return eventDto;
-    }
-
-    Arrested(event: GameEvents.Arrested) {
-        return event;
-    }
-
-    Disarmed(event: GameEvents.Disarmed) {
-        return event;
-    }
-
-    AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>) {
-        const eventDto: Dto.Events.AutopsyCanvased = {
-            type: 'AutopsyCanvased',
-            target: event.target,
-            mafiosi: event.mafiosi.map(mafioso => userResponse(mafioso)),
-        }
-
-        return eventDto;
-    }
-
-    AllCanvased(event: GameEvents.AllCanvased<User>) {
-        const eventDto: Dto.Events.AllCanvased = {
-            type: 'AllCanvased',
-            target: event.target,
-            players: event.players.map(player => userResponse(player)),
-        }
-
-        return eventDto;
-    }
-
-    Profiled(event: GameEvents.Profiled<User>) {
-        const eventDto: Dto.Events.Profiled = {
-            type: 'Profiled',
-            target: event.target,
-            mafiosi: event.mafiosi.map(mafioso => userResponse(mafioso)),
-            newHand: event.newHand
-        }
-
-        return eventDto;
-    }
-
-    Disguised(event: GameEvents.Disguised) {
-        return event;
-    }
-
-    MarkerMoved(event: GameEvents.MarkerMoved) {
-        return event;
-    }
-
-    InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked) {
-        return event;
-    }
-
-    ThreatPlaced(event: GameEvents.ThreatPlaced) {
-        return event;
-    }
-
-    BombPlaced(event: GameEvents.BombPlaced) {
-        return event;
-    }
-
-    ProtectionPlaced(event: GameEvents.ProtectionPlaced) {
-        return event;
-    }
-
-    ProtectionRemoved(event: GameEvents.ProtectionRemoved) {
-        return event;
-    }
-
-    SuspectsSwapped(event: GameEvents.SuspectsSwapped) {
-        return event;
-    }
-
-    SelfDestructionActivated(event: GameEvents.SelfDestructionActivated) {
-        return event;
-    }
-
-    ProtectionActivated(event: GameEvents.ProtectionActivated) {
-        const eventDto: Dto.Events.ProtectionActivated = {
-            type: 'ProtectionActivated',
-            target: event.target,
-            trigger: event.trigger.name
-        }
-
-        return eventDto;
-    }
-
-    ProtectDecided(event: GameEvents.ProtectDecided) {
-        const eventDto: Dto.Events.ProtectDecided = {
-            type: 'ProtectDecided',
-            target: event.target,
-            trigger: event.trigger.name,
-            protect: event.protect,
-        }
-
-        return eventDto;
-    }
-}
-
-const GAME_ACTION_DTO_CONVERTER = new GameActionDtoVisitor();
+const GAME_ACTION_DTO_CONVERTER = new GameActionDtoConverter();
 const GAME_EVENT_CONVERTER = new GameEventConverter();
 
 io.use(async (socket, next) => {
@@ -328,8 +122,10 @@ io.on("connection", (socket) => {
         GameService.leaveGame(user);
     });
 
-    socket.on(ApiEvents.DO_GAME_ACTION, (dtoAction: Dto.Actions.Any, cb) => {
-        let action: GameActions.Any = visitAction(dtoAction, GAME_ACTION_DTO_CONVERTER);
+    socket.on(ApiEvents.DO_GAME_ACTION, (dtoAction: Dto.Action, cb) => {
+        let action: GameActions.Any | undefined = visitAction(dtoAction, GAME_ACTION_DTO_CONVERTER);
+
+        assert(action, `Illegal action ${JSON.stringify(dtoAction)}`);
 
         GameService.doGameAction(user, action);
     });
@@ -373,7 +169,7 @@ io.on("connection", (socket) => {
             socket.emit(subscriptionName, dto);
         });
 
-        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => { 
+        socket.once(ApiEvents.UNSUBSCRIBE(subscriptionName), () => {
             subscription.unsubscribe();
         });
     });

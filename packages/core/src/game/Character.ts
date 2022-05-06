@@ -73,4 +73,8 @@ export namespace Character {
 
         return characters.slice(0, count);
     }
+
+    export function getByName(name: string): Character {
+        return Character.ALL.find(character => character.name === name)!;
+    }
 }

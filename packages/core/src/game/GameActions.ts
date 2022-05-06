@@ -1,5 +1,6 @@
 import { Direction } from "../util/Direction";
 import Position from "../util/Position";
+import { Character } from "./Character";
 import { Marker, Player } from "./Game";
 import { Role } from "./Role";
 
@@ -107,7 +108,7 @@ export namespace GameActions {
 
         export type Canvas = {
             readonly type: 'canvas';
-            readonly position: Position;
+            readonly character: Character;
         };
     }
 
@@ -131,7 +132,7 @@ export namespace GameActions {
     export namespace Profiler {
         export type Profile = {
             readonly type: 'profile';
-            readonly position: Position;
+            readonly character: Character;
         };
 
     }

@@ -151,38 +151,38 @@ export default class Matrix<T> {
         const temp: T[] = [];
         switch (direction) {
             case Direction.UP:
-                for (let i = 0; i < this.columns; i++) {
-                    const target = i + count < this.columns ? i + count : i - (this.columns - count);
-                    temp[i] = this.matrix[target][index];
+                for (let i = 0; i < this.rows; i++) {
+                    const replacer = i + count < this.rows ? i + count : i - (this.rows - count);
+                    temp[i] = this.matrix[replacer][index];
                 }
-                for (let i = 0; i < this.columns; i++) {
+                for (let i = 0; i < this.rows; i++) {
                     this.matrix[i][index] = temp[i];
                 }
                 break;
             case Direction.DOWN:
-                for (let i = 0; i < this.columns; i++) {
-                    const target = i - count >= 0 ? i - count : i + (this.columns - count);
-                    temp[i] = this.matrix[target][index];
+                for (let i = 0; i < this.rows; i++) {
+                    const replacer = i - count >= 0 ? i - count : i + (this.rows - count);
+                    temp[i] = this.matrix[replacer][index];
                 }
-                for (let i = 0; i < this.columns; i++) {
+                for (let i = 0; i < this.rows; i++) {
                     this.matrix[i][index] = temp[i];
                 }
                 break;
             case Direction.LEFT:
-                for (let i = 0; i < this.rows; i++) {
-                    const target = i + count < this.rows ? i + count : i - (this.rows - count);
-                    temp[i] = this.matrix[index][target];
+                for (let i = 0; i < this.columns; i++) {
+                    const replacer = i + count < this.columns ? i + count : i - (this.columns - count);
+                    temp[i] = this.matrix[index][replacer];
                 }
-                for (let i = 0; i < this.rows; i++) {
+                for (let i = 0; i < this.columns; i++) {
                     this.matrix[index][i] = temp[i];
                 }
                 break;
             case Direction.RIGHT:
-                for (let i = 0; i < this.rows; i++) {
-                    const target = i - count >= 0 ? i - count : i + (this.rows - count);
-                    temp[i] = this.matrix[index][target];
+                for (let i = 0; i < this.columns; i++) {
+                    const replacer = i - count >= 0 ? i - count : i + (this.columns - count);
+                    temp[i] = this.matrix[index][replacer];
                 }
-                for (let i = 0; i < this.rows; i++) {
+                for (let i = 0; i < this.columns; i++) {
                     this.matrix[index][i] = temp[i];
                 }
                 break;
@@ -229,7 +229,7 @@ export default class Matrix<T> {
         switch (direction) {
             case Direction.UP:
             case Direction.DOWN:
-                for (let j = 0; j < this.rows; j++) {
+                for (let j = 0; j < this.columns; j++) {
                     let index;
                     if (direction === Direction.UP) {
                         index = [...this.columnItems(j)].findIndex(predicate);
@@ -265,7 +265,7 @@ export default class Matrix<T> {
             case Direction.UP:
             case Direction.DOWN:
                 newMatrix = Array.from(Array(this.rows - 1), () => new Array(this.columns));
-                for (let j = 0; j < this.rows; j++) {
+                for (let j = 0; j < this.columns; j++) {
                     let index;
                     if (direction === Direction.UP) {
                         index = [...this.columnItems(j)].findIndex(predicate);
@@ -373,6 +373,12 @@ export default class Matrix<T> {
         }
 
         return count;
+    }
+
+    flatten(): T[] {
+        const arr: T[] = [];
+        this.foreach(item => arr.push(item));
+        return arr;
     }
 
     clone(itemsCloning: (item: T) => T): Matrix<T> {

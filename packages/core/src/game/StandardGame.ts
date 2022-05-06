@@ -1028,7 +1028,7 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
         const first = this.context.evidenceDeck.pop()!;
         const second = this.context.evidenceDeck.pop()!;
 
-        const suspects: Position[] = [Helper.findSuspectInArena(first, this.context), Helper.findSuspectInArena(second, this.context)];
+        const suspects: StandardSuspect<I>[] = [first, second];
 
         let success = false;
 
@@ -1045,7 +1045,7 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
 
         const event: GameEvents.InnocentsForCanvasPicked = {
             type: 'InnocentsForCanvasPicked',
-            suspects: suspects
+            suspects: suspects.map(s => s.character)
         }
         this.context.game.fireEvent(event);
 
@@ -1058,21 +1058,24 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
     }
 
     protected canvas(action: GameActions.Detective.Canvas) {
-        const { position } = action;
+        const { character } = action;
 
         this.assertPhase('CANVAS');
 
         const canvas = this.context.detective.canvas;
         assert(canvas);
 
-        assert(canvas.find(pos => pos.equals(position)), `Invalid position ${position}`);
-        assert(this.context.arena.atPosition(position).isAlive(), `${position} not alive`);
+        const suspect = canvas.find(suspect => equals(suspect.character, character));
+        assert(suspect, `Invalid character ${character}`);
+        assert(suspect.isAlive(), `${suspect} not alive`);
+
+        const position = Helper.findSuspectInArena(suspect, this.context);
 
         const adjacentPlayers = Helper.canvas(position, this.context, true);
 
-        const secondCardToDrop = canvas.find(pos => !pos.equals(position));
+        const secondCardToDrop = canvas.find(s => s !== suspect);
         if (secondCardToDrop) {
-            this.context.evidenceDeck.unshift(this.context.arena.atPosition(secondCardToDrop));
+            this.context.evidenceDeck.unshift(secondCardToDrop);
         }
 
         const event: GameEvents.AllCanvased<Identifiable> = {
@@ -1086,8 +1089,8 @@ class Detective<I extends Identifiable> extends Agent<I, GameActions.OfDetective
     }
 }
 
-class DetectiveContext {
-    canvas?: Position[];
+class DetectiveContext<I extends Identifiable> {
+    canvas?: StandardSuspect<I>[];
 }
 
 class Suit<I extends Identifiable> extends Agent<I, GameActions.OfSuit>  {
@@ -1293,15 +1296,17 @@ class Profiler<I extends Identifiable> extends Agent<I, GameActions.OfProfiler> 
     }
 
     protected profile(action: GameActions.Profiler.Profile): void {
-        const { position } = action;
+        const { character } = action;
 
         const hand = this.context.profiler.evidenceHand;
 
         const arena = this.context.arena;
-        const suspect = arena.atPosition(position);
+        const suspect = hand.find(s => equals(s.character, character));
 
-        assert(hand.includes(suspect), `Invalid position ${position}`);
+        assert(suspect, `Invalid character ${character}`);
         assert(suspect.isAlive(), 'Suspect not alive');
+
+        const position = Helper.findSuspectInArena(suspect, this.context);
 
         const mafiosi = Helper.canvas(position, this.context, false);
 
@@ -1348,7 +1353,7 @@ class GameContext<I extends Identifiable = Identifiable> {
     lastShift?: GameActions.Common.Shift;
 
     bomber: BomberContext;
-    detective: DetectiveContext;
+    detective: DetectiveContext<I>;
     suit: SuitContext;
     profiler: ProfilerContext<I>;
 
@@ -1611,7 +1616,7 @@ namespace Helper {
 
     export function findSuspectInArena(suspect: StandardSuspect, context: GameContext): Position {
         const res = context.arena.findFirst(s => s === suspect);
-        assert(res, 'Invalid state');
+        assert(res, `${suspect} not found in arena`);
         return res[1];
     }
 

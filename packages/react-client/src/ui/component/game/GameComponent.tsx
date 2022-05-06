@@ -17,7 +17,7 @@ import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { ImExit } from 'react-icons/im';
 import { Slide, toast, ToastContent, ToastOptions, TypeOptions } from 'react-toastify';
-import {API, User} from "@tix320/noir-web-client-core";
+import { API, User } from "@tix320/noir-web-client-core";
 import RoleCardComponent from '../cards/role/RoleCardComponent';
 import SuspectCard from '../cards/suspect/SuspectCardComponent';
 import { useForceUpdate, useServerConnectedEffect } from '../common/Hooks';
@@ -27,6 +27,7 @@ import ActionsPanel from './actions/ActionsPanelComponent';
 import ArenaComponent from './arena/ArenaComponent';
 import styles from './GameComponent.module.css';
 import TeamPlayersPanel from './TeamPlayersPanelComponent';
+import { Character } from '@tix320/noir-core/src/game/Character';
 
 type Props = {
     className?: string,
@@ -59,6 +60,7 @@ export default function GameComponent(props: Props) {
     const [performingActionRef, setPerformingAction] = useRefState<PerformingAction | undefined>(undefined);
     const [performingEventRef, setPerformingEvent] = useRefState<PerformingEvent | undefined>(undefined);
 
+    const [suspectsRef, setSuspects] = useRefState<StandardSuspect[]>([]);
     const [arenaRef, setArena] = useRefState<Matrix<StandardSuspect>>(new Matrix([]));
     const [profilerHandRef, setProfilerHand] = useRefState<StandardSuspect[]>([]);
     const [lastShiftRef, setLastShift] = useRefState<ShiftAction | undefined>(undefined);
@@ -81,6 +83,7 @@ export default function GameComponent(props: Props) {
         currentTurnPlayerRef.current = undefined;
         performingActionRef.current = undefined;
         performingEventRef.current = undefined;
+        suspectsRef.current = [];
         arenaRef.current = new Matrix([]);
         profilerHandRef.current = [];
         lastShiftRef.current = undefined;
@@ -167,24 +170,24 @@ export default function GameComponent(props: Props) {
                 if (event) {
                     const toastData = processEvent(event);
                     render();
-                    if (toastData && !document.hidden) {
-                        const [text, options] = toastData;
+                    if (false && toastData && !document.hidden) {
+                        // const [text, options] = toastData;
 
-                        toast.dismiss();
+                        // toast.dismiss();
 
-                        if (options.autoClose === false) {
-                            makeToast(text, options);
-                            scheduleEventProcessor(0);
-                        } else {
-                            makeToast(text, {
-                                ...options,
-                                onClose: () => {
-                                    setPerformingEvent(undefined);
-                                    render();
-                                    scheduleEventProcessor(0);
-                                }
-                            });
-                        }
+                        // if (options.autoClose === false) {
+                        //     makeToast(text, options);
+                        //     scheduleEventProcessor(0);
+                        // } else {
+                        //     makeToast(text, {
+                        //         ...options,
+                        //         onClose: () => {
+                        //             setPerformingEvent(undefined);
+                        //             render();
+                        //             scheduleEventProcessor(0);
+                        //         }
+                        //     });
+                        // }
                     } else {
                         setPerformingEvent(undefined);
                         render();
@@ -252,6 +255,7 @@ export default function GameComponent(props: Props) {
 
         GameStarted(event: GameEvents.Started<User>) {
             const arena = event.arena.map(suspect => new StandardSuspect(suspect.character, suspect.role, suspect.markersSnapshot()));
+            setSuspects(arena.flatten());
             setArena(arena);
 
             setProfilerHand(event.profilerHand.map(character => arena.findFirst(suspect => equals(suspect.character, character))![0]));
@@ -266,6 +270,7 @@ export default function GameComponent(props: Props) {
             setScore(event.score);
             setCompleted(true);
             setActionsEnabled(false);
+            setPerformingAction(undefined);
 
             let text;
             let type: TypeOptions;
@@ -519,7 +524,7 @@ export default function GameComponent(props: Props) {
             const suspect = arena.atPosition(event.target);
             suspect.role = 'innocent';
 
-            setProfilerHand(event.newHand.map(character => arena.findFirst(suspect => equals(suspect.character, character))![0]));
+            setProfilerHand(event.newHand.map(character => suspectsRef.current.find(suspect => equals(suspect.character, character))!));
 
             setPerformingEvent({
                 key: 'AllCanvased',
@@ -579,12 +584,12 @@ export default function GameComponent(props: Props) {
         InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked) {
             assert(myPlayerRef.current, 'Invalid state');
 
-            const success = event.suspects.some(pos => arenaRef.current.atPosition(pos).isAlive());
+            const success = event.suspects.some(character => arenaRef.current.findFirst(suspect => equals(suspect.character, character))?.[0].isAlive());
 
             if (myPlayerRef.current.role === Role.DETECTIVE) {
                 setPerformingAction({
                     key: 'canvas',
-                    innocents: event.suspects,
+                    innocents: event.suspects.map(character => suspectsRef.current.find(suspect => equals(suspect.character, character))!),
                     nonCancelable: true
                 });
 
@@ -1025,24 +1030,6 @@ export default function GameComponent(props: Props) {
                 break
             case 'decideProtect':
                 break
-            case 'profile':
-                action = {
-                    type: 'profile',
-                    position: position
-                }
-
-                commitAction(action);
-                break;
-            case 'canvas':
-                assert(performingAction.innocents, 'Illegal state');
-
-                action = {
-                    type: 'canvas',
-                    position: position
-                }
-
-                commitAction(action);
-                break;
         }
     }
 
@@ -1142,6 +1129,21 @@ export default function GameComponent(props: Props) {
         const action: GameActions.Suit.DecideProtect = {
             type: 'decideProtect',
             protect: protect
+        }
+
+        commitAction(action);
+    }
+
+    const doCanvas = (character: Character) => {
+        assert(performingActionRef.current);
+        const key = performingActionRef.current.key;
+        if (key !== 'canvas' && key !== 'profile') {
+            throw new AssertionError();
+        }
+
+        const action: GameActions.Detective.Canvas | GameActions.Profiler.Profile = {
+            type: key,
+            character: character
         }
 
         commitAction(action);
@@ -1291,12 +1293,16 @@ export default function GameComponent(props: Props) {
                     ||
 
                     (canvasDialogOpenPredicate &&
-                        performingAction.innocents!.map((pos, index: 0 | 1) => <SuspectCard key={index}
-                            suspect={arena.atPosition(pos)}
-                            highlight={arena.atPosition(pos).isAlive()}
-                            onMouseEnter={() => changeHighLight([pos])}
-                            onMouseLeave={() => changeHighLight([])}
-                            onSuspectClick={() => arena.atPosition(pos).isAlive() && onSuspectClick(pos)} />)
+                        performingAction.innocents!.map((suspect, index: 0 | 1) => {
+                            const position = arena.findFirst((sus) => sus.character.name === suspect.character.name)?.[1];
+
+                            return <SuspectCard key={index}
+                                suspect={suspect}
+                                highlight={suspect.isAlive()}
+                                onMouseEnter={() => changeHighLight(position ? [position] : [])}
+                                onMouseLeave={() => changeHighLight([])}
+                                onSuspectClick={() => suspect.isAlive() && doCanvas(suspect.character)} />
+                        })
                     )
                     ||
                     (decideProtectDialogOpenPredicate &&
@@ -1332,14 +1338,14 @@ export default function GameComponent(props: Props) {
                     (profilerDialogOpenPredicate &&
                         (
                             profilerHand.map((suspect, index) => {
-                                const position = arena.findFirst((sus) => sus.character.name === suspect.character.name)![1];
+                                const position = arena.findFirst((sus) => sus.character.name === suspect.character.name)?.[1];
 
                                 return <SuspectCard key={index}
                                     suspect={suspect}
                                     highlight={equals(currentTurnPlayer?.identity, myPlayer.identity) && suspect.isPlayerOrSuspect()}
-                                    onMouseEnter={() => changeHighLight([position])}
+                                    onMouseEnter={() => changeHighLight(position ? [position] : [])}
                                     onMouseLeave={() => changeHighLight([])}
-                                    onSuspectClick={() => equals(currentTurnPlayer?.identity, myPlayer.identity) && suspect.isPlayerOrSuspect() && onSuspectClick(position)}
+                                    onSuspectClick={() => equals(currentTurnPlayer?.identity, myPlayer.identity) && suspect.isPlayerOrSuspect() && doCanvas(suspect.character)}
                                 />
                             })
                         )
@@ -1372,7 +1378,7 @@ interface CollapseActionContext extends BaseActionContext {
 
 interface CanvasActionContext extends BaseActionContext {
     readonly key: GameActions.Key<GameActions.Detective.Canvas>,
-    innocents?: Position[],
+    innocents?: StandardSuspect[],
     nonCancelable: true
 }
 

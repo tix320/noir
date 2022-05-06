@@ -1,10 +1,17 @@
-import { Game, RoleSelection } from '@tix320/noir-core/src/game/Game';
+import { convertActionToDto } from '@tix320/noir-core/src/api/GameActionConverter';
+import { GameActionDtoConverter, visitAction } from '@tix320/noir-core/src/api/GameActionDtoConverter';
+import { Character } from '@tix320/noir-core/src/game/Character';
+import { Game, PlayerInfo, RoleSelection } from '@tix320/noir-core/src/game/Game';
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
 import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
+import { Role } from '@tix320/noir-core/src/game/Role';
 import { StandardGame } from '@tix320/noir-core/src/game/StandardGame';
 import { assert } from '@tix320/noir-core/src/util/Assertions';
+import Matrix from '@tix320/noir-core/src/util/Matrix';
 import { first, Observable, skip, Subject, zip } from 'rxjs';
+import { IGame } from '../db/GameSchema';
 import { CurrentGameContext, User } from '../user/User';
+import { UserService } from '../user/UserService';
 import { GameDao } from './GameDao';
 import { GameData, GameInfo, GamePlayData, GamePlayInfo, GamePreparationData, GamePreparationInfo } from './GameInfo';
 
@@ -13,6 +20,22 @@ export namespace GameService {
     const _games: Map<string, GameData> = new Map()
 
     const _gameChanges = new Subject<GameData>();
+
+    importGames();
+
+    async function importGames() {
+        const gamesData = adaptDBGames();
+
+        (await gamesData).forEach(gameData => {
+            _games.set(gameData.id, gameData);
+            gameData.game.players.forEach(player => {
+                assert(!player.identity.currentGameContext, `Invalid state, User ${player.identity} already in game`);
+                player.identity.currentGameContext = {
+                    id: gameData.id
+                }
+            })
+        });
+    }
 
     export function getGames() {
         return _games;
@@ -159,6 +182,8 @@ export namespace GameService {
             gamePlay.onComplete().subscribe(() => {
                 const allPlayersLeaveGame = players.map(player => player.identity.currentGameChange().pipe(skip(1), first()));
 
+                GameDao.completeGame(gameData.id);
+
                 zip(allPlayersLeaveGame).subscribe(() => {
                     _games.delete(gameId);
                 })
@@ -178,7 +203,8 @@ export namespace GameService {
 
         player.doAction(action);
 
-        GameDao.addAction(currentGame.id, actor, action);
+
+        GameDao.addAction(currentGame.id, actor, convertActionToDto(action));
     }
 
     export function gameEvents(gameId: string, user: User): Observable<GameEvents.Any> {
@@ -189,4 +215,53 @@ export namespace GameService {
 
         return gameData.game.events();
     }
+}
+
+async function adaptDBGames() {
+    const gamesModels = await GameDao.getPlayingGames();
+
+    return await Promise.all(gamesModels.map(async gameModel => {
+        const game = await convertGameModelToStandardGame(gameModel);
+
+        const gameData: GamePlayData = {
+            id: gameModel.id.toString(),
+            name: gameModel.name,
+            state: 'PLAYING',
+            game: game
+        }
+
+        return gameData;
+    }));
+}
+
+async function convertGameModelToStandardGame(gameModel: IGame) {
+    const players: PlayerInfo<User>[] = await Promise.all(gameModel?.players.map(async player => {
+        const userId = player.identity.toString();
+        const user = (await UserService.getUser(userId));
+        assert(user, `User with id ${userId} not found`);
+        return {
+            identity: user,
+            role: Role.getByName(player.role)
+        }
+    }));
+
+    const game = new StandardGame.Play({
+        arena: new Matrix(gameModel.arena!).map(name => Character.getByName(name)),
+        evidenceDeck: gameModel?.evidenceDeck.map(name => Character.getByName(name)),
+        players: players
+    });
+
+    const visitor = new GameActionDtoConverter();
+
+    gameModel.actions.forEach((actionModel) => {
+        const actor = game.players.find(player => player.identity.id === actionModel.actor.toString())!;
+
+        const action = visitAction(actionModel.properties as any, visitor);
+
+        assert(action, `Invalid action ${JSON.stringify(actionModel.properties)}`);
+
+        actor.doAction(action);
+    });
+
+    return game;
 }

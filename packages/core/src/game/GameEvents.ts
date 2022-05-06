@@ -139,7 +139,7 @@ export namespace GameEvents {
 
     export interface InnocentsForCanvasPicked {
         readonly type: 'InnocentsForCanvasPicked';
-        readonly suspects: Position[];
+        readonly suspects: Character[];
     }
 
     export interface ThreatPlaced {

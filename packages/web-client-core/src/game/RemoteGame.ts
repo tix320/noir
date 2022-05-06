@@ -2,15 +2,16 @@ import { Dto } from '@tix320/noir-core/src/api/Dto';
 import { Arena, Game, GameInitialState, Player as IPlayer, RoleSelection, Suspect } from '@tix320/noir-core/src/game/Game';
 import { GameActions } from '@tix320/noir-core/src/game/GameActions';
 import { GameEvents } from '@tix320/noir-core/src/game/GameEvents';
+import { convertActionToDto } from '@tix320/noir-core/src/api/GameActionConverter';
 import { Role } from '@tix320/noir-core/src/game/Role';
 import { StandardSuspect } from '@tix320/noir-core/src/game/StandardSuspect';
 import Matrix from '@tix320/noir-core/src/util/Matrix';
 import Position from '@tix320/noir-core/src/util/Position';
-import { GameEventDtoVisitor, visitEvent } from '@tix320/noir-core/src/api/GameEventDtoVisitor';
 import { map, Observable } from 'rxjs';
-import {User} from "../entity/User";
+import { User } from "../entity/User";
 import { equals } from '@tix320/noir-core/src/util/Identifiable';
 import { API } from '../service/Api';
+import { Character } from '@tix320/noir-core/src/game/Character';
 
 export namespace RemoteGame {
 
@@ -72,7 +73,7 @@ export namespace RemoteGame {
         }
 
         public events(): Observable<GameEvents.Any<User>> {
-            const visitor = new EventVisitor();
+            const visitor = new GameEventDtoConverter();
             return API.playingGameEventsStream(this.id).pipe(map(event => visitEvent(event, visitor)));
         }
 
@@ -96,22 +97,243 @@ class Player implements IPlayer<User, GameActions.Any> {
     }
 
     doAction(action: GameActions.Any): Promise<void> {
-        let dtoAction: Dto.Actions.Any;
-        if (action.type === 'accuse' || action.type === 'farAccuse') {
-            dtoAction = {
-                type: action.type,
-                target: action.target,
-                mafioso: action.mafioso.name
-            }
-        } else {
-            dtoAction = action;
-        }
+        let dtoAction: Dto.Action = convertActionToDto(action);
 
         return API.doGameAction(dtoAction);
     }
 
     gameEvents(): Observable<GameEvents.Any<User>> {
         throw new Error('Method not implemented.');
+    }
+}
+
+export class GameEventDtoConverter {
+
+    Hello(event: Dto.Events.Any & { type: 'Hello' }): GameEvents.Hello {
+        return event;
+    }
+
+    GameStarted(event: Dto.Events.Started): GameEvents.Started<User> {
+        const players = event.players.map(player => convertPlayer(player));
+        return {
+            type: 'GameStarted',
+            players: players,
+            arena: convertArena(event.arena, players),
+            evidenceDeck: event.evidenceDeck,
+            profilerHand: event.profilerHand
+        }
+    }
+
+    GameCompleted(event: Dto.Events.Any & { type: 'GameCompleted' }): GameEvents.Completed {
+        return event;
+    }
+
+    GameAborted(event: Dto.Events.Any & { type: 'GameAborted' }): GameEvents.Aborted {
+        return event;
+    }
+
+    TurnChanged(event: Dto.Events.Any & { type: 'TurnChanged' }): GameEvents.TurnChanged<User> {
+        return {
+            type: 'TurnChanged',
+            player: convertUser(event.player),
+            score: event.score,
+            lastShift: event.lastShift
+        }
+    }
+
+    AvailableActionsChanged(event: Dto.Events.AvailableActionsChanged): GameEvents.AvailableActionsChanged {
+        return {
+            type: 'AvailableActionsChanged',
+            actions: new Set(event.actions)
+        }
+    }
+
+    Shifted(event: Dto.Events.Any & { type: 'Shifted' }): GameEvents.Shifted {
+        return event;
+    }
+
+    Collapsed(event: Dto.Events.Any & { type: 'Collapsed' }): GameEvents.Collapsed {
+        return event;
+    }
+
+    KilledByKnife(event: Dto.Events.Any & { type: 'KilledByKnife' }): GameEvents.KilledByKnife {
+        return {
+            type: 'KilledByKnife',
+            killed: convertPosition(event.killed),
+            newFbiIdentity: convertPosition(event.newFbiIdentity)
+        }
+    }
+
+    KilledByThreat(event: Dto.Events.Any & { type: 'KilledByThreat' }): GameEvents.KilledByThreat {
+        return {
+            type: 'KilledByThreat',
+            killed: convertPosition(event.killed),
+            newFbiIdentity: convertPosition(event.newFbiIdentity)
+        }
+    }
+
+    KilledByBomb(event: Dto.Events.Any & { type: 'KilledByBomb' }): GameEvents.KilledByBomb {
+        return {
+            type: 'KilledByBomb',
+            killed: convertPosition(event.killed),
+            newFbiIdentity: convertPosition(event.newFbiIdentity)
+        }
+    }
+
+    KilledBySniper(event: Dto.Events.Any & { type: 'KilledBySniper' }): GameEvents.KilledBySniper {
+        return {
+            type: 'KilledBySniper',
+            killed: convertPosition(event.killed),
+            newFbiIdentity: convertPosition(event.newFbiIdentity)
+        }
+    }
+
+    BombDetonated(event: Dto.Events.Any & { type: 'BombDetonated' }): GameEvents.BombDetonated {
+        return {
+            type: 'BombDetonated',
+            target: convertPosition(event.target),
+        }
+    }
+
+    Accused(event: Dto.Events.Any & { type: 'Accused' }): GameEvents.Accused {
+        return {
+            type: 'Accused',
+            target: convertPosition(event.target),
+            mafioso: Role.getByName(event.mafioso)
+        }
+    }
+
+    UnsuccessfulAccused(event: Dto.Events.Any & { type: 'UnsuccessfulAccused' }): GameEvents.UnsuccessfulAccused {
+        return {
+            type: 'UnsuccessfulAccused',
+            target: convertPosition(event.target),
+            mafioso: Role.getByName(event.mafioso)
+        }
+    }
+
+    Arrested(event: Dto.Events.Any & { type: 'Arrested' }): GameEvents.Arrested {
+        return {
+            type: 'Arrested',
+            arrested: convertPosition(event.arrested),
+            newMafiosoIdentity: convertPosition(event.newMafiosoIdentity)
+        }
+    }
+
+    Disarmed(event: Dto.Events.Any & { type: 'Disarmed' }): GameEvents.Disarmed {
+        return {
+            type: 'Disarmed',
+            target: convertPosition(event.target),
+            marker: event.marker
+        }
+    }
+
+    AutopsyCanvased(event: Dto.Events.Any & { type: 'AutopsyCanvased' }): GameEvents.AutopsyCanvased<User> {
+        return {
+            type: 'AutopsyCanvased',
+            target: convertPosition(event.target),
+            mafiosi: event.mafiosi.map(mafioso => convertUser(mafioso))
+        }
+    }
+
+    AllCanvased(event: Dto.Events.Any & { type: 'AllCanvased' }): GameEvents.AllCanvased<User> {
+        return {
+            type: 'AllCanvased',
+            target: convertPosition(event.target),
+            players: event.players.map(player => convertUser(player))
+        }
+    }
+
+    Profiled(event: Dto.Events.Any & { type: 'Profiled' }): GameEvents.Profiled<User> {
+        return {
+            type: 'Profiled',
+            target: convertPosition(event.target),
+            mafiosi: event.mafiosi.map(mafioso => convertUser(mafioso)),
+            newHand: event.newHand.map(characterName => Character.getByName(characterName))
+        }
+    }
+
+    Disguised(event: Dto.Events.Any & { type: 'Disguised' }): GameEvents.Disguised {
+        return {
+            type: 'Disguised',
+            oldIdentity: convertPosition(event.oldIdentity),
+            newIdentity: convertPosition(event.newIdentity)
+        }
+    }
+
+    MarkerMoved(event: Dto.Events.Any & { type: 'MarkerMoved' }): GameEvents.MarkerMoved {
+        return {
+            type: 'MarkerMoved',
+            from: convertPosition(event.from),
+            to: convertPosition(event.to),
+            marker: event.marker
+        }
+    }
+
+    InnocentsForCanvasPicked(event: Dto.Events.Any & { type: 'InnocentsForCanvasPicked' }): GameEvents.InnocentsForCanvasPicked {
+        return {
+            type: 'InnocentsForCanvasPicked',
+            suspects: event.suspects.map(characterName => Character.getByName(characterName))
+        }
+    }
+
+    ThreatPlaced(event: Dto.Events.Any & { type: 'ThreatPlaced' }): GameEvents.ThreatPlaced {
+        return {
+            type: 'ThreatPlaced',
+            targets: event.targets.map(pos => convertPosition(pos))
+        }
+    }
+
+    BombPlaced(event: Dto.Events.Any & { type: 'BombPlaced' }): GameEvents.BombPlaced {
+        return {
+            type: 'BombPlaced',
+            target: convertPosition(event.target)
+        }
+    }
+
+    ProtectionPlaced(event: Dto.Events.Any & { type: 'ProtectionPlaced' }): GameEvents.ProtectionPlaced {
+        return {
+            type: 'ProtectionPlaced',
+            target: convertPosition(event.target),
+        }
+    }
+
+    ProtectionRemoved(event: Dto.Events.Any & { type: 'ProtectionRemoved' }): GameEvents.ProtectionRemoved {
+        return {
+            type: 'ProtectionRemoved',
+            target: convertPosition(event.target)
+        }
+    }
+
+    SuspectsSwapped(event: Dto.Events.Any & { type: 'SuspectsSwapped' }): GameEvents.SuspectsSwapped {
+        return {
+            type: 'SuspectsSwapped',
+            position1: convertPosition(event.position1),
+            position2: convertPosition(event.position2)
+        }
+    }
+
+    SelfDestructionActivated(event: Dto.Events.Any & { type: 'SelfDestructionActivated' }): GameEvents.SelfDestructionActivated {
+        return {
+            type: 'SelfDestructionActivated',
+            target: convertPosition(event.target)
+        }
+    }
+
+    ProtectionActivated(event: Dto.Events.Any & { type: 'ProtectionActivated' }): GameEvents.ProtectionActivated {
+        return {
+            type: 'ProtectionActivated',
+            target: convertPosition(event.target),
+            trigger: Role.getByName(event.trigger)
+        }
+    }
+
+    ProtectDecided(event: Dto.Events.Any & { type: 'ProtectDecided' }): GameEvents.ProtectDecided {
+        return {
+            type: 'ProtectDecided',
+            target: convertPosition(event.target),
+            protect: event.protect,
+            trigger: Role.getByName(event.trigger)
+        }
     }
 }
 
@@ -140,218 +362,15 @@ function convertArena(arena: Dto.Arena, players: Player[]): Arena {
         suspect.markers));
 }
 
-
-export function convertPosition(positionDto?: Position): any {
+function convertPosition(positionDto?: Dto.Position): any {
     return positionDto ? new Position(positionDto.x, positionDto.y) : undefined;
 }
 
-class EventVisitor extends GameEventDtoVisitor<User> {
+function visitEvent(event: Dto.Events.Any, eventVisitor: GameEventDtoConverter) {
+    const functionName = event.type;
+    const func = (eventVisitor as any)[functionName];
 
-    GameStarted(event: Dto.Events.Started): GameEvents.Started<User> {
-        const players = event.players.map(player => convertPlayer(player));
-        return {
-            type: 'GameStarted',
-            players: players,
-            arena: convertArena(event.arena, players),
-            evidenceDeck: event.evidenceDeck,
-            profilerHand: event.profilerHand
-        }
-    }
-
-    TurnChanged(event: Dto.Events.TurnChanged): GameEvents.TurnChanged<User> {
-        return {
-            type: 'TurnChanged',
-            player: convertUser(event.player),
-            score: event.score,
-            lastShift: event.lastShift
-        }
-    }
-
-    AvailableActionsChanged(event: Dto.Events.AvailableActionsChanged): GameEvents.AvailableActionsChanged {
-        return {
-            type: 'AvailableActionsChanged',
-            actions: new Set(event.actions)
-        }
-    }
-
-    KilledByKnife(event: GameEvents.KilledByKnife): GameEvents.KilledByKnife {
-        return {
-            type: 'KilledByKnife',
-            killed: convertPosition(event.killed),
-            newFbiIdentity: convertPosition(event.newFbiIdentity)
-        }
-    }
-
-    KilledByThreat(event: GameEvents.KilledByThreat): GameEvents.KilledByThreat {
-        return {
-            type: 'KilledByThreat',
-            killed: convertPosition(event.killed),
-            newFbiIdentity: convertPosition(event.newFbiIdentity)
-        }
-    }
-
-    KilledByBomb(event: GameEvents.KilledByBomb): GameEvents.KilledByBomb {
-        return {
-            type: 'KilledByBomb',
-            killed: convertPosition(event.killed),
-            newFbiIdentity: convertPosition(event.newFbiIdentity)
-        }
-    }
-
-    KilledBySniper(event: GameEvents.KilledBySniper): GameEvents.KilledBySniper {
-        return {
-            type: 'KilledBySniper',
-            killed: convertPosition(event.killed),
-            newFbiIdentity: convertPosition(event.newFbiIdentity)
-        }
-    }
-
-    BombDetonated(event: GameEvents.BombDetonated): GameEvents.BombDetonated {
-        return {
-            type: 'BombDetonated',
-            target: convertPosition(event.target),
-        }
-    }
-
-    Accused(event: Dto.Events.Accused): GameEvents.Accused {
-        return {
-            type: 'Accused',
-            target: convertPosition(event.target),
-            mafioso: Role.getByName(event.mafioso)
-        }
-    }
-
-    UnsuccessfulAccused(event: Dto.Events.UnsuccessfulAccused): GameEvents.UnsuccessfulAccused {
-        return {
-            type: 'UnsuccessfulAccused',
-            target: convertPosition(event.target),
-            mafioso: Role.getByName(event.mafioso)
-        }
-    }
-
-    Arrested(event: GameEvents.Arrested): GameEvents.Arrested {
-        return {
-            type: 'Arrested',
-            arrested: convertPosition(event.arrested),
-            newMafiosoIdentity: convertPosition(event.newMafiosoIdentity)
-        }
-    }
-
-    Disarmed(event: GameEvents.Disarmed): GameEvents.Disarmed {
-        return {
-            type: 'Disarmed',
-            target: convertPosition(event.target),
-            marker: event.marker
-        }
-    }
-
-    AutopsyCanvased(event: Dto.Events.AutopsyCanvased): GameEvents.AutopsyCanvased<User> {
-        return {
-            type: 'AutopsyCanvased',
-            target: convertPosition(event.target),
-            mafiosi: event.mafiosi.map(mafioso => convertUser(mafioso))
-        }
-    }
-
-    AllCanvased(event: Dto.Events.AllCanvased): GameEvents.AllCanvased<User> {
-        return {
-            type: 'AllCanvased',
-            target: convertPosition(event.target),
-            players: event.players.map(player => convertUser(player))
-        }
-    }
-
-    Profiled(event: Dto.Events.Profiled): GameEvents.Profiled<User> {
-        return {
-            type: 'Profiled',
-            target: convertPosition(event.target),
-            mafiosi: event.mafiosi.map(mafioso => convertUser(mafioso)),
-            newHand: event.newHand
-        }
-    }
-
-
-    Disguised(event: GameEvents.Disguised): GameEvents.Disguised {
-        return {
-            type: 'Disguised',
-            oldIdentity: convertPosition(event.oldIdentity),
-            newIdentity: convertPosition(event.newIdentity)
-        }
-    }
-
-    MarkerMoved(event: GameEvents.MarkerMoved): GameEvents.MarkerMoved {
-        return {
-            type: 'MarkerMoved',
-            from: convertPosition(event.from),
-            to: convertPosition(event.to),
-            marker: event.marker
-        }
-    }
-
-    InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked): GameEvents.InnocentsForCanvasPicked {
-        return {
-            type: 'InnocentsForCanvasPicked',
-            suspects: event.suspects.map(pos => convertPosition(pos))
-        }
-    }
-
-    ThreatPlaced(event: GameEvents.ThreatPlaced): GameEvents.ThreatPlaced {
-        return {
-            type: 'ThreatPlaced',
-            targets: event.targets.map(pos => convertPosition(pos))
-        }
-    }
-
-    BombPlaced(event: GameEvents.BombPlaced): GameEvents.BombPlaced {
-        return {
-            type: 'BombPlaced',
-            target: convertPosition(event.target)
-        }
-    }
-
-    ProtectionPlaced(event: GameEvents.ProtectionPlaced): GameEvents.ProtectionPlaced {
-        return {
-            type: 'ProtectionPlaced',
-            target: convertPosition(event.target),
-        }
-    }
-
-    ProtectionRemoved(event: GameEvents.ProtectionRemoved): GameEvents.ProtectionRemoved {
-        return {
-            type: 'ProtectionRemoved',
-            target: convertPosition(event.target)
-        }
-    }
-
-    SuspectsSwapped(event: GameEvents.SuspectsSwapped): GameEvents.SuspectsSwapped {
-        return {
-            type: 'SuspectsSwapped',
-            position1: convertPosition(event.position1),
-            position2: convertPosition(event.position2)
-        }
-    }
-
-    SelfDestructionActivated(event: GameEvents.SelfDestructionActivated): GameEvents.SelfDestructionActivated {
-        return {
-            type: 'SelfDestructionActivated',
-            target: convertPosition(event.target)
-        }
-    }
-
-    ProtectionActivated(event: Dto.Events.ProtectionActivated): GameEvents.ProtectionActivated {
-        return {
-            type: 'ProtectionActivated',
-            target: convertPosition(event.target),
-            trigger: Role.getByName(event.trigger)
-        }
-    }
-
-    ProtectDecided(event: Dto.Events.ProtectDecided): GameEvents.ProtectDecided {
-        return {
-            type: 'ProtectDecided',
-            target: convertPosition(event.target),
-            protect: event.protect,
-            trigger: Role.getByName(event.trigger)
-        }
+    if (typeof func === 'function') {
+        return func(event);
     }
 }

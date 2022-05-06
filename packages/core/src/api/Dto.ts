@@ -3,6 +3,9 @@ import { GameState, Marker } from "../game/Game";
 import { GameActions } from "../game/GameActions";
 import { GameEvents } from "../game/GameEvents";
 import { Role } from "../game/Role";
+import Identifiable from "../util/Identifiable";
+import PositionObj from "../util/Position";
+import { ReplaceByType } from "../util/Types";
 
 export namespace Dto {
 
@@ -45,53 +48,31 @@ export namespace Dto {
 
     export type Arena = Suspect[][];
 
+    export interface Position {
+        x: number;
+        y: number;
+    }
+
     export namespace Events {
         export type Started = Omit<GameEvents.Started<User>, 'players' | 'arena'> & {
             players: Player[],
             arena: Arena
         };
 
-        export type TurnChanged = GameEvents.TurnChanged<User>;
-
         export type AvailableActionsChanged = {
             type: 'AvailableActionsChanged',
             actions: GameActions.Key[]
         };
 
-        export type Accused = Omit<GameEvents.Accused, 'mafioso'> & {
-            mafioso: Role['name']
-        };
+        type ChangedAny = ReplaceByType<ReplaceByType<ReplaceByType<ReplaceByType<GameEvents.Any, PositionObj, Position>, Role, Role['name']>, Character, Character['name']>, Identifiable, User>;
 
-        export type UnsuccessfulAccused = Omit<GameEvents.UnsuccessfulAccused, 'mafioso'> & {
-            mafioso: Role['name']
-        };
-
-        export type AutopsyCanvased = GameEvents.AutopsyCanvased<User>;
-        export type AllCanvased = GameEvents.AllCanvased<User>;
-        export type Profiled = GameEvents.Profiled<User>;
-
-        export type ProtectionActivated = Omit<GameEvents.ProtectionActivated, 'trigger'> & {
-            trigger: Role['name']
-        };
-
-        export type ProtectDecided = Omit<GameEvents.ProtectDecided, 'trigger'> & {
-            trigger: Role['name']
-        };
-
-        export type Any = Exclude<GameEvents.Any,
-            | GameEvents.Started<any>
-            | GameEvents.TurnChanged
-            | GameEvents.AvailableActionsChanged
-            | GameEvents.Accused
-            | GameEvents.AutopsyCanvased
-            | GameEvents.AllCanvased
-            | GameEvents.Profiled
-            | GameEvents.ProtectionActivated>
+        export type Any =
+            Exclude<ChangedAny,
+                | GameEvents.Started<any>
+                | GameEvents.AvailableActionsChanged>
+            | Started
+            | AvailableActionsChanged;
     }
 
-    export namespace Actions {
-        export type Accuse = Omit<GameActions.Common.Accuse, 'mafioso'> & { mafioso: Role['name'] }
-        export type FarAccuse = Omit<GameActions.Detective.FarAccuse, 'mafioso'> & { mafioso: Role['name'] }
-        export type Any = Exclude<GameActions.Any, GameActions.Common.Accuse | GameActions.Detective.FarAccuse> | Accuse | FarAccuse
-    }
+    export type Action = ReplaceByType<ReplaceByType<ReplaceByType<GameActions.Any, PositionObj, Position>, Role, Role['name']>, Character, Character['name']>;
 }

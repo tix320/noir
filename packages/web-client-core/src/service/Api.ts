@@ -104,7 +104,7 @@ class Api {
         });
     }
 
-    doGameAction(action: Dto.Actions.Any): Promise<void> {
+    doGameAction(action: Dto.Action): Promise<void> {
         return new Promise<void>(resolve => {
             const socket = this.socket();
 
