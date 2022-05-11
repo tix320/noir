@@ -72,7 +72,13 @@ export namespace Dto {
                 | GameEvents.AvailableActionsChanged>
             | Started
             | AvailableActionsChanged;
+
+        export type Specific<EventType extends GameEvents.Key> = Any & { type: EventType };
     }
 
-    export type Action = ReplaceByType<ReplaceByType<ReplaceByType<GameActions.Any, PositionObj, Position>, Role, Role['name']>, Character, Character['name']>;
+    export namespace Actions {
+        export type Any = ReplaceByType<ReplaceByType<ReplaceByType<GameActions.Any, PositionObj, Position>, Role, Role['name']>, Character, Character['name']>;
+
+        export type Specific<ActionKey extends GameActions.Key> = Any & { type: ActionKey };
+    }
 }

@@ -1,7 +1,7 @@
 import { GameActions } from "../game/GameActions";
 import { Dto } from "./Dto";
 
-export function convertActionToDto(action: GameActions.Any): Dto.Action {
+export function convertActionToDto(action: GameActions.Any): Dto.Actions.Any {
     if (action.type === 'accuse' || action.type === 'farAccuse') {
         return {
             type: action.type,

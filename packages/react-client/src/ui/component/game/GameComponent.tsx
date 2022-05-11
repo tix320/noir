@@ -252,6 +252,10 @@ export default function GameComponent(props: Props) {
     }
 
     const eventVisitor: GameEventVisitor<User, [ToastContent, ToastOptions] | void> = {
+        
+        Hello(event: GameEvents.Hello): void | [ToastContent, ToastOptions<{}>] {
+            throw new Error('Invalid state');
+        },
 
         GameStarted(event: GameEvents.Started<User>) {
             const arena = event.arena.map(suspect => new StandardSuspect(suspect.character, suspect.role, suspect.markersSnapshot()));
@@ -330,7 +334,7 @@ export default function GameComponent(props: Props) {
                 const toastOptions: ToastOptions = {
                     type: 'success',
                     autoClose: 2500,
-                }
+                };
 
                 setAvailableActions(availableActions);
                 setActionsEnabled(true);
@@ -379,7 +383,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -391,7 +395,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -428,7 +432,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -440,7 +444,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: 2000,
-            }
+            };
 
             return [text, options];
         },
@@ -464,7 +468,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'error',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -477,7 +481,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'error',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -487,7 +491,7 @@ export default function GameComponent(props: Props) {
                 key: 'AllCanvased',
                 players: event.mafiosi,
                 alert: [event.target]
-            })
+            });
 
             const suspect = arenaRef.current.atPosition(event.target);
 
@@ -495,7 +499,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: event.mafiosi.isEmpty() ? 5000 : 10000
-            }
+            };
 
             return [text, options];
         },
@@ -508,13 +512,13 @@ export default function GameComponent(props: Props) {
                 key: 'AllCanvased',
                 players: event.players,
                 alert: [event.target]
-            })
+            });
 
             const text = `${suspect.character.name} interrogated for finding mafiosi and agents․ ${event.players.isEmpty() ? 'Nobody found' : 'Founds ' + event.players.length + ' players'}`;
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: event.players.isEmpty() ? 5000 : 10000
-            }
+            };
 
             return [text, options];
         },
@@ -530,13 +534,13 @@ export default function GameComponent(props: Props) {
                 key: 'AllCanvased',
                 players: event.mafiosi,
                 alert: [event.target]
-            })
+            });
 
             const text = `${suspect.character.name} interrogated for finding mafiosi. ${event.mafiosi.isEmpty() ? 'Nobody found' : 'Founds ' + event.mafiosi.length + ' mafioso'}`;
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: event.mafiosi.isEmpty() ? 5000 : 10000
-            }
+            };
 
             return [text, options];
         },
@@ -560,7 +564,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: 6000,
-            }
+            };
 
             return [toastText, options];
         },
@@ -576,7 +580,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'warning',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -598,7 +602,7 @@ export default function GameComponent(props: Props) {
                     const options: ToastOptions = {
                         type: 'warning',
                         autoClose: 2500
-                    }
+                    };
 
                     return [text, options];
                 }
@@ -609,7 +613,7 @@ export default function GameComponent(props: Props) {
                     const options: ToastOptions = {
                         type: 'info',
                         autoClose: 5000
-                    }
+                    };
 
                     return [text, options];
                 } else {
@@ -617,7 +621,7 @@ export default function GameComponent(props: Props) {
                     const options: ToastOptions = {
                         type: 'warning',
                         autoClose: 5000
-                    }
+                    };
 
                     return [text, options];
                 }
@@ -632,7 +636,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -645,7 +649,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -658,7 +662,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -667,11 +671,11 @@ export default function GameComponent(props: Props) {
             const suspect = arenaRef.current.atPosition(event.target);
             suspect.removeMarker(Marker.PROTECTION);
 
-            const text = `Bomb marker removed from ${suspect.character.name}`;
+            const text = `Protection marker removed from ${suspect.character.name}`;
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -687,7 +691,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: 'info',
                 autoClose: 6000,
-            }
+            };
 
             return [text, options];
         },
@@ -721,7 +725,7 @@ export default function GameComponent(props: Props) {
                 const options: ToastOptions = {
                     type: 'error',
                     autoClose: false
-                }
+                };
 
                 return [text, options];
             } else {
@@ -729,7 +733,7 @@ export default function GameComponent(props: Props) {
                 const options: ToastOptions = {
                     type: 'error',
                     autoClose: false
-                }
+                };
 
                 return [text, options];
             }
@@ -763,7 +767,7 @@ export default function GameComponent(props: Props) {
                 const options: ToastOptions = {
                     type: 'warning',
                     autoClose: false
-                }
+                };
 
                 return [text, options];
             }
@@ -793,7 +797,7 @@ export default function GameComponent(props: Props) {
             const options: ToastOptions = {
                 type: event.protect ? 'success' : 'warning',
                 autoClose: 3000
-            }
+            };
 
             return [text, options];
         }

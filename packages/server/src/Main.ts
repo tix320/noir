@@ -123,7 +123,7 @@ io.on("connection", (socket) => {
         GameService.leaveGame(user);
     });
 
-    socket.on(ApiEvents.DO_GAME_ACTION, (dtoAction: Dto.Action, cb) => {
+    socket.on(ApiEvents.DO_GAME_ACTION, (dtoAction: Dto.Actions.Any, cb) => {
         let action: GameActions.Any | undefined = visitAction(dtoAction, GAME_ACTION_DTO_CONVERTER);
 
         assert(action, `Illegal action ${JSON.stringify(dtoAction)}`);

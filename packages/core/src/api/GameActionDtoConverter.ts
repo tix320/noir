@@ -4,21 +4,30 @@ import { Role } from "../game/Role";
 import Position from "../util/Position";
 import { Dto } from "./Dto";
 
-export class GameActionDtoConverter {
+type Type = {
+    [ACTION in Dto.Actions.Any as ACTION['type']]:
+    (event: Dto.Actions.Specific<ACTION['type']>) =>
+        GameActions.Any extends (infer D)
+        ? D extends GameActions.Any
+        ? ACTION['type'] extends D['type']
+        ? D : never : never : never
+}
 
-    shift(action: Dto.Action & { type: 'shift' }): GameActions.Common.Shift {
+export class GameActionDtoConverter implements Type {
+
+    shift(action: Dto.Actions.Specific<'shift'>): GameActions.Common.Shift {
         return action;
     }
 
-    collapse(action: Dto.Action & { type: 'collapse' }): GameActions.Common.Collapse {
+    collapse(action: Dto.Actions.Specific<'collapse'>): GameActions.Common.Collapse {
         return action;
     }
 
-    disguise(action: Dto.Action & { type: 'disguise' }): GameActions.Common.Disguise {
+    disguise(action: Dto.Actions.Specific<'disguise'>): GameActions.Common.Disguise {
         return action;
     }
 
-    disarm(action: Dto.Action & { type: 'disarm' }): GameActions.Common.Disarm {
+    disarm(action: Dto.Actions.Specific<'disarm'>): GameActions.Common.Disarm {
         return {
             type: 'disarm',
             target: convertPosition(action.target),
@@ -26,7 +35,7 @@ export class GameActionDtoConverter {
         }
     }
 
-    accuse(action: Dto.Action & { type: 'accuse' }): GameActions.Common.Accuse {
+    accuse(action: Dto.Actions.Specific<'accuse'>): GameActions.Common.Accuse {
         return {
             type: 'accuse',
             target: convertPosition(action.target),
@@ -34,14 +43,14 @@ export class GameActionDtoConverter {
         }
     }
 
-    knifeKill(action: Dto.Action & { type: 'knifeKill' }): GameActions.Killer.Kill {
+    knifeKill(action: Dto.Actions.Specific<'knifeKill'>): GameActions.Killer.Kill {
         return {
             type: 'knifeKill',
             target: convertPosition(action.target),
         }
     }
 
-    swapSuspects(action: Dto.Action & { type: 'swapSuspects' }): GameActions.Psycho.SwapSuspects {
+    swapSuspects(action: Dto.Actions.Specific<'swapSuspects'>): GameActions.Psycho.SwapSuspects {
         return {
             type: 'swapSuspects',
             position1: convertPosition(action.position1),
@@ -49,42 +58,42 @@ export class GameActionDtoConverter {
         }
     }
 
-    placeThreat(action: Dto.Action & { type: 'placeThreat' }): GameActions.Psycho.PlaceThreat {
+    placeThreat(action: Dto.Actions.Specific<'placeThreat'>): GameActions.Psycho.PlaceThreat {
         return {
             type: 'placeThreat',
             targets: action.targets.map(pos => convertPosition(pos)),
         }
     }
 
-    placeBomb(action: Dto.Action & { type: 'placeBomb' }): GameActions.Bomber.PlaceBomb {
+    placeBomb(action: Dto.Actions.Specific<'placeBomb'>): GameActions.Bomber.PlaceBomb {
         return {
             type: 'placeBomb',
             target: convertPosition(action.target),
         }
     }
 
-    detonateBomb(action: Dto.Action & { type: 'detonateBomb' }): GameActions.Bomber.DetonateBomb {
+    detonateBomb(action: Dto.Actions.Specific<'detonateBomb'>): GameActions.Bomber.DetonateBomb {
         return {
             type: 'detonateBomb',
             chain: action.chain.map(pos => convertPosition(pos)),
         }
     }
 
-    selfDestruct(action: Dto.Action & { type: 'selfDestruct' }): GameActions.Bomber.SelfDestruct {
+    selfDestruct(action: Dto.Actions.Specific<'selfDestruct'>): GameActions.Bomber.SelfDestruct {
         return {
             type: 'selfDestruct',
             chain: action.chain.map(pos => convertPosition(pos)),
         }
     }
 
-    snipeKill(action: Dto.Action & { type: 'snipeKill' }): GameActions.Sniper.Kill {
+    snipeKill(action: Dto.Actions.Specific<'snipeKill'>): GameActions.Sniper.Kill {
         return {
             type: 'snipeKill',
             target: convertPosition(action.target),
         }
     }
 
-    setup(action: Dto.Action & { type: 'setup' }): GameActions.Sniper.Setup {
+    setup(action: Dto.Actions.Specific<'setup'>): GameActions.Sniper.Setup {
         return {
             type: 'setup',
             from: convertPosition(action.from),
@@ -93,14 +102,14 @@ export class GameActionDtoConverter {
         }
     }
 
-    autopsy(action: Dto.Action & { type: 'autopsy' }): GameActions.Undercover.Autopsy {
+    autopsy(action: Dto.Actions.Specific<'autopsy'>): GameActions.Undercover.Autopsy {
         return {
             type: 'autopsy',
             target: convertPosition(action.target)
         }
     }
 
-    farAccuse(action: Dto.Action & { type: 'farAccuse' }): GameActions.Detective.FarAccuse {
+    farAccuse(action: Dto.Actions.Specific<'farAccuse'>): GameActions.Detective.FarAccuse {
         return {
             type: 'farAccuse',
             target: convertPosition(action.target),
@@ -108,37 +117,37 @@ export class GameActionDtoConverter {
         }
     }
 
-    pickInnocentsForCanvas(action: Dto.Action & { type: 'pickInnocentsForCanvas' }): GameActions.Detective.PickInnocentsForCanvas {
+    pickInnocentsForCanvas(action: Dto.Actions.Specific<'pickInnocentsForCanvas'>): GameActions.Detective.PickInnocentsForCanvas {
         return action;
     }
 
-    canvas(action: Dto.Action & { type: 'canvas' }): GameActions.Detective.Canvas {
+    canvas(action: Dto.Actions.Specific<'canvas'>): GameActions.Detective.Canvas {
         return {
             type: 'canvas',
             character: Character.getByName(action.character)
         }
     }
 
-    placeProtection(action: Dto.Action & { type: 'placeProtection' }): GameActions.Suit.PlaceProtection {
+    placeProtection(action: Dto.Actions.Specific<'placeProtection'>): GameActions.Suit.PlaceProtection {
         return {
             type: 'placeProtection',
             target: convertPosition(action.target)
         }
     }
 
-    removeProtection(action: Dto.Action & { type: 'removeProtection' }): GameActions.Suit.RemoveProtection {
+    removeProtection(action: Dto.Actions.Specific<'removeProtection'>): GameActions.Suit.RemoveProtection {
         return {
             type: 'removeProtection',
             target: convertPosition(action.target)
         }
     }
 
-    decideProtect(action: Dto.Action & { type: 'decideProtect' }): GameActions.Suit.DecideProtect {
+    decideProtect(action: Dto.Actions.Specific<'decideProtect'>): GameActions.Suit.DecideProtect {
         return action;
     }
 
 
-    profile(action: Dto.Action & { type: 'profile' }): GameActions.Profiler.Profile {
+    profile(action: Dto.Actions.Specific<'profile'>): GameActions.Profiler.Profile {
         return {
             type: 'profile',
             character: Character.getByName(action.character)
@@ -151,7 +160,7 @@ export function convertPosition(positionDto?: Dto.Position): Position {
 }
 
 
-export function visitAction(action: Dto.Action, actionVisitor: GameActionDtoConverter): GameActions.Any | undefined {
+export function visitAction(action: Dto.Actions.Any, actionVisitor: GameActionDtoConverter): GameActions.Any | undefined {
     const functionName = action.type;
     const func = (actionVisitor as any)[functionName];
 

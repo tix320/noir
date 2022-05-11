@@ -97,7 +97,7 @@ class Player implements IPlayer<User, GameActions.Any> {
     }
 
     doAction(action: GameActions.Any): Promise<void> {
-        let dtoAction: Dto.Action = convertActionToDto(action);
+        let dtoAction: Dto.Actions.Any = convertActionToDto(action);
 
         return API.doGameAction(dtoAction);
     }

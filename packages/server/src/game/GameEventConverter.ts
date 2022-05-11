@@ -4,33 +4,40 @@ import { GameEvents } from "@tix320/noir-core/src/game/GameEvents";
 import { GameEventVisitor } from "@tix320/noir-core/src/game/GameEventVisitor";
 import { User } from "../user/User";
 
-export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any> {
+type Type = {
+    [EVENT in GameEvents.Any<User> as EVENT['type']]:
+    (event: GameEvents.ByKey<EVENT['type']>) =>
+        Dto.Events.Specific<EVENT['type']> extends (infer D)
+        ? D extends Dto.Events.Specific<EVENT['type']>
+        ? EVENT['type'] extends D['type']
+        ? D : never : never : never
+}
 
-    Hello(event: GameEvents.Hello): Dto.Events.Any & { type: 'Hello' } {
+export class GameEventConverter implements Type, GameEventVisitor<User, Dto.Events.Any> {
+
+    Hello(event: GameEvents.Hello): Dto.Events.Specific<'Hello'> {
         return event;
     }
 
     GameStarted(event: GameEvents.Started<User>): Dto.Events.Started {
-        const eventDto: Dto.Events.Started = {
+        return {
             type: 'GameStarted',
             players: event.players.map(player => convertPlayer(player)),
             arena: event.arena.map(suspect => convertSuspect(suspect)).raw(),
             evidenceDeck: event.evidenceDeck,
             profilerHand: event.profilerHand
         }
-
-        return eventDto;
     }
 
-    GameCompleted(event: GameEvents.Completed): Dto.Events.Any & { type: 'GameCompleted' } {
+    GameCompleted(event: GameEvents.Completed): Dto.Events.Specific<'GameCompleted'> {
         return event;
     }
 
-    GameAborted(event: GameEvents.Aborted): Dto.Events.Any & { type: 'GameAborted' } {
+    GameAborted(event: GameEvents.Aborted): Dto.Events.Specific<'GameAborted'> {
         return event;
     }
 
-    TurnChanged(event: GameEvents.TurnChanged<User>): Dto.Events.Any & { type: 'TurnChanged' } {
+    TurnChanged(event: GameEvents.TurnChanged<User>): Dto.Events.Specific<'TurnChanged'> {
         return {
             type: 'TurnChanged',
             player: convertUser(event.player),
@@ -48,35 +55,35 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         return eventDto;
     }
 
-    Shifted(event: GameEvents.Shifted): Dto.Events.Any & { type: 'Shifted' } {
+    Shifted(event: GameEvents.Shifted): Dto.Events.Specific<'Shifted'> {
         return event;
     }
 
-    Collapsed(event: GameEvents.Collapsed): Dto.Events.Any & { type: 'Collapsed' } {
+    Collapsed(event: GameEvents.Collapsed): Dto.Events.Specific<'Collapsed'> {
         return event;
     }
 
-    KilledByKnife(event: GameEvents.KilledByKnife): Dto.Events.Any & { type: 'KilledByKnife' } {
+    KilledByKnife(event: GameEvents.KilledByKnife): Dto.Events.Specific<'KilledByKnife'> {
         return event;
     }
 
-    KilledByThreat(event: GameEvents.KilledByThreat): Dto.Events.Any & { type: 'KilledByThreat' } {
+    KilledByThreat(event: GameEvents.KilledByThreat): Dto.Events.Specific<'KilledByThreat'> {
         return event;
     }
 
-    KilledByBomb(event: GameEvents.KilledByBomb): Dto.Events.Any & { type: 'KilledByBomb' } {
+    KilledByBomb(event: GameEvents.KilledByBomb): Dto.Events.Specific<'KilledByBomb'> {
         return event;
     }
 
-    KilledBySniper(event: GameEvents.KilledBySniper): Dto.Events.Any & { type: 'KilledBySniper' } {
+    KilledBySniper(event: GameEvents.KilledBySniper): Dto.Events.Specific<'KilledBySniper'> {
         return event;
     }
 
-    BombDetonated(event: GameEvents.BombDetonated): Dto.Events.Any & { type: 'BombDetonated' } {
+    BombDetonated(event: GameEvents.BombDetonated): Dto.Events.Specific<'BombDetonated'> {
         return event;
     }
 
-    Accused(event: GameEvents.Accused): Dto.Events.Any & { type: 'Accused' } {
+    Accused(event: GameEvents.Accused): Dto.Events.Specific<'Accused'> {
         return {
             type: 'Accused',
             target: event.target,
@@ -84,7 +91,7 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         }
     }
 
-    UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused): Dto.Events.Any & { type: 'UnsuccessfulAccused' } {
+    UnsuccessfulAccused(event: GameEvents.UnsuccessfulAccused): Dto.Events.Specific<'UnsuccessfulAccused'> {
         return {
             type: 'UnsuccessfulAccused',
             target: event.target,
@@ -92,15 +99,15 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         }
     }
 
-    Arrested(event: GameEvents.Arrested): Dto.Events.Any & { type: 'Arrested' } {
+    Arrested(event: GameEvents.Arrested): Dto.Events.Specific<'Arrested'> {
         return event;
     }
 
-    Disarmed(event: GameEvents.Disarmed): Dto.Events.Any & { type: 'Disarmed' } {
+    Disarmed(event: GameEvents.Disarmed): Dto.Events.Specific<'Disarmed'> {
         return event;
     }
 
-    AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>): Dto.Events.Any & { type: 'AutopsyCanvased' } {
+    AutopsyCanvased(event: GameEvents.AutopsyCanvased<User>): Dto.Events.Specific<'AutopsyCanvased'> {
         return {
             type: 'AutopsyCanvased',
             target: event.target,
@@ -108,7 +115,7 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         }
     }
 
-    AllCanvased(event: GameEvents.AllCanvased<User>): Dto.Events.Any & { type: 'AllCanvased' } {
+    AllCanvased(event: GameEvents.AllCanvased<User>): Dto.Events.Specific<'AllCanvased'> {
         return {
             type: 'AllCanvased',
             target: event.target,
@@ -116,7 +123,7 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         }
     }
 
-    Profiled(event: GameEvents.Profiled<User>): Dto.Events.Any & { type: 'Profiled' } {
+    Profiled(event: GameEvents.Profiled<User>): Dto.Events.Specific<'Profiled'> {
         return {
             type: 'Profiled',
             target: event.target,
@@ -125,46 +132,46 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         }
     }
 
-    Disguised(event: GameEvents.Disguised): Dto.Events.Any & { type: 'Disguised' } {
+    Disguised(event: GameEvents.Disguised): Dto.Events.Specific<'Disguised'> {
         return event;
     }
 
-    MarkerMoved(event: GameEvents.MarkerMoved): Dto.Events.Any & { type: 'MarkerMoved' } {
+    MarkerMoved(event: GameEvents.MarkerMoved): Dto.Events.Specific<'MarkerMoved'> {
         return event;
     }
 
-    InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked): Dto.Events.Any & { type: 'InnocentsForCanvasPicked' } {
+    InnocentsForCanvasPicked(event: GameEvents.InnocentsForCanvasPicked): Dto.Events.Specific<'InnocentsForCanvasPicked'> {
         return {
             type: 'InnocentsForCanvasPicked',
             suspects: event.suspects.map(character => character.name)
         };
     }
 
-    ThreatPlaced(event: GameEvents.ThreatPlaced): Dto.Events.Any & { type: 'ThreatPlaced' } {
+    ThreatPlaced(event: GameEvents.ThreatPlaced): Dto.Events.Specific<'ThreatPlaced'> {
         return event;
     }
 
-    BombPlaced(event: GameEvents.BombPlaced): Dto.Events.Any & { type: 'BombPlaced' } {
+    BombPlaced(event: GameEvents.BombPlaced): Dto.Events.Specific<'BombPlaced'> {
         return event;
     }
 
-    ProtectionPlaced(event: GameEvents.ProtectionPlaced): Dto.Events.Any & { type: 'ProtectionPlaced' } {
+    ProtectionPlaced(event: GameEvents.ProtectionPlaced): Dto.Events.Specific<'ProtectionPlaced'> {
         return event;
     }
 
-    ProtectionRemoved(event: GameEvents.ProtectionRemoved): Dto.Events.Any & { type: 'ProtectionRemoved' } {
+    ProtectionRemoved(event: GameEvents.ProtectionRemoved): Dto.Events.Specific<'ProtectionRemoved'> {
         return event;
     }
 
-    SuspectsSwapped(event: GameEvents.SuspectsSwapped): Dto.Events.Any & { type: 'SuspectsSwapped' } {
+    SuspectsSwapped(event: GameEvents.SuspectsSwapped): Dto.Events.Specific<'SuspectsSwapped'> {
         return event;
     }
 
-    SelfDestructionActivated(event: GameEvents.SelfDestructionActivated): Dto.Events.Any & { type: 'SelfDestructionActivated' } {
+    SelfDestructionActivated(event: GameEvents.SelfDestructionActivated): Dto.Events.Specific<'SelfDestructionActivated'> {
         return event;
     }
 
-    ProtectionActivated(event: GameEvents.ProtectionActivated): Dto.Events.Any & { type: 'ProtectionActivated' } {
+    ProtectionActivated(event: GameEvents.ProtectionActivated): Dto.Events.Specific<'ProtectionActivated'> {
         return {
             type: 'ProtectionActivated',
             target: event.target,
@@ -172,7 +179,7 @@ export class GameEventConverter implements GameEventVisitor<User, Dto.Events.Any
         }
     }
 
-    ProtectDecided(event: GameEvents.ProtectDecided): Dto.Events.Any & { type: 'ProtectDecided' } {
+    ProtectDecided(event: GameEvents.ProtectDecided): Dto.Events.Specific<'ProtectDecided'> {
         return {
             type: 'ProtectDecided',
             target: event.target,

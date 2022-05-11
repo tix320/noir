@@ -197,5 +197,7 @@ export namespace GameEvents {
         | Profiled | ProtectionActivated | ProtectDecided | ProtectionRemoved
         | Shifted | KilledBySniper | SuspectsSwapped | KilledByThreat;
 
-    export type Key<T extends Any = Any> = T['type']
+    export type Key<T extends Any = Any> = T['type'];
+
+    export type ByKey<EventKey extends Key> = Any & { type: EventKey };
 }
