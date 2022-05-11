@@ -28,7 +28,7 @@ export namespace GameDao {
         assert(result.modifiedCount === 1, `Illegal update result ${result}`);
     }
 
-    export async function addAction(id: string, actor: User, action: Dto.Action) {
+    export async function addAction(id: string, actor: User, action: Dto.Actions.Any) {
 
         const result = await GameModel.updateOne({ _id: id }, {
             $push: {
@@ -48,5 +48,9 @@ export namespace GameDao {
         });
 
         assert(result.modifiedCount === 1, `Illegal update result ${result}`);
+    }
+
+    export async function deleteGame(id: string) {
+        await GameModel.deleteOne({ _id: id });
     }
 }

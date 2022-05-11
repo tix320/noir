@@ -43,15 +43,17 @@ class Api {
     }
 
     connect(address: string, username : string, password: string): Promise<Dto.User> {
-        this.#socket = io(address, {
-            auth: {
-                username: username,
-                password: password,
-            }
-        });
-
         return new Promise((resolve, reject) => {
-            const socket = this.socket();
+            console.info('Connecting to server...');
+            
+            const socket = io(address, {
+                auth: {
+                    username: username,
+                    password: password,
+                }
+            });
+
+            this.#socket = socket;
 
             socket.once('connect', () => {
                 socket.emit(ApiEvents.GET_MY_USER, (user: Dto.User) => {

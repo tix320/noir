@@ -1,20 +1,22 @@
-import { Component } from "react";
-import { Button, Form } from "react-bootstrap";
+import { Component, KeyboardEvent } from "react";
+import { Alert, Button, Form } from "react-bootstrap";
 import "./Login.scss";
 import logoImg from "@tix320/noir-web-client-core/src/images/logo.png";
 import { withTranslation } from 'react-i18next';
 import classNames from "classnames";
 
 type Props = {
-    className?:string,
+    className?: string,
     t: any,
-    onLogin(username: string, password: string, permanent: boolean): void
+    onLogin(username: string, password: string, permanent: boolean): Promise<void>
 }
 
 type State = {
     username: string,
     password: string,
-    saveToken: boolean
+    saveToken: boolean,
+    disabled: boolean,
+    error?: string
 }
 
 class LoginComponent extends Component<Props, State>  {
@@ -22,12 +24,30 @@ class LoginComponent extends Component<Props, State>  {
     state: State = {
         username: "",
         password: "",
-        saveToken: false
+        saveToken: false,
+        disabled: false
     };
 
-    handleSubmit = (event : any) => {
+    onLogin = async () => {
+        this.setState({ disabled: true });
+        try {
+            await this.props.onLogin(this.state.username, this.state.password, this.state.saveToken);
+        } catch (error) {
+            const message = error.message === "Invalid credentials" ? error.message : "Connection error";
+            this.setState({ error: message, disabled: false });
+        }
+    };
+
+    handleSubmit = (event: any) => {
         event.preventDefault();
-        this.props.onLogin(this.state.username,this.state.password, this.state.saveToken)
+        this.onLogin();
+    }
+
+    handleKeyDown = (event: KeyboardEvent) => {
+        this.setState({ error: undefined });
+        if (event.code === 'Enter') {
+            this.onLogin();
+        }
     }
 
     render() {
@@ -44,12 +64,17 @@ class LoginComponent extends Component<Props, State>  {
                     <div className="form">
                         <div className="form-group">
                             <input type="text" placeholder={locale('username')}
+                                onKeyDown={this.handleKeyDown}
                                 onChange={(e) => this.setState({ username: e.target.value })} />
                         </div>
                         <div className="form-group">
                             <input type="password" placeholder={locale('password')}
+                                onKeyDown={this.handleKeyDown}
                                 onChange={(e) => this.setState({ password: e.target.value })} />
                         </div>
+                        {this.state.error && <Alert variant='danger'>
+                            {this.state.error}
+                        </Alert>}
                         <div className="form-check">
                             <Form.Check
                                 type="switch"
@@ -62,7 +87,7 @@ class LoginComponent extends Component<Props, State>  {
                 </div>
 
                 <div className="footer">
-                    <Button variant="primary" onClick={this.handleSubmit}>Login</Button>
+                    <Button variant="primary" disabled={this.state.disabled} onClick={this.handleSubmit}>Login</Button>
                 </div>
             </div>
         );

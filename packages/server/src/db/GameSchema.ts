@@ -12,7 +12,7 @@ interface PlayerInfo {
 
 interface Action {
     actor: ObjectId,
-    properties: Dto.Action
+    properties: Dto.Actions.Any
 }
 
 export interface IGame {

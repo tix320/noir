@@ -17,17 +17,18 @@ type Props = {
 }
 
 export default function AppComponent(props: Props) {
-    const login = (username: string, password: string, saveToken: boolean) => {
-        API.connect(SERVER_ADDRESS, username, password).then(user => {
+    const login = async (username: string, password: string, saveToken: boolean) => {
+        try {
+            const user = await API.connect(SERVER_ADDRESS, username, password);
             storeToken(btoa(`${username}$$${password}`), saveToken) //TODO:
-            store.dispatch(userChanged(new User(user.id, user.name)))
-        }).catch(reason => {
-            console.error(reason);
-            if (reason.message === 'Invalid token') {
+            store.dispatch(userChanged(new User(user.id, user.name)));
+        } catch (error) {
+            if (error.message === "Invalid credentials") {
                 removeToken();
             }
-        })
-    }
+            throw error;
+        }
+    };
 
     const user = useSelector((state: StoreState) => state.user);
 

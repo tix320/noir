@@ -158,6 +158,7 @@ export namespace GameService {
         } else if (gameData.state === 'PLAYING') {
             if (!gameData.game.isCompleted) {
                 gameData.game.forceComplete();
+                GameDao.deleteGame(gameId);
             }
         }
 

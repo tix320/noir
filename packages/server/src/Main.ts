@@ -77,8 +77,8 @@ io.use(async (socket, next) => {
     const username = socket.handshake.auth.username;
     const password = socket.handshake.auth.password;
 
-    const user = await UserService.login(username, password);
-    if (user) {
+    try {
+        const user = await UserService.login(username, password);
         console.info(`Connected ${user.name}`)
 
         socket.on('disconnect', reason => {
@@ -88,8 +88,8 @@ io.use(async (socket, next) => {
         socket.data = user;
 
         next()
-    } else {
-        console.info(`Invalid credentials for ${username}`)
+    } catch (error) {
+        console.error(new Error(`Authentication failed for user ${username}`, { cause: error }));
         next(new Error("Invalid credentials"))
     }
 });

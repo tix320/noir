@@ -24,7 +24,7 @@ export namespace UserService {
         }
     }
 
-    export async function getUser(id: string): Promise<User | undefined> {
+    export async function getUser(id: string): Promise<User> {
         let user = connectedUsers.get(id);
 
         if (user) {
