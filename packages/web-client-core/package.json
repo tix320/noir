@@ -8,8 +8,9 @@
     "build": "tsc"
   },
   "dependencies": {
+    "socket.io-client": "4.5.0"
   },
   "devDependencies": {
-    "typescript": "^4.6.3"
+    "typescript": "4.6.3"
   }
 }

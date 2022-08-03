@@ -28,5 +28,9 @@ package-lock.json
 *.js
 *.js.map
 
+# IDEA
+.IDEA
+*.iml
+
 # VS code
 .history

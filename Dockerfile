@@ -16,8 +16,6 @@ RUN npm install --production
 
 COPY . .
 
-RUN npm install -g typescript
-
 RUN npm -w packages/core run build
 RUN npm -w packages/web-client-core run build
 RUN npm -w packages/react-client run build

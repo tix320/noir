@@ -143,14 +143,10 @@ export default function GameComponent(props: Props) {
     }
 
     useEffect(() => {
-        const keyDownListener = (event: KeyboardEvent) => {
-            onKeyDown(event);
-        };
-
-        document.addEventListener('keydown', keyDownListener);
+        document.addEventListener('keydown', onKeyDown);
 
         return () => {
-            document.removeEventListener('keydown', keyDownListener);
+            document.removeEventListener('keydown', onKeyDown);
         }
     }, []);
 
