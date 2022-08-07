@@ -2,7 +2,10 @@
   "name": "@tix320/noir",
   "version": "0.1.0",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "start": "pwsh scripts/dev-start.ps1",
+    "start-prod": "pwsh scripts/prod-start.ps1"
+  },
   "workspaces": [
     "packages/*"
   ],

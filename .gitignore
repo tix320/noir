@@ -9,8 +9,8 @@ node_modules
 # production
 /build
 
-packages/web-client/target
-packages/web-client/build
+packages/react-client/target
+packages/react-client/build
 
 # misc
 .DS_Store
