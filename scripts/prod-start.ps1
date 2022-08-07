@@ -12,13 +12,12 @@ Param(
     $Hostname
 )
 
-& "$PSScriptRoot/prod-build.ps1"
+& "$PSScriptRoot/prod-build.ps1" "$Hostname"
 
 $env:SERVER_PORT=$ServerPort
-$env:REACT_APP_SERVER_ADDRESS=$Hostname
 $env:DB_HOST=$DBAddress
 $env:WEB_CLIENT_BUNDLE="../react-client/build"
 
-$env:NODE_ENV=production
+$env:NODE_ENV="production"
 
 npm -w packages/server run start
