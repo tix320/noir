@@ -9,7 +9,7 @@ import LoginComponent from "../login/LoginComponent";
 import MainComponent from "../main/MainComponent";
 import styles from './AppComponent.module.css';
 
-const SERVER_ADDRESS = process.env.REACT_APP_SERVER_ADDRESS || "http://localhost:5000"
+const SERVER_ADDRESS = process.env.REACT_APP_USE_SAME_ORIGIN ? window.location.host : process.env.REACT_APP_SERVER_ADDRESS || "http://localhost:5000"
 console.info(`SERVER_ADDRESS=${SERVER_ADDRESS}`);
 
 type Props = {

@@ -1,10 +1,4 @@
-Param(
-    [String]
-    [Parameter(Mandatory = $true)]
-    $Hostname
-)
-
-$env:REACT_APP_SERVER_ADDRESS=$Hostname
+$env:REACT_APP_USE_SAME_ORIGIN="true"
 
 npm install --production
 

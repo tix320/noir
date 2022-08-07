@@ -5,14 +5,10 @@ Param(
 
     [String]
     [Parameter(Mandatory = $true)]
-    $DBAddress,
-
-    [String]
-    [Parameter(Mandatory = $true)]
-    $Hostname
+    $DBAddress
 )
 
-& "$PSScriptRoot/prod-build.ps1" "$Hostname"
+& "$PSScriptRoot/prod-build.ps1"
 
 $env:SERVER_PORT=$ServerPort
 $env:DB_HOST=$DBAddress

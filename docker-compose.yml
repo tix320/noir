@@ -12,8 +12,6 @@ services:
     container_name: noir-app
     build:
         context: .
-        args:
-            - REACT_APP_SERVER_ADDRESS=http://${NOIR_HOSTNAME}
     environment:
         - SERVER_PORT=${NOIR_SERVER_PORT}
         - DB_HOST=db:${NOIR_DB_PORT}
