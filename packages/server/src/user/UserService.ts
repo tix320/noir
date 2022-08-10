@@ -6,6 +6,17 @@ import { User } from "./User";
 export namespace UserService {
     const connectedUsers: Map<string, User | Promise<User>> = new Map()
 
+    export async function register(username: string, password: string) {
+        const hash = sha512.crypt(password, 'saltsalt');
+        
+        const userModel = await UserModel.create({
+            username: username,
+            password: hash
+        });
+
+        return getUser(userModel.id);
+    }
+
     export async function login(username: string, password: string) {
         const userModel = await UserModel.findOne({ username: username });
         assert(userModel, `User ${username} not found`);

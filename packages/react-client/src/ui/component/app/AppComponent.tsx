@@ -17,9 +17,9 @@ type Props = {
 }
 
 export default function AppComponent(props: Props) {
-    const login = async (username: string, password: string, saveToken: boolean) => {
+    const login = async (register: boolean, username: string, password: string, saveToken: boolean) => {
         try {
-            const user = await API.connect(SERVER_ADDRESS, username, password);
+            const user = await API.connect(SERVER_ADDRESS, username, password, register);
             storeToken(btoa(`${username}$$${password}`), saveToken) //TODO:
             store.dispatch(userChanged(new User(user.id, user.name)));
         } catch (error) {
@@ -37,7 +37,7 @@ export default function AppComponent(props: Props) {
         if (token) {
             const decoded = atob(token);
             const [username, password] = decoded.split('$$');
-            login(username, password, false)
+            login(false, username, password, false)
         }
     }, [])
 

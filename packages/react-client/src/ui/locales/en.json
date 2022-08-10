@@ -1,6 +1,7 @@
 {
     "token": "Token",
-    "save-token": "Save Token",
+    "remember-me": "Remember Me",
+    "register": "Register",
     "cancel": "Cancel",
     "protect": "Protect",
     "let-die": "Let die",

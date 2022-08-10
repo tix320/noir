@@ -42,7 +42,7 @@ class Api {
         });
     }
 
-    connect(address: string, username : string, password: string): Promise<Dto.User> {
+    connect(address: string, username : string, password: string, register: boolean): Promise<Dto.User> {
         return new Promise((resolve, reject) => {
             console.info('Connecting to server...');
             
@@ -50,6 +50,7 @@ class Api {
                 auth: {
                     username: username,
                     password: password,
+                    register: register
                 }
             });
 

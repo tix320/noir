@@ -74,11 +74,10 @@ const GAME_ACTION_DTO_CONVERTER = new GameActionDtoConverter();
 const GAME_EVENT_CONVERTER = new GameEventConverter();
 
 io.use(async (socket, next) => {
-    const username = socket.handshake.auth.username;
-    const password = socket.handshake.auth.password;
+    const { register, username, password } = socket.handshake.auth;
 
     try {
-        const user = await UserService.login(username, password);
+        const user = await (register ? UserService.register(username, password) : UserService.login(username, password));
         console.info(`Connected ${user.name}`)
 
         socket.on('disconnect', reason => {

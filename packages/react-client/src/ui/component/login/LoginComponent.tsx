@@ -8,10 +8,11 @@ import classNames from "classnames";
 type Props = {
     className?: string,
     t: any,
-    onLogin(username: string, password: string, permanent: boolean): Promise<void>
+    onLogin(register: boolean, username: string, password: string, permanent: boolean): Promise<void>
 }
 
 type State = {
+    register: boolean,
     username: string,
     password: string,
     saveToken: boolean,
@@ -22,6 +23,7 @@ type State = {
 class LoginComponent extends Component<Props, State>  {
 
     state: State = {
+        register: false,
         username: "",
         password: "",
         saveToken: false,
@@ -31,7 +33,7 @@ class LoginComponent extends Component<Props, State>  {
     onLogin = async () => {
         this.setState({ disabled: true });
         try {
-            await this.props.onLogin(this.state.username, this.state.password, this.state.saveToken);
+            await this.props.onLogin(this.state.register, this.state.username, this.state.password, this.state.saveToken);
         } catch (error) {
             const message = error.message === "Invalid credentials" ? error.message : "Connection error";
             this.setState({ error: message, disabled: false });
@@ -62,6 +64,15 @@ class LoginComponent extends Component<Props, State>  {
                         <img alt="logo" src={logoImg} />
                     </div>
                     <div className="form">
+                    <div className="form-check">
+                            <Form.Check
+                                type="switch"
+                                id="custom-switch"
+                                label={locale('register')}
+                                onChange={(e) => this.setState({ register: e.target.checked })} />
+
+                        </div>
+
                         <div className="form-group">
                             <input type="text" placeholder={locale('username')}
                                 onKeyDown={this.handleKeyDown}
@@ -79,7 +90,7 @@ class LoginComponent extends Component<Props, State>  {
                             <Form.Check
                                 type="switch"
                                 id="custom-switch"
-                                label={locale('save-token')}
+                                label={locale('remember-me')}
                                 onChange={(e) => this.setState({ saveToken: e.target.checked })} />
 
                         </div>
@@ -87,7 +98,7 @@ class LoginComponent extends Component<Props, State>  {
                 </div>
 
                 <div className="footer">
-                    <Button variant="primary" disabled={this.state.disabled} onClick={this.handleSubmit}>Login</Button>
+                    <Button variant="primary" disabled={this.state.disabled} onClick={this.handleSubmit}>{this.state.register ? 'Register' : 'Login'}</Button>
                 </div>
             </div>
         );
