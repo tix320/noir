@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "pwsh scripts/dev-start.ps1",
+    "build-prod": "pwsh scripts/prod-build.ps1",
     "start-prod": "pwsh scripts/prod-start.ps1"
   },
   "workspaces": [
