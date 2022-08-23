@@ -4,7 +4,7 @@ import { UserModel } from "../db/UserSchema";
 import { User } from "./User";
 
 export namespace UserService {
-    const connectedUsers: Map<string, User | Promise<User>> = new Map()
+    const loggedUsers: Map<string, User | Promise<User>> = new Map()
 
     export async function register(username: string, password: string) {
         const hash = sha512.crypt(password, 'saltsalt');
@@ -36,7 +36,7 @@ export namespace UserService {
     }
 
     export async function getUser(id: string): Promise<User> {
-        let user = connectedUsers.get(id);
+        let user = loggedUsers.get(id);
 
         if (user) {
             if (user instanceof User) {
@@ -53,7 +53,7 @@ export namespace UserService {
                     assert(userModel, `User not found with id ${id}`);
 
                     const newUser = new User(id, userModel.username);
-                    connectedUsers.set(id, newUser);
+                    loggedUsers.set(id, newUser);
 
                     resolve(newUser);
                 } catch (e) {
@@ -61,7 +61,7 @@ export namespace UserService {
                 }
             });
 
-            connectedUsers.set(id, promise);
+            loggedUsers.set(id, promise);
 
             return await promise;
         }

@@ -1,6 +1,8 @@
 export namespace ApiEvents {
     export const GET_MY_USER = "myUser";
 
+    export const GET_ONLINE_COUNT = "getOnlineCount";
+
     export const CREATE_GAME = 'createGame';
     export const JOIN_GAME = 'joinGame';
     export const CHANGE_ROLE_IN_GAME = 'changeRoleInGame';

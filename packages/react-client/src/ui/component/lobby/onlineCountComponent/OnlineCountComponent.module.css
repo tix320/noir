@@ -1,0 +1,13 @@
+.container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.icon {
+    height: 32px;
+}
+
+.label {
+    font-size: 32px;
+}

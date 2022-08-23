@@ -1,12 +1,13 @@
 import { Dto } from "@tix320/noir-core/src/api/Dto";
 import { onFirst } from "@tix320/noir-core/src/extension/RxJSExtension";
-import { useState } from "react";
+import { API } from "@tix320/noir-web-client-core";
+import { Fragment, useState } from "react";
 import { Button } from "react-bootstrap";
-import {API} from "@tix320/noir-web-client-core";
 import { useServerConnectedEffect } from "../common/Hooks";
 import GameCreationComponent from "./GameCreationComponent";
 import GameSelectionComponent from "./GameSelectionComponent";
 import styles from "./LobbyComponent.module.css";
+import OnlineCountComponent from "./onlineCountComponent/OnlineCountComponent";
 
 type Props = {
 }
@@ -43,12 +44,12 @@ export default function LobbyComponent(props: Props) {
         setCreatingGame(true);
     }
 
+    let content;
+
     if (creatingGame) {
-        return (
-            <GameCreationComponent />
-        );
+        content = (<GameCreationComponent />);
     } else {
-        return (
+        content = (
             <div>
                 <GameSelectionComponent className={styles.gameSelectionPanel} games={games} onGameSelect={joinGame} />
                 <Button className={styles.createGameButton} onClick={switchToGameCreation}> Create new game</Button>
@@ -56,5 +57,10 @@ export default function LobbyComponent(props: Props) {
         );
     }
 
-
+    return (
+        <Fragment>
+            <OnlineCountComponent className={styles.onlineCountPanel} refreshMillis={5000} />
+            {content}
+        </Fragment>
+    )
 }

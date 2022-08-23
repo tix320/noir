@@ -68,6 +68,16 @@ class Api {
         })
     }
 
+    getOnlineCount(): Promise<number> {
+        return new Promise<number>(resolve => {
+            const socket = this.socket();
+
+            socket.emit(ApiEvents.GET_ONLINE_COUNT, (count: number) => {
+                resolve(count);
+            });
+        }); 
+    }
+
     createGame(gameDetails: any): Promise<Dto.GamePreparation> {
         return new Promise<Dto.GamePreparation>(resolve => {
             const socket = this.socket();

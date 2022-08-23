@@ -73,6 +73,8 @@ function userResponse(user: User): Dto.User {
 const GAME_ACTION_DTO_CONVERTER = new GameActionDtoConverter();
 const GAME_EVENT_CONVERTER = new GameEventConverter();
 
+const userConnections: Map<string, any[]> = new Map()
+
 io.use(async (socket, next) => {
     const { register, username, password } = socket.handshake.auth;
 
@@ -80,7 +82,20 @@ io.use(async (socket, next) => {
         const user = await (register ? UserService.register(username, password) : UserService.login(username, password));
         console.info(`Connected ${user.name}`)
 
+        let connections = userConnections.get(user.id);
+        if (connections) {
+            connections.push(socket);
+        }
+        else {
+            connections = [socket];
+            userConnections.set(user.id, connections);
+        }
+
         socket.on('disconnect', reason => {
+            connections!.removeFirst(socket);
+            if (connections!.length === 0) {
+                userConnections.delete(user.id);
+            }
             console.error(`Disconnected ${user.name} Reason: ${reason}`);
         });
 
@@ -100,6 +115,11 @@ io.on("connection", (socket) => {
         const response = userResponse(user);
         cb(response);
     });
+
+    socket.on(ApiEvents.GET_ONLINE_COUNT, (cb) => {
+        const response = userConnections.size;
+        cb(response);
+    })
 
     socket.on(ApiEvents.CREATE_GAME, (info, cb) => {
         GameService.createGame(user, info);

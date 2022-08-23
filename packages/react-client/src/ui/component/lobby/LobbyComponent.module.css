@@ -11,6 +11,12 @@
 
 .createGameButton {
     position: absolute;
+    bottom: 2vh;
+    right: 2vw;
+}
+
+.onlineCountPanel {
+    position: absolute;
     top: 2vh;
-    right: 2vh;
+    right: 2vw;
 }
