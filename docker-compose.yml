@@ -14,7 +14,7 @@ services:
         context: .
     environment:
         - SERVER_PORT=${NOIR_SERVER_PORT}
-        - DB_HOST=db:${NOIR_DB_PORT}
+        - DB_CONNECTION_STRING=mongodb://db:${NOIR_DB_PORT}/noir
     ports:
         - ${NOIR_SERVER_PORT}:${NOIR_SERVER_PORT}
     restart: always
